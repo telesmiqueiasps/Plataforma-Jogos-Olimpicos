@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Sports Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-logo">
+          <span>🏆</span>
+          <span>Sports Platform</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item active">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item">
+          <span class="nav-icon">🏆</span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item">
+          <span class="nav-icon">🎮</span>
+          <span>Jogos</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item">
+          <span class="nav-icon">🏅</span>
+          <span>Atletas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Organizador</div>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%; margin-top:12px; justify-content:center;">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">Dashboard</span>
+        <div class="topbar-actions">
+          <a href="championships.html" class="btn btn-primary btn-sm">+ Novo Campeonato</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Visão Geral</h1>
+            <p class="page-subtitle" id="welcome-msg">Bem-vindo de volta!</p>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-icon">🏆</span>
+            <div class="stat-value" id="stat-total-champs">—</div>
+            <div class="stat-label">Total de Campeonatos</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">✅</span>
+            <div class="stat-value" id="stat-active-champs" style="color:var(--accent-teal);">—</div>
+            <div class="stat-label">Campeonatos Ativos</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⚽</span>
+            <div class="stat-value" id="stat-sports">—</div>
+            <div class="stat-label">Modalidades</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">👥</span>
+            <div class="stat-value" id="stat-teams" style="color:var(--warning);">—</div>
+            <div class="stat-label">Equipes</div>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <!-- Active championships -->
+          <div class="card section">
+            <div class="card-header">
+              <span class="card-title">🏆 Campeonatos Ativos</span>
+              <a href="championships.html" class="btn btn-sm btn-secondary">Ver todos</a>
+            </div>
+            <div class="card-body" id="active-champs-list">
+              <div class="page-loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Sports -->
+          <div class="card section">
+            <div class="card-header">
+              <span class="card-title">⚽ Modalidades</span>
+              <button class="btn btn-sm btn-teal" id="btn-add-sport">+ Adicionar</button>
+            </div>
+            <div class="card-body" id="sports-list">
+              <div class="page-loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent championships table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 Últimos Campeonatos</span>
+            <a href="championships.html" class="btn btn-sm btn-secondary">Gerenciar</a>
+          </div>
+          <div class="card-body" style="padding:0;" id="recent-champs-card">
+            <div class="page-loading" style="padding:20px;"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal: Add Sport -->
+  <div class="modal-overlay" id="modal-sport">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Nova Modalidade</span>
+        <button class="modal-close" onclick="closeModal('modal-sport')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="sport-alert" class="alert alert-error" style="display:none;"></div>
+        <form id="sport-form">
+          <div class="form-group">
+            <label for="sport-name">Nome *</label>
+            <input type="text" id="sport-name" class="form-control" placeholder="Ex: Futebol" required>
+          </div>
+          <div class="form-group">
+            <label for="sport-icon">Ícone (emoji)</label>
+            <input type="text" id="sport-icon" class="form-control" placeholder="⚽">
+          </div>
+          <div class="form-group">
+            <label for="sport-desc">Descrição</label>
+            <input type="text" id="sport-desc" class="form-control" placeholder="Breve descrição...">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-sport')">Cancelar</button>
+        <button class="btn btn-primary" id="sport-save-btn" onclick="saveSport()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!requireAuth()) { /* redirect handled by requireAuth */ }
+
+    // Welcome message
+    const user = getUser();
+    if (user) {
+      const firstName = (user.name || user.email || 'Usuário').split(' ')[0];
+      document.getElementById('welcome-msg').textContent = `Bem-vindo de volta, ${firstName}!`;
+    }
+
+    let allChamps = [];
+    let allSports = [];
+
+    function statusBadge(status) {
+      const map = {
+        draft: '<span class="badge badge-draft">Rascunho</span>',
+        active: '<span class="badge badge-active">Ativo</span>',
+        finished: '<span class="badge badge-finished">Encerrado</span>',
+        scheduled: '<span class="badge badge-info">Agendado</span>',
+      };
+      return map[status] || `<span class="badge">${status || '—'}</span>`;
+    }
+
+    function formatName(status) {
+      const map = { round_robin: 'Pontos Corridos', elimination: 'Eliminatório', hybrid: 'Híbrido' };
+      return map[status] || (status ? status.replace('_', ' ') : '—');
+    }
+
+    async function loadDashboard() {
+      // Load sports
+      try {
+        allSports = await SportsAPI.list();
+        document.getElementById('stat-sports').textContent = allSports.length;
+        renderSports();
+      } catch (err) {
+        document.getElementById('stat-sports').textContent = '—';
+        document.getElementById('sports-list').innerHTML =
+          '<div class="alert alert-error">Não foi possível carregar as modalidades.</div>';
+      }
+
+      // Load championships
+      try {
+        allChamps = await ChampAPI.list();
+        const active = allChamps.filter(c => c.status === 'active');
+        document.getElementById('stat-total-champs').textContent = allChamps.length;
+        document.getElementById('stat-active-champs').textContent = active.length;
+        renderActiveChamps(active);
+        renderRecentChamps(allChamps);
+      } catch (err) {
+        document.getElementById('stat-total-champs').textContent = '—';
+        document.getElementById('stat-active-champs').textContent = '—';
+        document.getElementById('active-champs-list').innerHTML =
+          '<div class="alert alert-error">Não foi possível carregar os campeonatos.</div>';
+        document.getElementById('recent-champs-card').innerHTML =
+          '<div class="alert alert-error" style="margin:16px;">Não foi possível carregar os campeonatos.</div>';
+      }
+
+      // Load teams count (graceful)
+      try {
+        const teams = await TeamsAPI.list();
+        document.getElementById('stat-teams').textContent = Array.isArray(teams) ? teams.length : '—';
+      } catch {
+        document.getElementById('stat-teams').textContent = '—';
+      }
+    }
+
+    function renderSports() {
+      const container = document.getElementById('sports-list');
+      if (!allSports.length) {
+        container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚽</span><p>Nenhuma modalidade cadastrada.</p></div>';
+        return;
+      }
+      container.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px;">
+        ${allSports.map(s => `
+          <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-tertiary); border-radius:8px; border:1px solid var(--border);">
+            <span style="font-size:22px;">${s.icon || '🏅'}</span>
+            <div>
+              <div style="font-weight:600; font-size:14px;">${s.name}</div>
+              ${s.description ? `<div style="font-size:12px; color:var(--text-secondary);">${s.description}</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+    }
+
+    function renderActiveChamps(active) {
+      const container = document.getElementById('active-champs-list');
+      if (!active.length) {
+        container.innerHTML = '<div class="empty-state"><span class="empty-icon">🏆</span><p>Nenhum campeonato ativo.</p><a href="championships.html" class="btn btn-primary btn-sm">Criar Campeonato</a></div>';
+        return;
+      }
+      container.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px;">
+        ${active.slice(0, 5).map(c => `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--bg-tertiary); border-radius:8px; border:1px solid var(--border);">
+            <div>
+              <div style="font-weight:600; font-size:14px;">${c.name}</div>
+              <div style="font-size:12px; color:var(--text-secondary);">${c.sport?.name || '—'} &middot; ${formatName(c.format)}</div>
+            </div>
+            <span class="badge badge-active">Ativo</span>
+          </div>
+        `).join('')}
+        ${active.length > 5 ? `<p style="text-align:center; font-size:12px; color:var(--text-secondary); padding-top:4px;">+${active.length - 5} mais</p>` : ''}
+      </div>`;
+    }
+
+    function renderRecentChamps(champs) {
+      const container = document.getElementById('recent-champs-card');
+      const recent = champs.slice(0, 8);
+      if (!recent.length) {
+        container.innerHTML = '<div class="empty-state"><span class="empty-icon">🏆</span><p>Nenhum campeonato encontrado.</p></div>';
+        return;
+      }
+      container.innerHTML = `
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Modalidade</th>
+                <th>Formato</th>
+                <th>Status</th>
+                <th>Início</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${recent.map(c => `
+                <tr>
+                  <td><strong>${c.name}</strong></td>
+                  <td>${c.sport?.name || c.sport_name || '—'}</td>
+                  <td>${formatName(c.format)}</td>
+                  <td>${statusBadge(c.status)}</td>
+                  <td>${fmtDate(c.start_date)}</td>
+                  <td>
+                    <div class="actions">
+                      <a href="games.html?championship_id=${c.id}" class="btn btn-sm btn-secondary">Jogos</a>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    // Add sport
+    document.getElementById('btn-add-sport').addEventListener('click', () => {
+      document.getElementById('sport-form').reset();
+      document.getElementById('sport-alert').style.display = 'none';
+      openModal('modal-sport');
+    });
+
+    async function saveSport() {
+      const btn = document.getElementById('sport-save-btn');
+      const alertEl = document.getElementById('sport-alert');
+      alertEl.style.display = 'none';
+
+      const name = document.getElementById('sport-name').value.trim();
+      if (!name) {
+        alertEl.textContent = 'O nome da modalidade é obrigatório.';
+        alertEl.style.display = 'flex';
+        return;
+      }
+
+      const data = {
+        name,
+        icon: document.getElementById('sport-icon').value.trim() || null,
+        description: document.getElementById('sport-desc').value.trim() || null,
+      };
+
+      btnLoading(btn, true, 'Salvando...');
+      try {
+        await SportsAPI.create(data);
+        closeModal('modal-sport');
+        showToast('Modalidade criada com sucesso!', 'success');
+        allSports = await SportsAPI.list();
+        document.getElementById('stat-sports').textContent = allSports.length;
+        renderSports();
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atletas — Sports Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-logo">
+          <span>🏆</span>
+          <span>Sports Platform</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item">
+          <span class="nav-icon">🏆</span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item">
+          <span class="nav-icon">🎮</span>
+          <span>Jogos</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item active">
+          <span class="nav-icon">🏅</span>
+          <span>Atletas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Organizador</div>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%; margin-top:12px; justify-content:center;">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">Atletas</span>
+        <div class="topbar-actions" id="topbar-actions">
+          <!-- dynamic -->
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb" id="breadcrumb">
+          <a href="teams.html">Equipes</a>
+          <span class="breadcrumb-sep">›</span>
+          <span id="breadcrumb-team">Todos os Atletas</span>
+        </div>
+
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" id="page-title">Atletas</h1>
+            <p class="page-subtitle" id="page-subtitle">Gerencie os atletas cadastrados</p>
+          </div>
+          <button class="btn btn-primary" id="btn-new-athlete">+ Novo Atleta</button>
+        </div>
+
+        <!-- No team selected -->
+        <div id="no-team-msg" class="alert alert-info" style="display:none;">
+          <span>ℹ️</span>
+          <span>Selecione uma equipe para visualizar seus atletas.</span>
+        </div>
+
+        <!-- API notice -->
+        <div id="api-notice" class="alert alert-warning" style="display:none;">
+          <span>⚠️</span>
+          <span>Endpoint de atletas ainda não disponível na API. Esta funcionalidade estará disponível em breve. Dados de demonstração exibidos.</span>
+        </div>
+
+        <!-- Search -->
+        <div class="table-actions">
+          <div class="search-input">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" class="form-control" placeholder="Buscar atleta..." style="width:240px;">
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="position-filter" class="form-control" style="width:160px;">
+              <option value="">Todas as posições</option>
+            </select>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; color:var(--text-secondary);">
+              <input type="checkbox" id="active-only" style="width:auto;"> Apenas ativos
+            </label>
+          </div>
+        </div>
+
+        <!-- Athletes table -->
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div id="athletes-table-container">
+              <div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando atletas...</span></div>
+            </div>
+            <div id="athletes-pagination" style="padding:12px 16px;"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal: New Athlete -->
+  <div class="modal-overlay" id="modal-athlete">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Novo Atleta</span>
+        <button class="modal-close" onclick="closeModal('modal-athlete')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="athlete-alert" class="alert alert-error" style="display:none;"></div>
+        <form id="athlete-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="athlete-name">Nome Completo *</label>
+            <input type="text" id="athlete-name" class="form-control" placeholder="Ex: João Silva" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="athlete-number">Número da Camisa</label>
+              <input type="number" id="athlete-number" class="form-control" placeholder="10" min="1" max="99">
+            </div>
+            <div class="form-group">
+              <label for="athlete-position">Posição</label>
+              <input type="text" id="athlete-position" class="form-control" placeholder="Ex: Atacante">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="athlete-birth">Data de Nascimento</label>
+              <input type="date" id="athlete-birth" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="athlete-doc">Documento (CPF/RG)</label>
+              <input type="text" id="athlete-doc" class="form-control" placeholder="000.000.000-00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="athlete-photo">URL da Foto (opcional)</label>
+            <input type="url" id="athlete-photo" class="form-control" placeholder="https://exemplo.com/foto.jpg">
+          </div>
+          <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="athlete-active" checked style="width:auto;">
+              <span>Atleta ativo</span>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-athlete')">Cancelar</button>
+        <button class="btn btn-primary" id="athlete-save-btn">Cadastrar Atleta</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!requireAuth()) {}
+
+    const teamId = getParam('team_id');
+    let allAthletes = [];
+    let currentPage = 1;
+    const PER_PAGE = 12;
+    let teamInfo = null;
+
+    // Demo athletes for when API is not available
+    const DEMO_ATHLETES = [
+      { id: 1, name: 'Carlos Oliveira', number: 10, position: 'Atacante', is_active: true, birth_date: '1998-05-12' },
+      { id: 2, name: 'Pedro Santos', number: 1, position: 'Goleiro', is_active: true, birth_date: '1995-08-22' },
+      { id: 3, name: 'Lucas Ferreira', number: 4, position: 'Zagueiro', is_active: true, birth_date: '2000-03-15' },
+      { id: 4, name: 'Rafael Costa', number: 8, position: 'Meio-Campo', is_active: false, birth_date: '1997-11-30' },
+      { id: 5, name: 'André Moreira', number: 11, position: 'Ponta', is_active: true, birth_date: '2001-07-04' },
+      { id: 6, name: 'Thiago Lima', number: 6, position: 'Lateral', is_active: true, birth_date: '1999-02-18' },
+    ];
+
+    async function initPage() {
+      if (!teamId) {
+        document.getElementById('no-team-msg').style.display = 'flex';
+        document.getElementById('breadcrumb-team').textContent = 'Todos os Atletas';
+        document.getElementById('page-title').textContent = 'Todos os Atletas';
+        document.getElementById('page-subtitle').textContent = 'Selecione uma equipe para gerenciar atletas específicos';
+        document.getElementById('btn-new-athlete').style.display = 'none';
+        document.getElementById('topbar-actions').innerHTML = '';
+
+        // Show demo or try generic listing
+        allAthletes = DEMO_ATHLETES;
+        document.getElementById('api-notice').style.display = 'flex';
+        renderAthletes();
+        return;
+      }
+
+      // Setup topbar action
+      document.getElementById('topbar-actions').innerHTML = `
+        <a href="teams.html" class="btn btn-secondary btn-sm">← Equipes</a>
+        <button class="btn btn-primary btn-sm" onclick="openNewAthleteModal()">+ Novo Atleta</button>
+      `;
+
+      // Try to load team info
+      try {
+        teamInfo = await TeamsAPI.get(teamId);
+        document.getElementById('breadcrumb-team').textContent = teamInfo.name || `Equipe #${teamId}`;
+        document.getElementById('page-title').textContent = `Atletas — ${teamInfo.name}`;
+        document.getElementById('page-subtitle').textContent = `${teamInfo.sport?.name || ''} · ${teamInfo.city || ''}`;
+      } catch {
+        document.getElementById('breadcrumb-team').textContent = `Equipe #${teamId}`;
+        document.getElementById('page-title').textContent = `Atletas`;
+      }
+
+      loadAthletes();
+    }
+
+    async function loadAthletes() {
+      const container = document.getElementById('athletes-table-container');
+      container.innerHTML = '<div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando atletas...</span></div>';
+
+      try {
+        allAthletes = await TeamsAPI.athletes(teamId);
+        renderAthletes();
+      } catch (err) {
+        // Graceful fallback
+        allAthletes = DEMO_ATHLETES;
+        document.getElementById('api-notice').style.display = 'flex';
+        renderAthletes();
+
+        // Populate positions from demo data
+        populatePositions();
+      }
+    }
+
+    function populatePositions() {
+      const positions = [...new Set(allAthletes.map(a => a.position).filter(Boolean))];
+      const sel = document.getElementById('position-filter');
+      sel.innerHTML = '<option value="">Todas as posições</option>' +
+        positions.map(p => `<option value="${p}">${p}</option>`).join('');
+    }
+
+    function getFiltered() {
+      const search = document.getElementById('search-input').value.trim().toLowerCase();
+      const position = document.getElementById('position-filter').value;
+      const activeOnly = document.getElementById('active-only').checked;
+
+      return allAthletes.filter(a => {
+        const matchSearch = !search || a.name.toLowerCase().includes(search);
+        const matchPosition = !position || a.position === position;
+        const matchActive = !activeOnly || a.is_active !== false;
+        return matchSearch && matchPosition && matchActive;
+      });
+    }
+
+    function renderAthletes() {
+      const filtered = getFiltered();
+      const state = paginate(filtered, currentPage, PER_PAGE);
+      const container = document.getElementById('athletes-table-container');
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="empty-state"><span class="empty-icon">🏅</span><p>Nenhum atleta encontrado.</p>${teamId ? '<button class="btn btn-primary btn-sm" onclick="openNewAthleteModal()">+ Cadastrar Atleta</button>' : ''}</div>`;
+        document.getElementById('athletes-pagination').innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Atleta</th>
+                <th>Nº</th>
+                <th>Posição</th>
+                <th>Nascimento</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.items.map(a => `
+                <tr>
+                  <td>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      ${a.photo_url
+                        ? `<img src="${a.photo_url}" alt="${a.name}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">`
+                        : `<div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal)); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:white; flex-shrink:0;">${a.name[0].toUpperCase()}</div>`
+                      }
+                      <div>
+                        <div style="font-weight:600;">${a.name}</div>
+                        ${a.document ? `<div style="font-size:12px; color:var(--text-secondary);">Doc: ${a.document}</div>` : ''}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    ${a.number !== null && a.number !== undefined
+                      ? `<div style="width:28px; height:28px; border-radius:50%; background:var(--bg-tertiary); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">${a.number}</div>`
+                      : '—'
+                    }
+                  </td>
+                  <td>${a.position || '—'}</td>
+                  <td>${fmtDate(a.birth_date)}</td>
+                  <td>
+                    ${a.is_active !== false
+                      ? '<span class="badge badge-active">Ativo</span>'
+                      : '<span class="badge badge-draft">Inativo</span>'
+                    }
+                  </td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-sm btn-ghost" onclick="toggleActive(${a.id}, ${!a.is_active})">
+                        ${a.is_active !== false ? 'Desativar' : 'Ativar'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+
+      renderPagination('athletes-pagination', state, (page) => {
+        currentPage = page;
+        renderAthletes();
+      });
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function toggleActive(id, newStatus) {
+      const a = allAthletes.find(a => a.id === id);
+      if (a) {
+        a.is_active = newStatus;
+        renderAthletes();
+        showToast(`Atleta ${newStatus ? 'ativado' : 'desativado'}.`, 'info');
+      }
+    }
+
+    // Filters
+    document.getElementById('search-input').addEventListener('input', () => { currentPage = 1; renderAthletes(); });
+    document.getElementById('position-filter').addEventListener('change', () => { currentPage = 1; renderAthletes(); });
+    document.getElementById('active-only').addEventListener('change', () => { currentPage = 1; renderAthletes(); });
+
+    function openNewAthleteModal() {
+      if (!teamId) {
+        showToast('Selecione uma equipe antes de cadastrar atletas.', 'error');
+        return;
+      }
+      document.getElementById('athlete-form').reset();
+      document.getElementById('athlete-active').checked = true;
+      document.getElementById('athlete-alert').style.display = 'none';
+      openModal('modal-athlete');
+    }
+
+    document.getElementById('btn-new-athlete').addEventListener('click', openNewAthleteModal);
+
+    document.getElementById('athlete-save-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('athlete-save-btn');
+      const alertEl = document.getElementById('athlete-alert');
+      alertEl.style.display = 'none';
+
+      const name = document.getElementById('athlete-name').value.trim();
+      if (!name) {
+        alertEl.textContent = 'O nome do atleta é obrigatório.';
+        alertEl.style.display = 'flex';
+        return;
+      }
+
+      const number = document.getElementById('athlete-number').value;
+      const position = document.getElementById('athlete-position').value.trim();
+      const birth_date = document.getElementById('athlete-birth').value;
+      const document_id = document.getElementById('athlete-doc').value.trim();
+      const photo_url = document.getElementById('athlete-photo').value.trim();
+      const is_active = document.getElementById('athlete-active').checked;
+
+      const data = { name, is_active };
+      if (number) data.number = Number(number);
+      if (position) data.position = position;
+      if (birth_date) data.birth_date = birth_date;
+      if (document_id) data.document = document_id;
+      if (photo_url) data.photo_url = photo_url;
+
+      btnLoading(btn, true, 'Cadastrando...');
+      try {
+        const created = await TeamsAPI.createAthlete(teamId, data);
+        closeModal('modal-athlete');
+        showToast(`Atleta "${name}" cadastrado com sucesso!`, 'success');
+        allAthletes = [created, ...allAthletes];
+        populatePositions();
+        renderAthletes();
+      } catch (err) {
+        if (err.message.includes('404') || err.message.includes('405') || err.message.includes('Method Not Allowed')) {
+          alertEl.textContent = 'Endpoint de atletas ainda não disponível na API. Esta funcionalidade estará disponível em breve.';
+        } else {
+          alertEl.textContent = err.message;
+        }
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    initPage();
+  </script>
+</body>
+</html>

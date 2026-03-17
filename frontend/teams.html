@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Equipes — Sports Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-logo">
+          <span>🏆</span>
+          <span>Sports Platform</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item">
+          <span class="nav-icon">🏆</span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item">
+          <span class="nav-icon">🎮</span>
+          <span>Jogos</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item active">
+          <span class="nav-icon">👥</span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item">
+          <span class="nav-icon">🏅</span>
+          <span>Atletas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Organizador</div>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%; margin-top:12px; justify-content:center;">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">Equipes</span>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" id="btn-new-team-top">+ Nova Equipe</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Equipes</h1>
+            <p class="page-subtitle">Gerencie as equipes inscritas nos campeonatos</p>
+          </div>
+          <button class="btn btn-primary" id="btn-new-team">+ Nova Equipe</button>
+        </div>
+
+        <!-- API unavailable notice -->
+        <div id="api-notice" class="alert alert-info" style="display:none;">
+          <span>ℹ️</span>
+          <span>Endpoint de equipes ainda não disponível na API. Esta funcionalidade estará disponível em breve. Os dados exibidos são de demonstração.</span>
+        </div>
+
+        <!-- Filter by sport -->
+        <div class="table-actions">
+          <div class="select-group">
+            <label for="sport-filter">Filtrar por modalidade:</label>
+            <select id="sport-filter" class="form-control" style="width:200px;">
+              <option value="">Todas as modalidades</option>
+            </select>
+          </div>
+          <div class="search-input">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" class="form-control" placeholder="Buscar equipe..." style="width:220px;">
+          </div>
+        </div>
+
+        <!-- Teams table -->
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div id="teams-table-container">
+              <div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando equipes...</span></div>
+            </div>
+            <div id="teams-pagination" style="padding:12px 16px;"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal: New Team -->
+  <div class="modal-overlay" id="modal-team">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Nova Equipe</span>
+        <button class="modal-close" onclick="closeModal('modal-team')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="team-alert" class="alert alert-error" style="display:none;"></div>
+        <form id="team-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="team-name">Nome da Equipe *</label>
+            <input type="text" id="team-name" class="form-control" placeholder="Ex: Leões F.C." required>
+          </div>
+          <div class="form-group">
+            <label for="team-sport">Modalidade *</label>
+            <select id="team-sport" class="form-control" required>
+              <option value="">Selecione a modalidade...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="team-logo">URL do Logo (opcional)</label>
+            <input type="url" id="team-logo" class="form-control" placeholder="https://exemplo.com/logo.png">
+            <span class="form-hint">Link para a imagem do escudo da equipe</span>
+          </div>
+          <div class="form-group">
+            <label for="team-city">Cidade</label>
+            <input type="text" id="team-city" class="form-control" placeholder="São Paulo">
+          </div>
+          <div class="form-group">
+            <label for="team-coach">Técnico</label>
+            <input type="text" id="team-coach" class="form-control" placeholder="Nome do técnico">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-team')">Cancelar</button>
+        <button class="btn btn-primary" id="team-save-btn">Criar Equipe</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!requireAuth()) {}
+
+    let allTeams = [];
+    let allSports = [];
+    let currentPage = 1;
+    const PER_PAGE = 10;
+    let apiAvailable = true;
+
+    // Demo data when API is not available
+    const DEMO_TEAMS = [
+      { id: 1, name: 'Leões F.C.', sport: { name: 'Futebol' }, athletes_count: 22, city: 'São Paulo', created_at: '2025-01-15' },
+      { id: 2, name: 'Águias Basquete', sport: { name: 'Basquete' }, athletes_count: 15, city: 'Rio de Janeiro', created_at: '2025-01-20' },
+      { id: 3, name: 'Tubarões Vôlei', sport: { name: 'Vôlei' }, athletes_count: 18, city: 'Belo Horizonte', created_at: '2025-02-01' },
+      { id: 4, name: 'Falcões F.C.', sport: { name: 'Futebol' }, athletes_count: 20, city: 'Curitiba', created_at: '2025-02-10' },
+      { id: 5, name: 'Panteras Atletismo', sport: { name: 'Atletismo' }, athletes_count: 12, city: 'Fortaleza', created_at: '2025-02-15' },
+    ];
+
+    function getSearchValue() {
+      return document.getElementById('search-input').value.trim().toLowerCase();
+    }
+
+    function getSportFilter() {
+      return document.getElementById('sport-filter').value;
+    }
+
+    function getFiltered() {
+      const search = getSearchValue();
+      const sportId = getSportFilter();
+      return allTeams.filter(t => {
+        const matchSearch = !search || t.name.toLowerCase().includes(search);
+        const matchSport = !sportId || (t.sport?.id == sportId || t.sport_id == sportId);
+        return matchSearch && matchSport;
+      });
+    }
+
+    function renderTeams() {
+      const filtered = getFiltered();
+      const state = paginate(filtered, currentPage, PER_PAGE);
+      const container = document.getElementById('teams-table-container');
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="empty-state"><span class="empty-icon">👥</span><p>Nenhuma equipe encontrada.</p><button class="btn btn-primary btn-sm" onclick="openNewTeamModal()">+ Criar Equipe</button></div>`;
+        document.getElementById('teams-pagination').innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Equipe</th>
+                <th>Modalidade</th>
+                <th>Cidade</th>
+                <th>Atletas</th>
+                <th>Cadastro</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.items.map(t => `
+                <tr>
+                  <td>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      ${t.logo_url
+                        ? `<img src="${t.logo_url}" alt="${t.name}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">`
+                        : `<div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal)); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:white; flex-shrink:0;">${t.name[0].toUpperCase()}</div>`
+                      }
+                      <div>
+                        <div style="font-weight:600;">${t.name}</div>
+                        ${t.coach ? `<div style="font-size:12px; color:var(--text-secondary);">Técnico: ${t.coach}</div>` : ''}
+                      </div>
+                    </div>
+                  </td>
+                  <td>${t.sport?.name || t.sport_name || '—'}</td>
+                  <td>${t.city || '—'}</td>
+                  <td>
+                    <span class="badge badge-info">${t.athletes_count !== undefined ? t.athletes_count : '—'}</span>
+                  </td>
+                  <td>${fmtDate(t.created_at)}</td>
+                  <td>
+                    <div class="actions">
+                      <a href="athletes.html?team_id=${t.id}" class="btn btn-sm btn-secondary">Ver Atletas</a>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+
+      renderPagination('teams-pagination', state, (page) => {
+        currentPage = page;
+        renderTeams();
+      });
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    async function loadTeams() {
+      try {
+        allTeams = await TeamsAPI.list();
+        apiAvailable = true;
+        renderTeams();
+      } catch (err) {
+        // Show demo data and api notice
+        apiAvailable = false;
+        allTeams = DEMO_TEAMS;
+        document.getElementById('api-notice').style.display = 'flex';
+        renderTeams();
+      }
+    }
+
+    async function loadSports() {
+      try {
+        allSports = await SportsAPI.list();
+        const filterSel = document.getElementById('sport-filter');
+        const teamSportSel = document.getElementById('team-sport');
+        allSports.forEach(s => {
+          filterSel.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.icon || ''} ${s.name}</option>`);
+          teamSportSel.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.icon || ''} ${s.name}</option>`);
+        });
+      } catch {}
+    }
+
+    // Search & filter
+    document.getElementById('search-input').addEventListener('input', () => {
+      currentPage = 1;
+      renderTeams();
+    });
+    document.getElementById('sport-filter').addEventListener('change', () => {
+      currentPage = 1;
+      renderTeams();
+    });
+
+    function openNewTeamModal() {
+      document.getElementById('team-form').reset();
+      document.getElementById('team-alert').style.display = 'none';
+      openModal('modal-team');
+    }
+
+    document.getElementById('btn-new-team').addEventListener('click', openNewTeamModal);
+    document.getElementById('btn-new-team-top').addEventListener('click', openNewTeamModal);
+
+    document.getElementById('team-save-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('team-save-btn');
+      const alertEl = document.getElementById('team-alert');
+      alertEl.style.display = 'none';
+
+      const name = document.getElementById('team-name').value.trim();
+      const sport_id = document.getElementById('team-sport').value;
+      const logo_url = document.getElementById('team-logo').value.trim();
+      const city = document.getElementById('team-city').value.trim();
+      const coach = document.getElementById('team-coach').value.trim();
+
+      if (!name || !sport_id) {
+        alertEl.textContent = 'Por favor, preencha o nome e a modalidade da equipe.';
+        alertEl.style.display = 'flex';
+        return;
+      }
+
+      const data = { name, sport_id: Number(sport_id) };
+      if (logo_url) data.logo_url = logo_url;
+      if (city) data.city = city;
+      if (coach) data.coach = coach;
+
+      btnLoading(btn, true, 'Criando...');
+      try {
+        const created = await TeamsAPI.create(data);
+        closeModal('modal-team');
+        showToast(`Equipe "${name}" criada com sucesso!`, 'success');
+        allTeams = await TeamsAPI.list().catch(() => [created, ...allTeams]);
+        renderTeams();
+      } catch (err) {
+        if (err.message.includes('404') || err.message.includes('405') || err.message.includes('não disponível')) {
+          alertEl.textContent = 'Endpoint de equipes ainda não disponível na API. Esta funcionalidade estará disponível em breve.';
+        } else {
+          alertEl.textContent = err.message;
+        }
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    loadSports();
+    loadTeams();
+  </script>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campeonatos — Sports Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-logo">
+          <span>🏆</span>
+          <span>Sports Platform</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item active">
+          <span class="nav-icon">🏆</span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item">
+          <span class="nav-icon">🎮</span>
+          <span>Jogos</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item">
+          <span class="nav-icon">🏅</span>
+          <span>Atletas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Organizador</div>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%; margin-top:12px; justify-content:center;">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">Campeonatos</span>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" id="btn-new-champ">+ Novo Campeonato</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Campeonatos</h1>
+            <p class="page-subtitle">Gerencie todos os seus campeonatos esportivos</p>
+          </div>
+          <button class="btn btn-primary" id="btn-new-champ2">+ Novo Campeonato</button>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="filter-tabs" id="filter-tabs">
+          <button class="filter-tab active" data-filter="all">Todos</button>
+          <button class="filter-tab" data-filter="draft">Rascunho</button>
+          <button class="filter-tab" data-filter="active">Ativos</button>
+          <button class="filter-tab" data-filter="finished">Encerrados</button>
+        </div>
+
+        <!-- Championship table card -->
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div id="champ-table-container">
+              <div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando campeonatos...</span></div>
+            </div>
+            <div id="champ-pagination" style="padding:12px 16px;"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal: New Championship -->
+  <div class="modal-overlay" id="modal-champ">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Novo Campeonato</span>
+        <button class="modal-close" onclick="closeModal('modal-champ')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="champ-alert" class="alert alert-error" style="display:none;"></div>
+        <form id="champ-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="champ-name">Nome *</label>
+            <input type="text" id="champ-name" class="form-control" placeholder="Ex: Campeonato Municipal 2025" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="champ-sport">Modalidade *</label>
+              <select id="champ-sport" class="form-control" required>
+                <option value="">Carregando...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="champ-format">Formato *</label>
+              <select id="champ-format" class="form-control" required>
+                <option value="">Selecione...</option>
+                <option value="round_robin">Pontos Corridos</option>
+                <option value="elimination">Eliminatório</option>
+                <option value="hybrid">Híbrido</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="champ-start">Data de Início</label>
+              <input type="date" id="champ-start" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="champ-end">Data de Fim</label>
+              <input type="date" id="champ-end" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="champ-desc">Descrição</label>
+            <input type="text" id="champ-desc" class="form-control" placeholder="Descrição opcional do campeonato">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-champ')">Cancelar</button>
+        <button class="btn btn-primary" id="champ-save-btn">Criar Campeonato</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Draw options -->
+  <div class="modal-overlay" id="modal-draw">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Sortear Chave</span>
+        <button class="modal-close" onclick="closeModal('modal-draw')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="draw-alert" class="alert alert-error" style="display:none;"></div>
+        <p style="color:var(--text-secondary); margin-bottom:20px; font-size:14px;">
+          Selecione o tipo de sorteio para o campeonato: <strong id="draw-champ-name" style="color:var(--text-primary);"></strong>
+        </p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="card" style="border-color:rgba(108,99,255,0.3);">
+            <div class="card-body" style="padding:16px;">
+              <h3 style="font-size:15px; margin-bottom:6px;">🔄 Pontos Corridos (Round Robin)</h3>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Todos os times se enfrentam. O melhor nos pontos avança.</p>
+              <button class="btn btn-primary btn-sm" id="btn-draw-rr">Sortear Round Robin</button>
+            </div>
+          </div>
+          <div class="card" style="border-color:rgba(0,212,170,0.3);">
+            <div class="card-body" style="padding:16px;">
+              <h3 style="font-size:15px; margin-bottom:6px;">⚔️ Eliminatório</h3>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Mata-mata direto. Quem perde está fora do campeonato.</p>
+              <button class="btn btn-teal btn-sm" id="btn-draw-elim">Sortear Eliminatório</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-draw')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Bracket viewer -->
+  <div class="modal-overlay" id="modal-bracket">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <span class="modal-title">🏆 Chave do Campeonato</span>
+        <button class="modal-close" onclick="closeModal('modal-bracket')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="bracket-content">
+          <div class="page-loading"><div class="spinner"></div><span>Carregando chave...</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-bracket')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!requireAuth()) {}
+
+    let allChamps = [];
+    let allSports = [];
+    let currentFilter = 'all';
+    let currentPage = 1;
+    const PER_PAGE = 10;
+    let selectedChampId = null;
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function formatName(f) {
+      const map = { round_robin: 'Pontos Corridos', elimination: 'Eliminatório', hybrid: 'Híbrido' };
+      return map[f] || (f ? f.replace('_', ' ') : '—');
+    }
+
+    function champStatusBadge(status) {
+      const map = {
+        draft: '<span class="badge badge-draft">Rascunho</span>',
+        active: '<span class="badge badge-active">Ativo</span>',
+        finished: '<span class="badge badge-finished">Encerrado</span>',
+        scheduled: '<span class="badge badge-info">Agendado</span>',
+      };
+      return map[status] || `<span class="badge">${status || '—'}</span>`;
+    }
+
+    function getFiltered() {
+      if (currentFilter === 'all') return allChamps;
+      return allChamps.filter(c => c.status === currentFilter);
+    }
+
+    function renderTable() {
+      const filtered = getFiltered();
+      const state = paginate(filtered, currentPage, PER_PAGE);
+      const container = document.getElementById('champ-table-container');
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="empty-state"><span class="empty-icon">🏆</span><p>Nenhum campeonato encontrado.</p><button class="btn btn-primary btn-sm" onclick="openNewChampModal()">+ Criar Campeonato</button></div>`;
+        document.getElementById('champ-pagination').innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Modalidade</th>
+                <th>Formato</th>
+                <th>Status</th>
+                <th>Início</th>
+                <th>Fim</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.items.map(c => `
+                <tr>
+                  <td>
+                    <div style="font-weight:600;">${c.name}</div>
+                    ${c.description ? `<div style="font-size:12px; color:var(--text-secondary);">${c.description}</div>` : ''}
+                  </td>
+                  <td>${c.sport?.name || c.sport_name || '—'}</td>
+                  <td>${formatName(c.format)}</td>
+                  <td>${champStatusBadge(c.status)}</td>
+                  <td>${fmtDate(c.start_date)}</td>
+                  <td>${fmtDate(c.end_date)}</td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-sm btn-secondary" onclick="openDrawModal(${c.id}, '${c.name.replace(/'/g, "\\'")}')">Sortear</button>
+                      <button class="btn btn-sm btn-secondary" onclick="viewBracket(${c.id})">Chave</button>
+                      <a href="games.html?championship_id=${c.id}" class="btn btn-sm btn-ghost">Jogos</a>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+
+      renderPagination('champ-pagination', state, (page) => {
+        currentPage = page;
+        renderTable();
+      });
+    }
+
+    async function loadChampionships() {
+      try {
+        allChamps = await ChampAPI.list();
+        renderTable();
+      } catch (err) {
+        document.getElementById('champ-table-container').innerHTML =
+          `<div class="alert alert-error" style="margin:16px;">Não foi possível carregar os campeonatos: ${err.message}</div>`;
+      }
+    }
+
+    async function loadSports() {
+      try {
+        allSports = await SportsAPI.list();
+        const sel = document.getElementById('champ-sport');
+        if (!allSports.length) {
+          sel.innerHTML = '<option value="">Nenhuma modalidade cadastrada</option>';
+          return;
+        }
+        sel.innerHTML = '<option value="">Selecione a modalidade...</option>' +
+          allSports.map(s => `<option value="${s.id}">${s.icon || ''} ${s.name}</option>`).join('');
+      } catch {
+        document.getElementById('champ-sport').innerHTML = '<option value="">Erro ao carregar modalidades</option>';
+      }
+    }
+
+    // Filter tabs
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        currentPage = 1;
+        renderTable();
+      });
+    });
+
+    function openNewChampModal() {
+      document.getElementById('champ-form').reset();
+      document.getElementById('champ-alert').style.display = 'none';
+      loadSports();
+      openModal('modal-champ');
+    }
+
+    document.getElementById('btn-new-champ').addEventListener('click', openNewChampModal);
+    document.getElementById('btn-new-champ2').addEventListener('click', openNewChampModal);
+
+    document.getElementById('champ-save-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('champ-save-btn');
+      const alertEl = document.getElementById('champ-alert');
+      alertEl.style.display = 'none';
+
+      const name = document.getElementById('champ-name').value.trim();
+      const sport_id = document.getElementById('champ-sport').value;
+      const format = document.getElementById('champ-format').value;
+      const start_date = document.getElementById('champ-start').value;
+      const end_date = document.getElementById('champ-end').value;
+      const description = document.getElementById('champ-desc').value.trim();
+
+      if (!name || !sport_id || !format) {
+        alertEl.textContent = 'Por favor, preencha os campos obrigatórios: Nome, Modalidade e Formato.';
+        alertEl.style.display = 'flex';
+        return;
+      }
+
+      const data = { name, sport_id: Number(sport_id), format };
+      if (start_date) data.start_date = start_date;
+      if (end_date) data.end_date = end_date;
+      if (description) data.description = description;
+
+      btnLoading(btn, true, 'Criando...');
+      try {
+        const created = await ChampAPI.create(data);
+        closeModal('modal-champ');
+        showToast(`Campeonato "${name}" criado com sucesso!`, 'success');
+        allChamps = await ChampAPI.list();
+        renderTable();
+        // Offer draw options
+        openDrawModal(created.id, created.name);
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    function openDrawModal(id, name) {
+      selectedChampId = id;
+      document.getElementById('draw-champ-name').textContent = name;
+      document.getElementById('draw-alert').style.display = 'none';
+      openModal('modal-draw');
+    }
+
+    document.getElementById('btn-draw-rr').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-draw-rr');
+      const alertEl = document.getElementById('draw-alert');
+      alertEl.style.display = 'none';
+      btnLoading(btn, true, 'Sorteando...');
+      try {
+        await ChampAPI.drawRoundRobin(selectedChampId, {});
+        showToast('Chave Round Robin gerada com sucesso!', 'success');
+        closeModal('modal-draw');
+        allChamps = await ChampAPI.list();
+        renderTable();
+      } catch (err) {
+        alertEl.textContent = `Erro ao gerar sorteio: ${err.message}`;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    document.getElementById('btn-draw-elim').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-draw-elim');
+      const alertEl = document.getElementById('draw-alert');
+      alertEl.style.display = 'none';
+      btnLoading(btn, true, 'Sorteando...');
+      try {
+        await ChampAPI.drawElimination(selectedChampId, {});
+        showToast('Chave Eliminatória gerada com sucesso!', 'success');
+        closeModal('modal-draw');
+        allChamps = await ChampAPI.list();
+        renderTable();
+      } catch (err) {
+        alertEl.textContent = `Erro ao gerar sorteio: ${err.message}`;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    async function viewBracket(champId) {
+      const container = document.getElementById('bracket-content');
+      container.innerHTML = '<div class="page-loading"><div class="spinner"></div><span>Carregando chave...</span></div>';
+      openModal('modal-bracket');
+
+      try {
+        const data = await ChampAPI.bracket(champId);
+        renderBracket(data, container);
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error">${err.message}</div>
+          <p style="color:var(--text-secondary); font-size:13px; margin-top:8px;">
+            Verifique se o campeonato possui times inscritos e se o sorteio já foi realizado.
+          </p>`;
+      }
+    }
+
+    function renderBracket(data, container) {
+      if (!data) {
+        container.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Nenhuma chave disponível ainda. Realize o sorteio primeiro.</p></div>';
+        return;
+      }
+
+      // data can be an array of games or an object with rounds
+      let games = [];
+      if (Array.isArray(data)) {
+        games = data;
+      } else if (data.games) {
+        games = data.games;
+      } else if (data.rounds) {
+        // Bracket with rounds structure
+        renderRoundsBracket(data.rounds, container);
+        return;
+      } else {
+        // Unknown structure, show raw
+        container.innerHTML = `<div class="info-box">Estrutura de chave recebida. Exibindo dados brutos:</div>
+          <pre style="background:var(--bg-tertiary); padding:16px; border-radius:8px; font-size:12px; overflow-x:auto; color:var(--text-primary);">${JSON.stringify(data, null, 2)}</pre>`;
+        return;
+      }
+
+      if (!games.length) {
+        container.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Nenhum jogo na chave ainda.</p></div>';
+        return;
+      }
+
+      // Group by round
+      const rounds = {};
+      games.forEach(g => {
+        const r = g.round_number || g.round || 1;
+        if (!rounds[r]) rounds[r] = [];
+        rounds[r].push(g);
+      });
+
+      let html = '<div class="bracket-container"><div class="bracket-rounds">';
+      Object.keys(rounds).sort((a, b) => Number(a) - Number(b)).forEach(round => {
+        html += `<div class="bracket-round">
+          <div class="bracket-round-title">Rodada ${round}</div>`;
+        rounds[round].forEach(g => {
+          const homeScore = g.home_score !== null && g.home_score !== undefined ? g.home_score : '—';
+          const awayScore = g.away_score !== null && g.away_score !== undefined ? g.away_score : '—';
+          const homeWinner = g.home_score !== null && g.away_score !== null && g.home_score > g.away_score;
+          const awayWinner = g.home_score !== null && g.away_score !== null && g.away_score > g.home_score;
+          html += `
+            <div class="bracket-match">
+              <div class="bracket-team ${homeWinner ? 'winner' : ''}">
+                <span>${g.home_team?.name || g.home_team_name || 'TBD'}</span>
+                <span class="bracket-team-score">${homeScore}</span>
+              </div>
+              <div class="bracket-team ${awayWinner ? 'winner' : ''}">
+                <span>${g.away_team?.name || g.away_team_name || 'TBD'}</span>
+                <span class="bracket-team-score">${awayScore}</span>
+              </div>
+            </div>`;
+        });
+        html += '</div>';
+      });
+      html += '</div></div>';
+      container.innerHTML = html;
+    }
+
+    function renderRoundsBracket(rounds, container) {
+      let html = '<div class="bracket-container"><div class="bracket-rounds">';
+      rounds.forEach((round, idx) => {
+        html += `<div class="bracket-round">
+          <div class="bracket-round-title">${round.name || `Rodada ${idx + 1}`}</div>`;
+        (round.games || round.matches || []).forEach(g => {
+          const homeScore = g.home_score !== null && g.home_score !== undefined ? g.home_score : '—';
+          const awayScore = g.away_score !== null && g.away_score !== undefined ? g.away_score : '—';
+          html += `
+            <div class="bracket-match">
+              <div class="bracket-team">
+                <span>${g.home_team?.name || g.home_team_name || 'TBD'}</span>
+                <span class="bracket-team-score">${homeScore}</span>
+              </div>
+              <div class="bracket-team">
+                <span>${g.away_team?.name || g.away_team_name || 'TBD'}</span>
+                <span class="bracket-team-score">${awayScore}</span>
+              </div>
+            </div>`;
+        });
+        html += '</div>';
+      });
+      html += '</div></div>';
+      container.innerHTML = html;
+    }
+
+    loadChampionships();
+    loadSports();
+  </script>
+</body>
+</html>

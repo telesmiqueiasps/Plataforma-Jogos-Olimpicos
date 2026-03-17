@@ -1,98 +1,98 @@
-/**
- * Módulo de comunicação com a API do backend.
- * Centraliza todas as chamadas HTTP e gerencia o token JWT.
- */
+const API_BASE = 'https://sports-platform-api.onrender.com';
 
-const API_BASE = "http://localhost:8000/api";
+async function apiFetch(path, options = {}) {
+  const token = localStorage.getItem('sp_token');
+  const isForm = options.body instanceof URLSearchParams;
+  const headers = {};
+  if (!isForm) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  Object.assign(headers, options.headers || {});
 
-// ---------- Token helpers ----------
-
-export function saveToken(token) {
-  localStorage.setItem("access_token", token);
-}
-
-export function getToken() {
-  return localStorage.getItem("access_token");
-}
-
-export function removeToken() {
-  localStorage.removeItem("access_token");
-}
-
-export function isLoggedIn() {
-  return !!getToken();
-}
-
-// ---------- Fetch wrapper ----------
-
-async function request(method, path, body = null, auth = true) {
-  const headers = { "Content-Type": "application/json" };
-
-  if (auth) {
-    const token = getToken();
-    if (!token) throw new Error("Não autenticado");
-    headers["Authorization"] = `Bearer ${token}`;
+  let res;
+  try {
+    res = await fetch(API_BASE + path, { ...options, headers });
+  } catch (e) {
+    throw new Error('Sem conexão com o servidor. Verifique sua internet.');
   }
-
-  const options = { method, headers };
-  if (body) options.body = JSON.stringify(body);
-
-  const res = await fetch(`${API_BASE}${path}`, options);
 
   if (res.status === 401) {
-    removeToken();
-    window.location.href = "/login.html";
-    return;
+    localStorage.removeItem('sp_token');
+    localStorage.removeItem('sp_user');
+    if (!window.location.pathname.endsWith('login.html')) {
+      window.location.href = 'login.html';
+    }
+    throw new Error('Sessão expirada. Faça login novamente.');
   }
-
-  const data = res.status === 204 ? null : await res.json();
 
   if (!res.ok) {
-    const msg = data?.detail || `Erro ${res.status}`;
-    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    let detail = `Erro ${res.status}`;
+    try {
+      const err = await res.json();
+      if (typeof err.detail === 'string') {
+        detail = err.detail;
+      } else if (Array.isArray(err.detail)) {
+        detail = err.detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+      } else {
+        detail = JSON.stringify(err.detail) || detail;
+      }
+    } catch {}
+    throw new Error(detail);
   }
 
-  return data;
+  if (res.status === 204) return null;
+  return res.json();
 }
 
-// ---------- Auth ----------
+// --- Auth ---
+const AuthAPI = {
+  async login(email, password) {
+    const body = new URLSearchParams({ username: email, password });
+    let res;
+    try {
+      res = await fetch(API_BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+    } catch {
+      throw new Error('Sem conexão com o servidor.');
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Credenciais inválidas');
+    }
+    return res.json();
+  },
+  register: (data) => apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  me: () => apiFetch('/api/users/me'),
+};
 
-export async function login(email, password) {
-  const form = new URLSearchParams();
-  form.append("username", email);
-  form.append("password", password);
+// --- Sports ---
+const SportsAPI = {
+  list: () => apiFetch('/api/sports/'),
+  create: (data) => apiFetch('/api/sports/', { method: 'POST', body: JSON.stringify(data) }),
+};
 
-  const res = await fetch(`${API_BASE}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: form.toString(),
-  });
+// --- Championships ---
+const ChampAPI = {
+  list: () => apiFetch('/api/championships/'),
+  get: (id) => apiFetch(`/api/championships/${id}`),
+  create: (data) => apiFetch('/api/championships/', { method: 'POST', body: JSON.stringify(data) }),
+  bracket: (id) => apiFetch(`/api/championships/${id}/bracket`),
+  drawRoundRobin: (id, data) => apiFetch(`/api/championships/${id}/draw/round-robin`, { method: 'POST', body: JSON.stringify(data || {}) }),
+  drawElimination: (id, data) => apiFetch(`/api/championships/${id}/draw/elimination`, { method: 'POST', body: JSON.stringify(data || {}) }),
+  games: (id) => apiFetch(`/api/championships/${id}/games`),
+  createGame: (id, data) => apiFetch(`/api/championships/${id}/games`, { method: 'POST', body: JSON.stringify(data) }),
+};
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.detail || "Erro ao fazer login");
-  return data;
-}
-
-export async function register(name, email, password) {
-  return request("POST", "/auth/register", { name, email, password }, false);
-}
-
-// ---------- Usuários ----------
-
-export async function getMe() {
-  return request("GET", "/users/me");
-}
-
-// ---------- Modalidades ----------
-
-export async function getSports() {
-  return request("GET", "/sports", null, false);
-}
-
-export async function createSport(data) {
-  return request("POST", "/sports", data);
-}
-
-export async function deleteSport(id) {
-  return request("DELETE", `/sports/${id}`);
-}
+// --- Teams ---
+const TeamsAPI = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiFetch('/api/teams/' + (qs ? '?' + qs : ''));
+  },
+  get: (id) => apiFetch(`/api/teams/${id}`),
+  create: (data) => apiFetch('/api/teams/', { method: 'POST', body: JSON.stringify(data) }),
+  athletes: (teamId) => apiFetch(`/api/teams/${teamId}/athletes/`),
+  createAthlete: (teamId, data) => apiFetch(`/api/teams/${teamId}/athletes/`, { method: 'POST', body: JSON.stringify(data) }),
+};
