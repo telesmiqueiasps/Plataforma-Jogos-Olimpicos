@@ -19,7 +19,7 @@ def create_user(db: Session, data: UserCreate) -> User:
     user = User(
         name=data.name,
         email=data.email,
-        hashed_password=hash_password(data.password),
+        password_hash=hash_password(data.password),
         role=data.role,
     )
     db.add(user)
@@ -30,6 +30,6 @@ def create_user(db: Session, data: UserCreate) -> User:
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     user = get_user_by_email(db, email)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.password_hash):
         return None
     return user
