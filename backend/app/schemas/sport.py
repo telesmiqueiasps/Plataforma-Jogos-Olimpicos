@@ -4,16 +4,14 @@ from pydantic import BaseModel
 
 class SportCreate(BaseModel):
     name: str
-    description: Optional[str] = None
-    icon: Optional[str] = None
+    slug: Optional[str] = None
+    rules_config: Optional[dict] = None
 
 
 class SportOut(BaseModel):
     id: int
     name: str
-    description: Optional[str]
-    icon: Optional[str]
-    is_active: bool
+    slug: Optional[str]
+    rules_config: Optional[dict]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

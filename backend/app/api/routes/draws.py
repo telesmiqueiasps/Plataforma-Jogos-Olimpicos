@@ -130,32 +130,5 @@ async def get_bracket(
         raise _http_from_service_error(exc) from exc
 
 
-# ---------------------------------------------------------------------------
-# POST /championships/{id}/games  (criação manual)
-# ---------------------------------------------------------------------------
-
-@router.post(
-    "/{championship_id}/games",
-    response_model=ManualGameResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Cria um jogo manualmente",
-    description=(
-        "Cria um único jogo sem usar o sorteio automático. "
-        "Útil para jogos de abertura ou confrontos definidos pela organização. "
-        "Ambos os times devem estar inscritos no campeonato."
-    ),
-)
-async def create_manual_game(
-    championship_id: int,
-    body: ManualGameCreate,
-    db: AsyncSession = Depends(get_async_db),
-    _current_user: User = Depends(require_organizer),
-) -> ManualGameResponse:
-    try:
-        return await draw_service.create_manual_game(
-            db=db,
-            championship_id=championship_id,
-            data=body,
-        )
-    except (ValueError, LookupError) as exc:
-        raise _http_from_service_error(exc) from exc
+# Nota: criação manual de jogo disponível em POST /championships/{id}/games
+# (routes/championships.py) para manter consistência com o CRUD síncrono.

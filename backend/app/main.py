@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import auth, users, sports, draws
+from app.api.routes import auth, championships, draws, games, sports, teams, users
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,6 +22,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(sports.router, prefix="/api")
+app.include_router(teams.router, prefix="/api")
+app.include_router(championships.router, prefix="/api")
+app.include_router(games.router, prefix="/api")
 app.include_router(draws.router, prefix="/api")
 
 

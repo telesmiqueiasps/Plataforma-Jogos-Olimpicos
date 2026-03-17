@@ -22,7 +22,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     user = get_user_by_id(db, user_id=payload.get("sub"))
-    if not user or not user.is_active:
+    if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário não encontrado")
     return user
 
