@@ -1,0 +1,63 @@
+##############################################################################
+# netlify.toml — Configuração de build e deploy do frontend
+##############################################################################
+
+[build]
+  # Frontend é HTML/JS puro — sem etapa de build
+  publish = "frontend"
+
+# ---------------------------------------------------------------------------
+# SPA redirect: qualquer rota desconhecida volta para index.html
+# ---------------------------------------------------------------------------
+[[redirects]]
+  from    = "/*"
+  to      = "/index.html"
+  status  = 200
+
+# ---------------------------------------------------------------------------
+# Headers de segurança (aplicados em todas as rotas)
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    # Impede clickjacking
+    X-Frame-Options = "DENY"
+
+    # Impede MIME sniffing
+    X-Content-Type-Options = "nosniff"
+
+    # Força HTTPS em browsers futuros (1 ano)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # Controla quais recursos o browser pode carregar
+    # Ajuste a URL da API conforme necessário
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src  'self' 'unsafe-inline';
+      style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src    'self' https://fonts.gstatic.com;
+      img-src     'self' data: https:;
+      connect-src 'self' https://sports-platform-api.onrender.com;
+    """
+
+    # Desativa funcionalidades desnecessárias do browser
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+    # Referrer seguro
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# ---------------------------------------------------------------------------
+# Cache longo para assets estáticos (JS e CSS versionados)
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/css/*"
+
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/js/*"
+
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro — Sports Platform</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <h1>🏅 Sports Platform</h1>
+      <p class="subtitle">Crie sua conta gratuita</p>
+
+      <div id="alert" class="alert" style="display:none"></div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label for="name">Nome completo</label>
+          <input type="text" id="name" placeholder="João Silva" required />
+        </div>
+        <div class="form-group">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="seu@email.com" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input type="password" id="password" placeholder="Mínimo 8 caracteres" minlength="8" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:0.5rem">
+          Criar conta
+        </button>
+      </form>
+
+      <p style="text-align:center; margin-top:1.2rem; font-size:0.9rem; color:var(--muted)">
+        Já tem conta?
+        <a href="login.html" style="color:var(--primary); font-weight:600">Entrar</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

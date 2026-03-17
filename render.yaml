@@ -1,0 +1,62 @@
+##############################################################################
+# render.yaml — Infrastructure-as-Code para o Render
+# Documentação: https://render.com/docs/blueprint-spec
+##############################################################################
+
+databases:
+  - name: sports-platform-db
+    databaseName: sports_platform
+    plan: free
+    region: oregon        # escolha a região mais próxima dos seus usuários
+    ipAllowList: []       # acesso somente de serviços internos do Render
+
+services:
+  - type: web
+    name: sports-platform-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+
+    # O Procfile em backend/ já define o comando de start.
+    # startCommand abaixo é o fallback explícito:
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    healthCheckPath: /health
+
+    # Roda as migrations automaticamente a cada deploy
+    preDeployCommand: alembic upgrade head
+
+    autoDeploy: true
+
+    envVars:
+      # Render injeta a URL do banco automaticamente via fromDatabase
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sports-platform-db
+          property: connectionString
+
+      # Gere com: python -c "import secrets; print(secrets.token_hex(32))"
+      - key: SECRET_KEY
+        generateValue: true
+
+      # Substitua pelo domínio real do seu frontend no Netlify após o deploy
+      - key: ALLOWED_ORIGINS
+        value: https://sports-platform.netlify.app
+
+      - key: ALGORITHM
+        value: HS256
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+
+      - key: APP_NAME
+        value: Sports Platform
+
+      - key: DEBUG
+        value: "False"
+
+      - key: PYTHON_VERSION
+        value: "3.11.0"
