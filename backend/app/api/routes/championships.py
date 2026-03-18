@@ -6,6 +6,7 @@ listagem de jogos e tabela de classificação.
 """
 
 import random
+from datetime import datetime, timezone
 from functools import cmp_to_key
 from typing import List, Optional
 
@@ -13,9 +14,20 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_organizer
-from app.db.models import Championship, ChampionshipTeam, Game, GameEvent, Sport, Suspension, Team, User
+from app.db.models import (
+    Athlete,
+    Championship,
+    ChampionshipTeam,
+    Game,
+    GameEvent,
+    Sport,
+    Suspension,
+    Team,
+    User,
+)
 from app.db.session import get_db
 from app.schemas.championship import (
+    ChampionshipConfigUpdate,
     ChampionshipCreate,
     ChampionshipOut,
     ChampionshipUpdate,
@@ -37,6 +49,25 @@ def _get_championship_or_404(championship_id: int, db: Session) -> Championship:
     if not champ:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campeonato não encontrado")
     return champ
+
+
+def _generate_group_round_robin(team_ids: list) -> list:
+    """Algoritmo circle-method. Retorna lista de (round_number, home_id, away_id)."""
+    pool = list(team_ids)
+    if len(pool) % 2 == 1:
+        pool.append(None)  # BYE
+
+    n = len(pool)
+    result = []
+    for round_idx in range(n - 1):
+        for i in range(n // 2):
+            home = pool[i]
+            away = pool[n - 1 - i]
+            if home is not None and away is not None:
+                result.append((round_idx + 1, home, away))
+        # Rotaciona tudo exceto pool[0]
+        pool = [pool[0]] + [pool[-1]] + pool[1:-1]
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -119,8 +150,57 @@ def delete_championship(
 
 
 # ---------------------------------------------------------------------------
+# Configurações (rules_config)
+# ---------------------------------------------------------------------------
+
+@router.get("/{championship_id}/config")
+def get_config(championship_id: int, db: Session = Depends(get_db)):
+    """Retorna o rules_config completo do campeonato."""
+    champ = _get_championship_or_404(championship_id, db)
+    return champ.rules_config or {}
+
+
+@router.put("/{championship_id}/config")
+def update_config(
+    championship_id: int,
+    data: ChampionshipConfigUpdate,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    """Atualiza rules_config. Campos não enviados são mantidos."""
+    champ = _get_championship_or_404(championship_id, db)
+    rules = dict(champ.rules_config or {})
+
+    payload = data.model_dump(exclude_none=True)
+    rules.update(payload)
+    champ.rules_config = rules
+
+    # Sincroniza classifieds_per_group no modelo também
+    if "classifieds_per_group" in payload:
+        champ.classifieds_per_group = payload["classifieds_per_group"]
+
+    db.commit()
+    return rules
+
+
+# ---------------------------------------------------------------------------
 # Equipes inscritas
 # ---------------------------------------------------------------------------
+
+@router.get("/{championship_id}/teams")
+def list_championship_teams(championship_id: int, db: Session = Depends(get_db)):
+    """Lista equipes inscritas no campeonato."""
+    champ = _get_championship_or_404(championship_id, db)
+    return [
+        {
+            "id": link.team_id,
+            "name": link.team.name,
+            "logo_url": link.team.logo_url,
+            "sport_id": link.team.sport_id,
+        }
+        for link in champ.team_links
+    ]
+
 
 @router.post("/{championship_id}/teams", status_code=201)
 def add_team(
@@ -191,7 +271,7 @@ def list_games(
     return (
         db.query(Game)
         .filter(Game.championship_id == championship_id)
-        .order_by(Game.round_number, Game.scheduled_at)
+        .order_by(Game.phase, Game.round_number, Game.scheduled_at)
         .all()
     )
 
@@ -226,10 +306,11 @@ def create_game(
 def get_standings(
     championship_id: int,
     group: Optional[str] = Query(None, description="Filtra por grupo (ex: A, B, C)"),
+    phase: Optional[str] = Query(None, description="Filtra por fase (ex: groups, knockout)"),
     db: Session = Depends(get_db),
 ):
     champ = _get_championship_or_404(championship_id, db)
-    return _build_standings(champ, db, group=group)
+    return _build_standings(champ, db, group=group, phase=phase)
 
 
 # ---------------------------------------------------------------------------
@@ -282,7 +363,303 @@ def get_groups(championship_id: int, db: Session = Depends(get_db)):
     return (champ.extra_data or {}).get("groups", [])
 
 
-def _build_standings(champ: Championship, db: Session, group: Optional[str] = None) -> list[StandingEntry]:
+@router.post("/{championship_id}/groups/{group}/games/generate", status_code=201)
+def generate_group_games(
+    championship_id: int,
+    group: str,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    """Gera todos os jogos de pontos corridos para um grupo específico (round-robin)."""
+    champ = _get_championship_or_404(championship_id, db)
+    groups_data = (champ.extra_data or {}).get("groups", [])
+    group_upper = group.upper()
+    group_data = next((g for g in groups_data if g["group"] == group_upper), None)
+
+    if not group_data:
+        raise HTTPException(status_code=404, detail=f"Grupo {group_upper} não encontrado")
+
+    team_ids = [t["id"] for t in group_data["teams"]]
+    if len(team_ids) < 2:
+        raise HTTPException(status_code=400, detail="O grupo precisa ter pelo menos 2 equipes")
+
+    # Verifica se jogos já foram gerados para este grupo
+    existing = db.query(Game).filter(
+        Game.championship_id == championship_id,
+        Game.phase == "groups",
+    ).all()
+    already_generated = [g for g in existing if (g.extra_data or {}).get("group") == group_upper]
+    if already_generated:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Jogos do Grupo {group_upper} já foram gerados ({len(already_generated)} jogos)"
+        )
+
+    base_date = champ.start_date or datetime.now(timezone.utc)
+    matchups = _generate_group_round_robin(team_ids)
+
+    games_created = []
+    for round_number, home_id, away_id in matchups:
+        game = Game(
+            championship_id=championship_id,
+            home_team_id=home_id,
+            away_team_id=away_id,
+            scheduled_at=base_date,
+            status="scheduled",
+            phase="groups",
+            round_number=round_number,
+            extra_data={"group": group_upper},
+        )
+        db.add(game)
+        games_created.append(game)
+
+    db.commit()
+    return {"games_created": len(games_created), "group": group_upper, "rounds": max((m[0] for m in matchups), default=0)}
+
+
+# ---------------------------------------------------------------------------
+# Mata-mata (knockout)
+# ---------------------------------------------------------------------------
+
+@router.get("/{championship_id}/knockout")
+def get_knockout(championship_id: int, db: Session = Depends(get_db)):
+    """Retorna o cruzamento do mata-mata definido manualmente."""
+    champ = _get_championship_or_404(championship_id, db)
+    return champ.knockout_bracket or {}
+
+
+@router.post("/{championship_id}/knockout/setup")
+def setup_knockout(
+    championship_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    """
+    Define os cruzamentos do mata-mata manualmente.
+    Body: { "matches": [{"home": "1A", "away": "2B"}, ...] }
+    "1A" = 1º do grupo A, "2B" = 2º do grupo B
+    """
+    champ = _get_championship_or_404(championship_id, db)
+    matches = body.get("matches", [])
+    if not matches:
+        raise HTTPException(status_code=400, detail="Envie ao menos um confronto em 'matches'")
+
+    champ.knockout_bracket = {"matches": matches}
+    db.commit()
+
+    # Resolve slots para mostrar quais times seriam os adversários agora
+    groups_data = (champ.extra_data or {}).get("groups", [])
+    resolved = []
+    for match in matches:
+        home_team = _resolve_slot(match.get("home"), champ, db, groups_data)
+        away_team = _resolve_slot(match.get("away"), champ, db, groups_data)
+        resolved.append({
+            "home_slot": match.get("home"),
+            "away_slot": match.get("away"),
+            "home_team": home_team,
+            "away_team": away_team,
+        })
+
+    return {"championship_id": championship_id, "matches": matches, "resolved": resolved}
+
+
+@router.post("/{championship_id}/knockout/generate", status_code=201)
+def generate_knockout_games(
+    championship_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    """
+    Gera os jogos do mata-mata baseado no knockout_bracket definido.
+    Resolve "1A" → time que está em 1º no grupo A na classificação atual.
+    """
+    champ = _get_championship_or_404(championship_id, db)
+    bracket = champ.knockout_bracket
+
+    if not bracket or not bracket.get("matches"):
+        raise HTTPException(
+            status_code=400,
+            detail="Configure os cruzamentos do mata-mata primeiro (POST /knockout/setup)"
+        )
+
+    groups_data = (champ.extra_data or {}).get("groups", [])
+    base_date = champ.start_date or datetime.now(timezone.utc)
+    games_created = []
+    errors = []
+
+    for match in bracket["matches"]:
+        home_id = _resolve_slot(match.get("home"), champ, db, groups_data, id_only=True)
+        away_id = _resolve_slot(match.get("away"), champ, db, groups_data, id_only=True)
+
+        if not home_id or not away_id:
+            errors.append(f"Não foi possível resolver: {match.get('home')} x {match.get('away')}")
+            continue
+
+        game = Game(
+            championship_id=championship_id,
+            home_team_id=home_id,
+            away_team_id=away_id,
+            scheduled_at=base_date,
+            status="scheduled",
+            phase="knockout",
+            round_number=1,
+        )
+        db.add(game)
+        games_created.append(game)
+
+    db.commit()
+    return {
+        "games_created": len(games_created),
+        "errors": errors,
+    }
+
+
+def _resolve_slot(slot: Optional[str], champ: Championship, db: Session, groups_data: list, id_only: bool = False):
+    """Resolve "1A" para o time atualmente em 1º do grupo A."""
+    if not slot or len(slot) < 2:
+        return None
+    try:
+        position = int(slot[:-1])
+    except ValueError:
+        return None
+    group = slot[-1].upper()
+
+    standings = _build_standings(champ, db, group=group, phase="groups")
+    if position <= len(standings):
+        entry = standings[position - 1]
+        if id_only:
+            return entry.team_id
+        return {"team_id": entry.team_id, "team_name": entry.team_name}
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Estatísticas
+# ---------------------------------------------------------------------------
+
+@router.get("/{championship_id}/stats")
+def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
+    """
+    Retorna:
+    - scorers: artilheiros (top 10 por gols)
+    - cards: tabela de cartões por atleta
+    - suspensions: suspensões ativas (games_remaining > 0)
+    """
+    champ = _get_championship_or_404(championship_id, db)
+
+    all_game_ids = [
+        row[0] for row in db.query(Game.id).filter(Game.championship_id == championship_id).all()
+    ]
+
+    if not all_game_ids:
+        return {"scorers": [], "cards": [], "suspensions": []}
+
+    finished_game_ids = [
+        row[0] for row in db.query(Game.id).filter(
+            Game.championship_id == championship_id,
+            Game.status == "finished",
+        ).all()
+    ]
+
+    # --- Gols ---
+    goal_counts: dict = {}
+    if finished_game_ids:
+        for ev in db.query(GameEvent).filter(
+            GameEvent.game_id.in_(finished_game_ids),
+            GameEvent.event_type == "goal",
+            GameEvent.athlete_id.isnot(None),
+        ).all():
+            if ev.athlete_id not in goal_counts:
+                goal_counts[ev.athlete_id] = {"count": 0, "team_id": ev.team_id}
+            goal_counts[ev.athlete_id]["count"] += 1
+
+    # --- Cartões ---
+    card_counts: dict = {}
+    for ev in db.query(GameEvent).filter(
+        GameEvent.game_id.in_(all_game_ids),
+        GameEvent.event_type.in_(["yellow_card", "red_card"]),
+        GameEvent.athlete_id.isnot(None),
+    ).all():
+        if ev.athlete_id not in card_counts:
+            card_counts[ev.athlete_id] = {"yellow": 0, "red": 0, "team_id": ev.team_id}
+        if ev.event_type == "yellow_card":
+            card_counts[ev.athlete_id]["yellow"] += 1
+        else:
+            card_counts[ev.athlete_id]["red"] += 1
+
+    # --- Carrega atletas e times ---
+    all_athlete_ids = set(goal_counts.keys()) | set(card_counts.keys())
+    athletes: dict = {}
+    if all_athlete_ids:
+        athletes = {a.id: a for a in db.query(Athlete).filter(Athlete.id.in_(all_athlete_ids)).all()}
+
+    all_team_ids = set()
+    for d in list(goal_counts.values()) + list(card_counts.values()):
+        if d.get("team_id"):
+            all_team_ids.add(d["team_id"])
+    teams_map: dict = {}
+    if all_team_ids:
+        teams_map = {t.id: t.name for t in db.query(Team).filter(Team.id.in_(all_team_ids)).all()}
+
+    scorers = sorted(
+        [
+            {
+                "athlete_id": aid,
+                "name": athletes[aid].name if aid in athletes else "—",
+                "photo_url": athletes[aid].photo_url if aid in athletes else None,
+                "goals": d["count"],
+                "team_id": d["team_id"],
+                "team_name": teams_map.get(d["team_id"], "—") if d["team_id"] else "—",
+            }
+            for aid, d in goal_counts.items()
+        ],
+        key=lambda x: -x["goals"],
+    )[:10]
+
+    cards_list = sorted(
+        [
+            {
+                "athlete_id": aid,
+                "name": athletes[aid].name if aid in athletes else "—",
+                "yellow": d["yellow"],
+                "red": d["red"],
+                "team_id": d["team_id"],
+                "team_name": teams_map.get(d["team_id"], "—") if d["team_id"] else "—",
+            }
+            for aid, d in card_counts.items()
+        ],
+        key=lambda x: -(x["yellow"] + x["red"] * 2),
+    )
+
+    susp_list = []
+    for s in db.query(Suspension).filter(
+        Suspension.championship_id == championship_id,
+        Suspension.games_remaining > 0,
+    ).all():
+        athlete = athletes.get(s.athlete_id)
+        if athlete is None:
+            athlete = db.query(Athlete).filter(Athlete.id == s.athlete_id).first()
+        susp_list.append({
+            "athlete_id": s.athlete_id,
+            "name": athlete.name if athlete else "—",
+            "games_remaining": s.games_remaining,
+            "reason": s.reason,
+        })
+
+    return {"scorers": scorers, "cards": cards_list, "suspensions": susp_list}
+
+
+# ---------------------------------------------------------------------------
+# _build_standings — helper interno
+# ---------------------------------------------------------------------------
+
+def _build_standings(
+    champ: Championship,
+    db: Session,
+    group: Optional[str] = None,
+    phase: Optional[str] = None,
+) -> list[StandingEntry]:
     rules        = champ.rules_config or {}
     pts_win      = rules.get("points_win",  3)
     pts_draw     = rules.get("points_draw", 1)
@@ -297,13 +674,15 @@ def _build_standings(champ: Championship, db: Session, group: Optional[str] = No
         link.team_id: link.team.name for link in champ.team_links
     }
 
-    # Filtra por grupo se informado
-    if group:
+    # Filtra por grupo se informado (restringe times ao grupo)
+    group_upper = group.upper() if group else None
+    if group_upper:
         groups_data = (champ.extra_data or {}).get("groups", [])
-        group_data = next((g for g in groups_data if g["group"] == group.upper()), None)
+        group_data = next((g for g in groups_data if g["group"] == group_upper), None)
         if group_data:
             group_ids = {t["id"] for t in group_data["teams"]}
             team_names = {tid: name for tid, name in team_names.items() if tid in group_ids}
+
     entry: dict[int, dict] = {
         tid: dict(
             team_id=tid, team_name=name,
@@ -316,17 +695,29 @@ def _build_standings(champ: Championship, db: Session, group: Optional[str] = No
     # H2H: h2h[a][b] = {"pts": int, "gd": int}
     h2h: dict[int, dict[int, dict]] = {tid: {} for tid in team_names}
 
-    finished_games = (
-        db.query(Game)
-        .filter(Game.championship_id == champ.id, Game.status == "finished")
-        .all()
-    )
+    # Query de jogos finalizados
+    q = db.query(Game).filter(Game.championship_id == champ.id, Game.status == "finished")
+
+    # Quando grupo for especificado, filtra apenas jogos da fase de grupos
+    if group_upper:
+        effective_phase = phase or "groups"
+    else:
+        effective_phase = phase
+
+    if effective_phase:
+        q = q.filter(Game.phase == effective_phase)
+
+    finished_games = q.all()
+
+    # Filtra jogos pelo extra_data->group quando grupo for especificado
+    if group_upper:
+        finished_games = [g for g in finished_games if (g.extra_data or {}).get("group") == group_upper]
 
     for g in finished_games:
         if not g.result:
             continue
-        hi, ai     = g.home_team_id, g.away_team_id
-        hs, as_    = g.result.home_score, g.result.away_score
+        hi, ai  = g.home_team_id, g.away_team_id
+        hs, as_ = g.result.home_score, g.result.away_score
 
         # Atualiza contadores básicos
         for tid, gf, ga in [(hi, hs, as_), (ai, as_, hs)]:

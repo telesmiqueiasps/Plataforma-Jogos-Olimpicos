@@ -43,6 +43,20 @@ class ChampionshipUpdate(BaseModel):
     current_phase: Optional[str] = None
     group_count: Optional[int] = None
     group_phase_format: Optional[str] = None
+    teams_per_group: Optional[int] = None
+    classifieds_per_group: Optional[int] = None
+
+
+class ChampionshipConfigUpdate(BaseModel):
+    points_win: Optional[int] = None
+    points_draw: Optional[int] = None
+    points_loss: Optional[int] = None
+    tiebreaker_order: Optional[List[str]] = None
+    yellow_card_threshold: Optional[int] = None
+    yellow_suspension_games: Optional[int] = None
+    red_card_suspension_games: Optional[int] = None
+    red_card_expulsion: Optional[bool] = None
+    classifieds_per_group: Optional[int] = None
 
 
 class ChampionshipOut(BaseModel):
@@ -60,6 +74,9 @@ class ChampionshipOut(BaseModel):
     current_phase: Optional[str] = None
     group_count: Optional[int] = None
     group_phase_format: Optional[str] = None
+    teams_per_group: Optional[int] = None
+    classifieds_per_group: Optional[int] = None
+    knockout_bracket: Optional[dict] = None
 
     model_config = {"from_attributes": True}
 

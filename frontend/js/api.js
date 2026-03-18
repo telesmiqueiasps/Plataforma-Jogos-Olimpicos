@@ -80,14 +80,34 @@ const ChampAPI = {
   create: (data) => apiFetch('/api/championships/', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiFetch(`/api/championships/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/api/championships/${id}`, { method: 'DELETE' }),
-  bracket: (id) => apiFetch(`/api/championships/${id}/bracket`),
-  drawRoundRobin: (id, data) => apiFetch(`/api/championships/${id}/draw/round-robin`, { method: 'POST', body: JSON.stringify(data || {}) }),
-  drawElimination: (id, data) => apiFetch(`/api/championships/${id}/draw/elimination`, { method: 'POST', body: JSON.stringify(data || {}) }),
+  // Equipes
+  teams: (id) => apiFetch(`/api/championships/${id}/teams`),
+  addTeam: (id, teamId) => apiFetch(`/api/championships/${id}/teams`, { method: 'POST', body: JSON.stringify({ team_id: teamId }) }),
+  removeTeam: (id, teamId) => apiFetch(`/api/championships/${id}/teams/${teamId}`, { method: 'DELETE' }),
+  // Configuração
+  config: (id) => apiFetch(`/api/championships/${id}/config`),
+  updateConfig: (id, data) => apiFetch(`/api/championships/${id}/config`, { method: 'PUT', body: JSON.stringify(data) }),
+  // Jogos
   games: (id) => apiFetch(`/api/championships/${id}/games`),
   createGame: (id, data) => apiFetch(`/api/championships/${id}/games`, { method: 'POST', body: JSON.stringify(data) }),
+  // Grupos
   groups: (id) => apiFetch(`/api/championships/${id}/groups`),
   drawGroups: (id, data) => apiFetch(`/api/championships/${id}/groups/draw`, { method: 'POST', body: JSON.stringify(data) }),
-  standings: (id, group) => apiFetch(`/api/championships/${id}/standings${group ? `?group=${group}` : ''}`),
+  generateGroupGames: (id, group) => apiFetch(`/api/championships/${id}/groups/${group}/games/generate`, { method: 'POST' }),
+  // Classificação
+  standings: (id, group, phase) => {
+    const params = new URLSearchParams();
+    if (group) params.append('group', group);
+    if (phase) params.append('phase', phase);
+    const qs = params.toString();
+    return apiFetch(`/api/championships/${id}/standings${qs ? '?' + qs : ''}`);
+  },
+  // Mata-mata
+  knockout: (id) => apiFetch(`/api/championships/${id}/knockout`),
+  setupKnockout: (id, data) => apiFetch(`/api/championships/${id}/knockout/setup`, { method: 'POST', body: JSON.stringify(data) }),
+  generateKnockout: (id) => apiFetch(`/api/championships/${id}/knockout/generate`, { method: 'POST' }),
+  // Estatísticas
+  stats: (id) => apiFetch(`/api/championships/${id}/stats`),
 };
 
 // --- Athletes ---

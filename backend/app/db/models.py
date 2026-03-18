@@ -169,9 +169,13 @@ class Championship(Base):
     created_by         = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     start_date         = Column(DateTime(timezone=True))
     end_date           = Column(DateTime(timezone=True))
-    current_phase      = Column(String(50), default="groups")
-    group_count        = Column(Integer, nullable=True)
-    group_phase_format = Column(String(20), default="round_robin")
+    current_phase         = Column(String(50), default="groups")
+    group_count           = Column(Integer, nullable=True)
+    group_phase_format    = Column(String(20), default="round_robin")
+    teams_per_group       = Column(Integer, nullable=True)
+    classifieds_per_group = Column(Integer, nullable=True, default=2)
+    knockout_bracket      = Column(JSON, nullable=True,
+                                   comment="Cruzamentos do mata-mata definidos manualmente")
 
     # relationships
     sport   = relationship("Sport", back_populates="championships")
