@@ -245,15 +245,11 @@
 
       try {
         allAthletes = await TeamsAPI.athletes(teamId);
+        populatePositions();
         renderAthletes();
       } catch (err) {
-        // Graceful fallback
-        allAthletes = DEMO_ATHLETES;
-        document.getElementById('api-notice').style.display = 'flex';
-        renderAthletes();
-
-        // Populate positions from demo data
-        populatePositions();
+        container.innerHTML = `<div class="alert alert-error" style="margin:16px;">${err.message}</div>`;
+        allAthletes = [];
       }
     }
 

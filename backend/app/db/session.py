@@ -37,7 +37,13 @@ _async_url = (
     .replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
 )
 
-async_engine = create_async_engine(_async_url, pool_pre_ping=True, pool_size=10, max_overflow=20)
+async_engine = create_async_engine(
+    _async_url,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+    connect_args={"statement_cache_size": 0},
+)
 
 AsyncSessionLocal = async_sessionmaker(
     async_engine,

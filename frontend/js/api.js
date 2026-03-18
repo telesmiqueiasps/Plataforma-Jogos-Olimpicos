@@ -96,3 +96,10 @@ const TeamsAPI = {
   athletes: (teamId) => apiFetch(`/api/teams/${teamId}/athletes/`),
   createAthlete: (teamId, data) => apiFetch(`/api/teams/${teamId}/athletes/`, { method: 'POST', body: JSON.stringify(data) }),
 };
+
+// --- Games ---
+const GamesAPI = {
+  setResult: (id, data) => apiFetch(`/api/games/${id}/result`, { method: 'PUT', body: JSON.stringify(data) }),
+  addEvent: (id, data) => apiFetch(`/api/games/${id}/events`, { method: 'POST', body: JSON.stringify(data) }),
+  events: (id) => apiFetch(`/api/games/${id}/events`),
+};
