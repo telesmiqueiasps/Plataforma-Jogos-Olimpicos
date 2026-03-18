@@ -100,6 +100,11 @@
             <div class="stat-value" id="stat-teams" style="color:var(--warning);">—</div>
             <div class="stat-label">Equipes</div>
           </div>
+          <div class="stat-card">
+            <span class="stat-icon">🏅</span>
+            <div class="stat-value" id="stat-athletes" style="color:#a78bfa;">—</div>
+            <div class="stat-label">Atletas</div>
+          </div>
         </div>
 
         <div class="content-grid">
@@ -230,12 +235,22 @@
           '<div class="alert alert-error" style="margin:16px;">Não foi possível carregar os campeonatos.</div>';
       }
 
-      // Load teams count (graceful)
+      // Load teams count
       try {
         const teams = await TeamsAPI.list();
         document.getElementById('stat-teams').textContent = Array.isArray(teams) ? teams.length : '—';
       } catch {
         document.getElementById('stat-teams').textContent = '—';
+      }
+
+      // Load athletes count
+      try {
+        const athletes = await AthletesAPI.list();
+        const statEl = document.getElementById('stat-athletes');
+        if (statEl) statEl.textContent = Array.isArray(athletes) ? athletes.length : '—';
+      } catch {
+        const statEl = document.getElementById('stat-athletes');
+        if (statEl) statEl.textContent = '—';
       }
     }
 

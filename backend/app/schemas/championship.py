@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -23,11 +23,14 @@ class TeamShort(BaseModel):
 class ChampionshipCreate(BaseModel):
     name: str
     sport_id: int
-    format: str                          # round_robin | elimination | hybrid
+    format: str
     rules_config: dict = {}
     extra_data: Optional[dict] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    team_ids: List[int] = []
+    group_count: Optional[int] = None
+    group_phase_format: str = "round_robin"
 
 
 class ChampionshipUpdate(BaseModel):
@@ -37,6 +40,9 @@ class ChampionshipUpdate(BaseModel):
     extra_data: Optional[dict] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    current_phase: Optional[str] = None
+    group_count: Optional[int] = None
+    group_phase_format: Optional[str] = None
 
 
 class ChampionshipOut(BaseModel):
@@ -51,6 +57,9 @@ class ChampionshipOut(BaseModel):
     created_by: Optional[int] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    current_phase: Optional[str] = None
+    group_count: Optional[int] = None
+    group_phase_format: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -67,3 +76,19 @@ class StandingEntry(BaseModel):
     goals_against: int
     goal_diff: int
     points: int
+
+
+class GroupDrawRequest(BaseModel):
+    group_count: int
+    teams_per_group: Optional[int] = None
+
+
+class GroupTeam(BaseModel):
+    id: int
+    name: str
+    logo_url: Optional[str] = None
+
+
+class GroupEntry(BaseModel):
+    group: str
+    teams: List[GroupTeam]

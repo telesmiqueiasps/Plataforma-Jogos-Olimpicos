@@ -5,8 +5,9 @@ CRUD de campeonatos, gestão de equipes inscritas,
 listagem de jogos e tabela de classificação.
 """
 
+import random
 from functools import cmp_to_key
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -18,6 +19,8 @@ from app.schemas.championship import (
     ChampionshipCreate,
     ChampionshipOut,
     ChampionshipUpdate,
+    GroupDrawRequest,
+    GroupEntry,
     StandingEntry,
 )
 from app.schemas.game import GameCreate, GameOut
@@ -64,8 +67,21 @@ def create_championship(
     if not sport:
         raise HTTPException(status_code=404, detail="Modalidade não encontrada")
 
-    champ = Championship(**data.model_dump(), created_by=current_user.id)
+    team_ids = data.team_ids or []
+    champ = Championship(**data.model_dump(exclude={"team_ids"}), created_by=current_user.id)
     db.add(champ)
+    db.commit()
+    db.refresh(champ)
+
+    for team_id in team_ids:
+        team = db.query(Team).filter(Team.id == team_id).first()
+        if team:
+            already = db.query(ChampionshipTeam).filter(
+                ChampionshipTeam.championship_id == champ.id,
+                ChampionshipTeam.team_id == team_id,
+            ).first()
+            if not already:
+                db.add(ChampionshipTeam(championship_id=champ.id, team_id=team_id))
     db.commit()
     db.refresh(champ)
     return champ
@@ -207,12 +223,66 @@ def create_game(
 # ---------------------------------------------------------------------------
 
 @router.get("/{championship_id}/standings", response_model=list[StandingEntry])
-def get_standings(championship_id: int, db: Session = Depends(get_db)):
+def get_standings(
+    championship_id: int,
+    group: Optional[str] = Query(None, description="Filtra por grupo (ex: A, B, C)"),
+    db: Session = Depends(get_db),
+):
     champ = _get_championship_or_404(championship_id, db)
-    return _build_standings(champ, db)
+    return _build_standings(champ, db, group=group)
 
 
-def _build_standings(champ: Championship, db: Session) -> list[StandingEntry]:
+# ---------------------------------------------------------------------------
+# Grupos
+# ---------------------------------------------------------------------------
+
+@router.post("/{championship_id}/groups/draw", response_model=list[GroupEntry])
+def draw_groups(
+    championship_id: int,
+    body: GroupDrawRequest,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    """Sorteia grupos aleatoriamente e salva em extra_data do campeonato."""
+    champ = _get_championship_or_404(championship_id, db)
+    teams = [link.team for link in champ.team_links]
+
+    if body.group_count < 1:
+        raise HTTPException(status_code=400, detail="group_count deve ser >= 1")
+    if len(teams) < body.group_count:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Times insuficientes ({len(teams)}) para {body.group_count} grupos",
+        )
+
+    shuffled = teams.copy()
+    random.shuffle(shuffled)
+
+    group_labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    groups = []
+    for i in range(body.group_count):
+        group_teams = shuffled[i::body.group_count]
+        groups.append({
+            "group": group_labels[i],
+            "teams": [{"id": t.id, "name": t.name, "logo_url": t.logo_url} for t in group_teams],
+        })
+
+    extra_data = dict(champ.extra_data or {})
+    extra_data["groups"] = groups
+    champ.extra_data = extra_data
+    champ.group_count = body.group_count
+    db.commit()
+    return groups
+
+
+@router.get("/{championship_id}/groups", response_model=list[GroupEntry])
+def get_groups(championship_id: int, db: Session = Depends(get_db)):
+    """Retorna grupos salvos no extra_data do campeonato."""
+    champ = _get_championship_or_404(championship_id, db)
+    return (champ.extra_data or {}).get("groups", [])
+
+
+def _build_standings(champ: Championship, db: Session, group: Optional[str] = None) -> list[StandingEntry]:
     rules        = champ.rules_config or {}
     pts_win      = rules.get("points_win",  3)
     pts_draw     = rules.get("points_draw", 1)
@@ -226,6 +296,14 @@ def _build_standings(champ: Championship, db: Session) -> list[StandingEntry]:
     team_names: dict[int, str] = {
         link.team_id: link.team.name for link in champ.team_links
     }
+
+    # Filtra por grupo se informado
+    if group:
+        groups_data = (champ.extra_data or {}).get("groups", [])
+        group_data = next((g for g in groups_data if g["group"] == group.upper()), None)
+        if group_data:
+            group_ids = {t["id"] for t in group_data["teams"]}
+            team_names = {tid: name for tid, name in team_names.items() if tid in group_ids}
     entry: dict[int, dict] = {
         tid: dict(
             team_id=tid, team_name=name,

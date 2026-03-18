@@ -140,9 +140,24 @@
               <input type="date" id="champ-end" class="form-control">
             </div>
           </div>
-          <div class="form-group">
-            <label for="champ-desc">Descrição</label>
-            <input type="text" id="champ-desc" class="form-control" placeholder="Descrição opcional do campeonato">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="champ-group-count">Numero de Grupos</label>
+              <input type="number" id="champ-group-count" class="form-control" placeholder="Ex: 4" min="1">
+            </div>
+            <div class="form-group">
+              <label for="champ-group-format">Formato dos Grupos</label>
+              <select id="champ-group-format" class="form-control">
+                <option value="round_robin">Pontos Corridos</option>
+                <option value="elimination">Eliminatorias</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="champ-teams-section" style="display:none;">
+            <label>Equipes Inscritas (opcional)</label>
+            <div id="champ-teams-list" style="max-height:180px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--bg-tertiary);">
+              <span style="color:var(--text-secondary); font-size:13px;">Carregando equipes...</span>
+            </div>
           </div>
         </form>
       </div>
@@ -202,6 +217,32 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-bracket')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Groups -->
+  <div class="modal-overlay" id="modal-groups">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <span class="modal-title">Grupos — <span id="groups-champ-name"></span></span>
+        <button class="modal-close" onclick="closeModal('modal-groups')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="groups-alert" class="alert alert-error" style="display:none;"></div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+          <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
+            <label for="groups-count-input" style="white-space:nowrap; margin:0;">Numero de grupos:</label>
+            <input type="number" id="groups-count-input" class="form-control" style="width:70px;" min="1" max="26" value="4">
+          </div>
+          <button class="btn btn-teal" id="btn-draw-groups">🎲 Sortear Grupos</button>
+        </div>
+        <div id="groups-content">
+          <div class="page-loading"><div class="spinner"></div><span>Carregando grupos...</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-groups')">Fechar</button>
       </div>
     </div>
   </div>
@@ -286,6 +327,7 @@
                   <td>
                     <div class="actions">
                       <button class="btn btn-sm btn-secondary" onclick="openDrawModal(${c.id}, '${c.name.replace(/'/g, "\\'")}')">Sortear</button>
+                      <button class="btn btn-sm btn-secondary" onclick="openGroupsModal(${c.id}, '${c.name.replace(/'/g, "\\'")}')">Grupos</button>
                       <button class="btn btn-sm btn-secondary" onclick="viewBracket(${c.id})">Chave</button>
                       <a href="games.html?championship_id=${c.id}" class="btn btn-sm btn-ghost">Jogos</a>
                     </div>
@@ -338,10 +380,27 @@
       });
     });
 
-    function openNewChampModal() {
+    async function openNewChampModal() {
       document.getElementById('champ-form').reset();
       document.getElementById('champ-alert').style.display = 'none';
-      loadSports();
+      document.getElementById('champ-teams-section').style.display = 'none';
+      await loadSports();
+      // Load teams for selection
+      try {
+        const teams = await TeamsAPI.list();
+        const list = document.getElementById('champ-teams-list');
+        if (!teams.length) {
+          list.innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">Nenhuma equipe cadastrada.</span>';
+        } else {
+          list.innerHTML = teams.map(t => `
+            <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;">
+              <input type="checkbox" class="champ-team-check" value="${t.id}" style="width:auto;">
+              <span>${t.name}${t.sport?.name ? ` — ${t.sport.name}` : ''}</span>
+            </label>
+          `).join('');
+        }
+        document.getElementById('champ-teams-section').style.display = 'block';
+      } catch {}
       openModal('modal-champ');
     }
 
@@ -366,10 +425,13 @@
         return;
       }
 
-      const data = { name, sport_id: Number(sport_id), format };
+      const team_ids = [...document.querySelectorAll('.champ-team-check:checked')].map(el => Number(el.value));
+      const group_count = document.getElementById('champ-group-count').value;
+      const group_phase_format = document.getElementById('champ-group-format').value;
+      const data = { name, sport_id: Number(sport_id), format, team_ids, group_phase_format };
       if (start_date) data.start_date = start_date;
       if (end_date) data.end_date = end_date;
-      if (description) data.description = description;
+      if (group_count) data.group_count = Number(group_count);
 
       btnLoading(btn, true, 'Criando...');
       try {
@@ -537,6 +599,69 @@
       html += '</div></div>';
       container.innerHTML = html;
     }
+
+    // ---- Groups modal ----
+    let currentGroupsChampId = null;
+
+    async function openGroupsModal(champId, champName) {
+      currentGroupsChampId = champId;
+      document.getElementById('groups-champ-name').textContent = champName;
+      document.getElementById('groups-alert').style.display = 'none';
+      openModal('modal-groups');
+      await loadGroups(champId);
+    }
+
+    async function loadGroups(champId) {
+      const container = document.getElementById('groups-content');
+      container.innerHTML = '<div class="page-loading"><div class="spinner"></div><span>Carregando grupos...</span></div>';
+      try {
+        const groups = await ChampAPI.groups(champId);
+        renderGroups(groups, container);
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-info">Nenhum grupo sorteado ainda. Use o botao "Sortear Grupos" acima.</div>`;
+      }
+    }
+
+    function renderGroups(groups, container) {
+      if (!groups.length) {
+        container.innerHTML = '<div class="alert alert-info">Nenhum grupo sorteado ainda. Clique em "Sortear Grupos".</div>';
+        return;
+      }
+      container.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;">
+        ${groups.map(g => `
+          <div class="card" style="padding:12px;">
+            <div style="font-weight:700; font-size:16px; color:var(--accent-purple); margin-bottom:8px;">Grupo ${g.group}</div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              ${g.teams.map(t => `
+                <div style="display:flex; align-items:center; gap:6px; font-size:13px; padding:4px 0; border-bottom:1px solid var(--border);">
+                  <span style="width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal)); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; color:white; flex-shrink:0;">${t.name[0]}</span>
+                  ${t.name}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+    }
+
+    document.getElementById('btn-draw-groups').addEventListener('click', async () => {
+      if (!currentGroupsChampId) return;
+      const btn = document.getElementById('btn-draw-groups');
+      const alertEl = document.getElementById('groups-alert');
+      alertEl.style.display = 'none';
+      const group_count = Number(document.getElementById('groups-count-input').value) || 4;
+      btnLoading(btn, true, 'Sorteando...');
+      try {
+        const groups = await ChampAPI.drawGroups(currentGroupsChampId, { group_count });
+        renderGroups(groups, document.getElementById('groups-content'));
+        showToast(`${groups.length} grupos sorteados!`, 'success');
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
 
     loadChampionships();
     loadSports();

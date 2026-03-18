@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -26,6 +26,7 @@ class TeamCreate(BaseModel):
     name: str
     sport_id: int
     logo_url: Optional[str] = None
+    athlete_ids: List[int] = []
 
 
 class TeamUpdate(BaseModel):

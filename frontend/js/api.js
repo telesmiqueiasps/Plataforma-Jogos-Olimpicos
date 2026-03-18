@@ -83,6 +83,23 @@ const ChampAPI = {
   drawElimination: (id, data) => apiFetch(`/api/championships/${id}/draw/elimination`, { method: 'POST', body: JSON.stringify(data || {}) }),
   games: (id) => apiFetch(`/api/championships/${id}/games`),
   createGame: (id, data) => apiFetch(`/api/championships/${id}/games`, { method: 'POST', body: JSON.stringify(data) }),
+  groups: (id) => apiFetch(`/api/championships/${id}/groups`),
+  drawGroups: (id, data) => apiFetch(`/api/championships/${id}/groups/draw`, { method: 'POST', body: JSON.stringify(data) }),
+  standings: (id, group) => apiFetch(`/api/championships/${id}/standings${group ? `?group=${group}` : ''}`),
+};
+
+// --- Athletes ---
+const AthletesAPI = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString();
+    return apiFetch('/api/athletes/' + (qs ? '?' + qs : ''));
+  },
+  create: (data) => apiFetch('/api/athletes/', { method: 'POST', body: JSON.stringify(data) }),
+  get: (id) => apiFetch(`/api/athletes/${id}`),
+  update: (id, data) => apiFetch(`/api/athletes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/api/athletes/${id}`, { method: 'DELETE' }),
 };
 
 // --- Teams ---

@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_organizer
+from sqlalchemy import update as sa_update
+
 from app.db.models import Athlete, Sport, Team, User
 from app.db.session import get_db
 from app.schemas.athlete import AthleteCreate, AthleteOut, AthleteUpdate
@@ -65,10 +67,19 @@ def create_team(
     if not sport:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Modalidade não encontrada")
 
-    team = Team(**data.model_dump(), created_by=current_user.id)
+    athlete_ids = data.athlete_ids or []
+    team = Team(**data.model_dump(exclude={"athlete_ids"}), created_by=current_user.id)
     db.add(team)
     db.commit()
     db.refresh(team)
+
+    if athlete_ids:
+        db.query(Athlete).filter(Athlete.id.in_(athlete_ids)).update(
+            {"team_id": team.id}, synchronize_session=False
+        )
+        db.commit()
+        db.refresh(team)
+
     return team
 
 
@@ -130,7 +141,7 @@ def create_athlete(
     _current_user: User = Depends(require_organizer),
 ):
     _get_team_or_404(team_id, db)
-    athlete = Athlete(**data.model_dump(), team_id=team_id)
+    athlete = Athlete(**data.model_dump(exclude={"team_id"}), team_id=team_id)
     db.add(athlete)
     db.commit()
     db.refresh(athlete)

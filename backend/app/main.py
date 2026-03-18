@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import auth, championships, draws, games, sports, teams, users
+from app.api.routes import athletes, auth, championships, draws, games, sports, teams, users
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api")
+app.include_router(athletes.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(sports.router, prefix="/api")
 app.include_router(teams.router, prefix="/api")

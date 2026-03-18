@@ -115,7 +115,7 @@ class Team(Base):
     # relationships
     sport    = relationship("Sport", back_populates="teams")
     creator  = relationship("User",  back_populates="teams_created", foreign_keys=[created_by])
-    athletes = relationship("Athlete", back_populates="team", cascade="all, delete-orphan")
+    athletes = relationship("Athlete", back_populates="team", cascade="save-update, merge")
 
     championship_links = relationship("ChampionshipTeam", back_populates="team")
 
@@ -136,7 +136,7 @@ class Athlete(Base):
     name     = Column(String(100), nullable=False)
     number   = Column(Integer, comment="Número da camisa")
     position = Column(String(50),  comment="Posição ou função na equipe")
-    team_id  = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_id  = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True, index=True)
     photo_url = Column(String(500))
     active   = Column(Boolean, nullable=False, default=True)
 
@@ -166,9 +166,12 @@ class Championship(Base):
                           comment="Critérios de classificação: pontos por vitória/empate, saldo de gols, etc.")
     extra_data   = Column(JSON, nullable=True,
                           comment="Dados adicionais livres por modalidade (ex: número de sets, tempo de jogo)")
-    created_by   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
-    start_date   = Column(DateTime(timezone=True))
-    end_date     = Column(DateTime(timezone=True))
+    created_by         = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    start_date         = Column(DateTime(timezone=True))
+    end_date           = Column(DateTime(timezone=True))
+    current_phase      = Column(String(50), default="groups")
+    group_count        = Column(Integer, nullable=True)
+    group_phase_format = Column(String(20), default="round_robin")
 
     # relationships
     sport   = relationship("Sport", back_populates="championships")

@@ -136,13 +136,12 @@
             <input type="url" id="team-logo" class="form-control" placeholder="https://exemplo.com/logo.png">
             <span class="form-hint">Link para a imagem do escudo da equipe</span>
           </div>
-          <div class="form-group">
-            <label for="team-city">Cidade</label>
-            <input type="text" id="team-city" class="form-control" placeholder="São Paulo">
-          </div>
-          <div class="form-group">
-            <label for="team-coach">Técnico</label>
-            <input type="text" id="team-coach" class="form-control" placeholder="Nome do técnico">
+          <div class="form-group" id="free-athletes-section" style="display:none;">
+            <label>Atletas Livres (opcional)</label>
+            <div id="free-athletes-list" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--bg-tertiary);">
+              <span style="color:var(--text-secondary); font-size:13px;">Carregando atletas livres...</span>
+            </div>
+            <small style="color:var(--text-secondary);">Selecione atletas para vincular automaticamente a esta equipe.</small>
           </div>
         </form>
       </div>
@@ -297,10 +296,28 @@
       renderTeams();
     });
 
-    function openNewTeamModal() {
+    async function openNewTeamModal() {
       document.getElementById('team-form').reset();
       document.getElementById('team-alert').style.display = 'none';
+      document.getElementById('free-athletes-section').style.display = 'none';
+      document.getElementById('free-athletes-list').innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">Carregando...</span>';
       openModal('modal-team');
+      try {
+        const freeAthletes = await AthletesAPI.list({ free: true });
+        const section = document.getElementById('free-athletes-section');
+        const list = document.getElementById('free-athletes-list');
+        if (!freeAthletes.length) {
+          list.innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">Nenhum atleta livre disponivel.</span>';
+        } else {
+          list.innerHTML = freeAthletes.map(a => `
+            <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;">
+              <input type="checkbox" class="athlete-check" value="${a.id}" style="width:auto;">
+              <span>${a.name}${a.position ? ` — ${a.position}` : ''}${a.number != null ? ` #${a.number}` : ''}</span>
+            </label>
+          `).join('');
+        }
+        section.style.display = 'block';
+      } catch {}
     }
 
     document.getElementById('btn-new-team').addEventListener('click', openNewTeamModal);
@@ -323,10 +340,9 @@
         return;
       }
 
-      const data = { name, sport_id: Number(sport_id) };
+      const athlete_ids = [...document.querySelectorAll('.athlete-check:checked')].map(el => Number(el.value));
+      const data = { name, sport_id: Number(sport_id), athlete_ids };
       if (logo_url) data.logo_url = logo_url;
-      if (city) data.city = city;
-      if (coach) data.coach = coach;
 
       btnLoading(btn, true, 'Criando...');
       try {
