@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
-  <title>Criar Conta — Sports Platform</title>
+  <title>Criar Conta — Jogos Olímpicos Sinodal PB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
@@ -48,10 +48,7 @@
       <hr class="divider">
 
       <div class="auth-footer">
-        Já tem conta? <a href="login.html">Entrar</a>
-      </div>
-      <div class="auth-footer" style="margin-top:8px;">
-        <a href="index.html" style="color:#8b8da0; font-size:13px;">← Voltar ao início</a>
+        <a href="dashboard.html" style="color:#8b8da0; font-size:13px;">← Voltar ao Dashboard</a>
       </div>
     </div>
   </div>
@@ -60,7 +57,10 @@
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script>
-    redirectIfAuth();
+    // Only allow access if authenticated
+    if (!isAuthenticated()) {
+      window.location.replace('login.html');
+    }
 
     const form = document.getElementById('register-form');
     const alertEl = document.getElementById('alert');
