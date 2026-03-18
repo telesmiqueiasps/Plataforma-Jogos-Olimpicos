@@ -11,7 +11,7 @@ router = APIRouter(prefix="/sports", tags=["Modalidades"])
 
 @router.get("/", response_model=list[SportOut])
 def list_sports(db: Session = Depends(get_db)):
-    return db.query(Sport).filter(Sport.is_active == True).all()
+    return db.query(Sport).all()
 
 
 @router.get("/{sport_id}", response_model=SportOut)
@@ -44,5 +44,5 @@ def delete_sport(
     sport = db.query(Sport).filter(Sport.id == sport_id).first()
     if not sport:
         raise HTTPException(status_code=404, detail="Modalidade não encontrada")
-    sport.is_active = False
+    db.delete(sport)
     db.commit()

@@ -155,12 +155,9 @@
             <input type="text" id="sport-name" class="form-control" placeholder="Ex: Futebol" required>
           </div>
           <div class="form-group">
-            <label for="sport-icon">Ícone (emoji)</label>
-            <input type="text" id="sport-icon" class="form-control" placeholder="⚽">
-          </div>
-          <div class="form-group">
-            <label for="sport-desc">Descrição</label>
-            <input type="text" id="sport-desc" class="form-control" placeholder="Breve descrição...">
+            <label for="sport-slug">Slug *</label>
+            <input type="text" id="sport-slug" class="form-control" placeholder="Ex: futsal">
+            <small style="color:var(--text-secondary);">Preenchido automaticamente. Edite se necessário.</small>
           </div>
         </form>
       </div>
@@ -321,11 +318,29 @@
         </div>`;
     }
 
+    // Gera slug a partir do nome da modalidade
+    function generateSlug(name) {
+      const map = {
+        'futsal': 'futsal', 'futebol': 'futsal',
+        'volei': 'volleyball', 'vôlei': 'volleyball', 'voleibol': 'volleyball',
+        'basquete': 'basketball', 'basquetebol': 'basketball',
+        'corrida': 'running', 'atletismo': 'running',
+        'jogos de tabuleiro': 'boardgame', 'tabuleiro': 'boardgame',
+      };
+      const key = name.toLowerCase().trim();
+      return map[key] || key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    }
+
     // Add sport
     document.getElementById('btn-add-sport').addEventListener('click', () => {
       document.getElementById('sport-form').reset();
       document.getElementById('sport-alert').style.display = 'none';
       openModal('modal-sport');
+    });
+
+    document.getElementById('sport-name').addEventListener('input', function () {
+      const slugEl = document.getElementById('sport-slug');
+      slugEl.value = generateSlug(this.value.trim());
     });
 
     async function saveSport() {
@@ -340,11 +355,8 @@
         return;
       }
 
-      const data = {
-        name,
-        icon: document.getElementById('sport-icon').value.trim() || null,
-        description: document.getElementById('sport-desc').value.trim() || null,
-      };
+      const slug = document.getElementById('sport-slug').value.trim() || generateSlug(name);
+      const data = { name, slug };
 
       btnLoading(btn, true, 'Salvando...');
       try {
