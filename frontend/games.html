@@ -671,14 +671,17 @@
           return;
         }
         panel.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
-          ${events.map(ev => `
+          ${events.map(ev => {
+            const athleteName = ev.athlete_name || (ev.athlete_id ? `Atleta #${ev.athlete_id}` : null);
+            const minuteStr = ev.minute != null ? ` (${ev.minute}')` : '';
+            const descStr = ev.description ? ` — ${ev.description}` : '';
+            const who = athleteName ? ` — ${athleteName}${minuteStr}${descStr}` : `${minuteStr}${descStr}`;
+            return `
             <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
               ${eventBadge(ev.event_type)}
-              <span style="color:var(--text-primary);">${ev.athlete_id ? (ev.athlete_name || `Atleta #${ev.athlete_id}`) : '—'}</span>
-              ${ev.minute != null ? `<span style="color:var(--text-secondary);">${ev.minute}'</span>` : ''}
-              ${ev.description ? `<span style="color:var(--text-secondary);">— ${ev.description}</span>` : ''}
-            </div>
-          `).join('')}
+              <span style="color:var(--text-primary);">${who}</span>
+            </div>`;
+          }).join('')}
         </div>`;
       } catch (err) {
         panel.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;margin:0;">Erro: ${err.message}</p>`;

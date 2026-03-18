@@ -10,7 +10,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_organizer
-from app.db.models import Game, GameEvent, GameResult, Suspension, User
+from app.db.models import Athlete, Game, GameEvent, GameResult, Suspension, User
 from app.db.session import get_db
 from app.schemas.game import (
     GameEventCreate,
@@ -138,12 +138,34 @@ def add_event(
 @router.get("/{game_id}/events", response_model=list[GameEventOut])
 def list_events(game_id: int, db: Session = Depends(get_db)):
     _get_game_or_404(game_id, db)
-    return (
+    events = (
         db.query(GameEvent)
         .filter(GameEvent.game_id == game_id)
         .order_by(GameEvent.minute, GameEvent.id)
         .all()
     )
+
+    athlete_ids = {e.athlete_id for e in events if e.athlete_id}
+    athletes: dict[int, str] = {}
+    if athlete_ids:
+        athletes = {
+            a.id: a.name
+            for a in db.query(Athlete).filter(Athlete.id.in_(athlete_ids)).all()
+        }
+
+    return [
+        {
+            "id": e.id,
+            "game_id": e.game_id,
+            "athlete_id": e.athlete_id,
+            "athlete_name": athletes.get(e.athlete_id) if e.athlete_id else None,
+            "team_id": e.team_id,
+            "event_type": e.event_type,
+            "minute": e.minute,
+            "description": e.description,
+        }
+        for e in events
+    ]
 
 
 # ---------------------------------------------------------------------------

@@ -64,6 +64,7 @@ class GameEventOut(BaseModel):
     id: int
     game_id: int
     athlete_id: Optional[int] = None
+    athlete_name: Optional[str] = None
     team_id: Optional[int] = None
     event_type: str
     minute: Optional[int] = None
