@@ -18,12 +18,15 @@ def get_current_user(
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido ou expirado",
+            detail="Token invalido ou expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user = get_user_by_id(db, user_id=payload.get("sub"))
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalido")
+    user = get_user_by_id(db, user_id=int(user_id))
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário não encontrado")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario nao encontrado")
     return user
 
 
@@ -34,7 +37,6 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
 
 
 def require_organizer(current_user: User = Depends(get_current_user)) -> User:
-    """Permite acesso a usuários com role 'admin' ou 'organizer'."""
     if current_user.role not in ("admin", "organizer"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
