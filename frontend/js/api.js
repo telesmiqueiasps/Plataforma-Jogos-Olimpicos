@@ -108,6 +108,9 @@ const ChampAPI = {
   generateKnockout: (id) => apiFetch(`/api/championships/${id}/knockout/generate`, { method: 'POST' }),
   // Estatísticas
   stats: (id) => apiFetch(`/api/championships/${id}/stats`),
+  // Mata-mata automático
+  advanceKnockout: (id) => apiFetch(`/api/championships/${id}/knockout/advance`, { method: 'POST' }),
+  champion: (id) => apiFetch(`/api/championships/${id}/champion`),
 };
 
 // --- Athletes ---

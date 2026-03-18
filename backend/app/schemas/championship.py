@@ -24,6 +24,7 @@ class ChampionshipCreate(BaseModel):
     name: str
     sport_id: int
     format: str
+    status: Optional[str] = "draft"
     rules_config: dict = {}
     extra_data: Optional[dict] = None
     start_date: Optional[datetime] = None

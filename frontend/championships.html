@@ -42,6 +42,21 @@
     .group-label { font-size:18px; font-weight:800; color:var(--accent-purple); margin-bottom:12px; }
     .info-banner { background:rgba(108,99,255,0.08); border:1px solid rgba(108,99,255,0.2); border-radius:8px; padding:14px 16px; color:var(--text-secondary); font-size:13px; }
     .badge-suspended { background:rgba(239,68,68,0.15); color:#f87171; border-radius:4px; padding:2px 6px; font-size:11px; font-weight:600; }
+    /* Bracket visual */
+    .bracket-rounds { display:flex; gap:24px; align-items:flex-start; min-width:max-content; }
+    .bracket-round { display:flex; flex-direction:column; gap:12px; min-width:200px; }
+    .bracket-round-title { font-size:12px; font-weight:700; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; padding:4px 0; border-bottom:1px solid rgba(108,99,255,0.3); }
+    .bracket-match { background:var(--bg-tertiary); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .bracket-match.final-match { border-color:rgba(255,215,0,0.4); }
+    .bracket-team { display:flex; justify-content:space-between; align-items:center; padding:7px 12px; font-size:13px; border-bottom:1px solid var(--border); }
+    .bracket-team:last-child { border-bottom:none; }
+    .bracket-team.winner { background:rgba(0,212,170,0.12); color:var(--accent-teal); font-weight:700; }
+    .bracket-team-score { font-weight:800; font-size:15px; min-width:24px; text-align:right; }
+    /* Champion card */
+    .champion-card { background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(108,99,255,0.12)); border:1px solid rgba(255,215,0,0.4); border-radius:12px; padding:24px; text-align:center; margin-bottom:16px; }
+    .champion-card .trophy { font-size:48px; margin-bottom:8px; }
+    .champion-card .champion-label { font-size:12px; color:rgba(255,215,0,0.8); text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:4px; }
+    .champion-card .champion-name { font-size:24px; font-weight:800; color:#ffd700; }
   </style>
 </head>
 <body>
@@ -286,26 +301,31 @@
 
           <!-- ---- ABA: Mata-mata ---- -->
           <div id="tab-knockout" style="display:none;">
+            <!-- Configuração dos cruzamentos da 1ª rodada -->
             <div class="card" style="margin-bottom:16px;">
               <div class="card-body">
-                <h3 style="margin-bottom:4px; font-size:15px;">Cruzamentos</h3>
+                <h3 style="margin-bottom:4px; font-size:15px;">Cruzamentos da 1ª Rodada</h3>
                 <p style="color:var(--text-secondary); font-size:12px; margin-bottom:16px;">
-                  Defina manualmente quem enfrenta quem no mata-mata. Use "1ºA" = 1º classificado do Grupo A.
+                  Defina manualmente os confrontos iniciais. Use "1A" = 1º do Grupo A, "2B" = 2º do Grupo B, etc.
                 </p>
                 <div id="knockout-matches-container"></div>
                 <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
                   <button class="btn btn-secondary btn-sm" onclick="addKnockoutMatch()">+ Adicionar Confronto</button>
                   <button class="btn btn-primary btn-sm" id="btn-save-knockout">Salvar Cruzamentos</button>
-                  <button class="btn btn-teal btn-sm" id="btn-gen-knockout">⚡ Gerar Jogos do Mata-mata</button>
+                  <button class="btn btn-teal btn-sm" id="btn-gen-knockout">⚡ Gerar Jogos</button>
                 </div>
                 <div id="knockout-alert" class="alert alert-error" style="display:none; margin-top:12px;"></div>
               </div>
             </div>
 
-            <div class="card">
+            <!-- Bracket visual -->
+            <div class="card" style="margin-bottom:16px;">
               <div class="card-body" style="padding:0;">
-                <div style="padding:12px 16px; border-bottom:1px solid var(--border); font-weight:600; font-size:14px;">Jogos do Mata-mata</div>
-                <div id="knockout-games-content"></div>
+                <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                  <span style="font-weight:600; font-size:14px;">Chave do Mata-mata</span>
+                  <button class="btn btn-teal btn-sm" id="btn-advance-knockout" style="display:none;">⏭ Avançar para próxima fase</button>
+                </div>
+                <div id="knockout-bracket-visual" style="padding:16px; overflow-x:auto;"></div>
               </div>
             </div>
           </div>
@@ -363,6 +383,14 @@
               <label for="champ-end">Data de Fim</label>
               <input type="date" id="champ-end" class="form-control">
             </div>
+          </div>
+          <div class="form-group">
+            <label for="champ-status">Status</label>
+            <select id="champ-status" class="form-control">
+              <option value="draft">Rascunho</option>
+              <option value="active">Ativo</option>
+              <option value="finished">Encerrado</option>
+            </select>
           </div>
           <div class="form-group" id="champ-teams-section" style="display:none;">
             <label>Equipes Inscritas (opcional)</label>
@@ -487,6 +515,7 @@
                     <div class="actions">
                       <button class="btn btn-sm btn-primary" onclick="openChampDetail(${c.id})">Gerenciar</button>
                       <a href="games.html?championship_id=${c.id}" class="btn btn-sm btn-ghost">Jogos</a>
+                      ${c.status !== 'active' ? `<button class="btn btn-sm btn-teal" onclick="activateChamp(${c.id})">▶ Ativar</button>` : ''}
                       <button class="btn btn-sm btn-secondary" onclick="openEditChampModal(${c.id})">✏️ Editar</button>
                       <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="deleteChamp(${c.id}, '${c.name.replace(/'/g, "\\'")}')">🗑️</button>
                     </div>
@@ -541,6 +570,7 @@
       document.getElementById('champ-alert').style.display = 'none';
       document.getElementById('champ-modal-title').textContent = 'Novo Campeonato';
       document.getElementById('champ-save-btn').textContent = 'Criar Campeonato';
+      document.getElementById('champ-status').value = 'draft';
       document.getElementById('champ-teams-section').style.display = 'none';
       await loadSports();
       try {
@@ -576,6 +606,7 @@
       document.getElementById('champ-format').value = champ.format || '';
       document.getElementById('champ-start').value = champ.start_date ? champ.start_date.slice(0, 10) : '';
       document.getElementById('champ-end').value = champ.end_date ? champ.end_date.slice(0, 10) : '';
+      document.getElementById('champ-status').value = champ.status || 'draft';
       openModal('modal-champ');
     }
 
@@ -584,6 +615,17 @@
       try {
         await ChampAPI.delete(champId);
         showToast(`Campeonato "${champName}" excluído.`, 'success');
+        allChamps = await ChampAPI.list();
+        renderTable();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function activateChamp(champId) {
+      try {
+        await ChampAPI.update(champId, { status: 'active' });
+        showToast('Campeonato ativado!', 'success');
         allChamps = await ChampAPI.list();
         renderTable();
       } catch (err) {
@@ -601,13 +643,14 @@
       const format = document.getElementById('champ-format').value;
       const start_date = document.getElementById('champ-start').value;
       const end_date = document.getElementById('champ-end').value;
+      const champ_status = document.getElementById('champ-status').value;
 
       if (!name || !sport_id || !format) {
         alertEl.textContent = 'Preencha Nome, Modalidade e Formato.';
         alertEl.style.display = 'flex'; return;
       }
 
-      const data = { name, sport_id: Number(sport_id), format };
+      const data = { name, sport_id: Number(sport_id), format, status: champ_status };
       if (start_date) data.start_date = start_date;
       if (end_date) data.end_date = end_date;
 
@@ -694,10 +737,12 @@
     // ================================================================
     // TAB: VISÃO GERAL
     // ================================================================
-    function loadOverview() {
+    async function loadOverview() {
       const c = currentChamp;
       const rules = c.rules_config || {};
-      document.getElementById('overview-content').innerHTML = `
+      const container = document.getElementById('overview-content');
+      container.innerHTML = `
+        <div id="champion-area"></div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
           <div class="card">
             <div class="card-body">
@@ -733,12 +778,31 @@
           <a href="games.html?championship_id=${c.id}" class="btn btn-ghost btn-sm">Todos os Jogos ↗</a>
         </div>
       `;
-      Promise.all([ChampAPI.teams(c.id), ChampAPI.games(c.id)]).then(([teams, games]) => {
+
+      // Carrega contadores e campeão em paralelo
+      try {
+        const [teams, games, champData] = await Promise.all([
+          ChampAPI.teams(c.id),
+          ChampAPI.games(c.id),
+          ChampAPI.champion(c.id).catch(() => ({ champion: null })),
+        ]);
         const tc = document.getElementById('ov-teams-count');
         const gc = document.getElementById('ov-games-count');
         if (tc) tc.textContent = teams.length;
         if (gc) gc.textContent = games.length;
-      }).catch(() => {});
+
+        // Mostra campeão se houver
+        const chArea = document.getElementById('champion-area');
+        if (chArea && champData?.champion) {
+          const ch = champData.champion;
+          chArea.innerHTML = `
+            <div class="champion-card">
+              <div class="trophy">🏆</div>
+              <div class="champion-label">Campeão</div>
+              <div class="champion-name">${ch.team_name}</div>
+            </div>`;
+        }
+      } catch {}
     }
 
     // ================================================================
@@ -1072,7 +1136,6 @@
 
         detailGroups = groups;
 
-        // Restaura confrontos salvos
         if (bracket && bracket.matches && bracket.matches.length) {
           knockoutMatches = bracket.matches.map(m => ({ home: m.home || '', away: m.away || '' }));
         } else {
@@ -1175,7 +1238,7 @@
       btnLoading(btn, true, 'Gerando...');
       try {
         const result = await ChampAPI.generateKnockout(currentChamp.id);
-        showToast(`${result.games_created} jogos do mata-mata gerados!`, 'success');
+        showToast(`${result.games_created} jogos de ${result.phase_name} gerados!`, 'success');
         if (result.errors && result.errors.length) {
           alertEl.textContent = 'Avisos: ' + result.errors.join('; ');
           alertEl.style.display = 'flex';
@@ -1189,28 +1252,95 @@
       }
     });
 
+    document.getElementById('btn-advance-knockout').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-advance-knockout');
+      btnLoading(btn, true, 'Avançando...');
+      try {
+        const result = await ChampAPI.advanceKnockout(currentChamp.id);
+        if (result.champion) {
+          showToast(`Campeão: ${result.champion.team_name}!`, 'success');
+        } else {
+          showToast(`${result.games_created} jogos de ${result.phase_name} gerados!`, 'success');
+        }
+        await loadKnockoutGames();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    function getKnockoutPhaseName(matchCount) {
+      if (matchCount === 1) return 'Final';
+      if (matchCount === 2) return 'Semifinal';
+      if (matchCount <= 4) return 'Quartas de Final';
+      if (matchCount <= 8) return 'Oitavas de Final';
+      return `Rodada de ${matchCount * 2}`;
+    }
+
     async function loadKnockoutGames() {
-      const container = document.getElementById('knockout-games-content');
+      const container = document.getElementById('knockout-bracket-visual');
+      const advBtn = document.getElementById('btn-advance-knockout');
+      container.innerHTML = '<div class="page-loading" style="padding:20px;"><div class="spinner"></div><span>Carregando...</span></div>';
+      advBtn.style.display = 'none';
+
       try {
         const games = await ChampAPI.games(currentChamp.id);
         const koGames = games.filter(g => g.phase === 'knockout');
+
         if (!koGames.length) {
-          container.innerHTML = '<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo do mata-mata gerado ainda.</div>';
+          container.innerHTML = '<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo do mata-mata gerado ainda. Defina os cruzamentos acima e clique em "Gerar Jogos".</div>';
           return;
         }
-        container.innerHTML = koGames.map(g => {
-          const hs = g.result?.home_score ?? null;
-          const as_ = g.result?.away_score ?? null;
-          return `
-            <div class="game-row">
-              <div class="game-teams">
-                <span class="game-team" style="${hs !== null && as_ !== null && hs > as_ ? 'color:var(--accent-teal);font-weight:700;' : ''}">${g.home_team?.name || '—'}</span>
-                <div class="game-score">${hs !== null ? `${hs} – ${as_}` : 'x'}</div>
-                <span class="game-team" style="${hs !== null && as_ !== null && as_ > hs ? 'color:var(--accent-teal);font-weight:700;' : ''}">${g.away_team?.name || '—'}</span>
+
+        // Agrupa por rodada
+        const byRound = {};
+        koGames.forEach(g => {
+          const r = g.round_number || 1;
+          if (!byRound[r]) byRound[r] = [];
+          byRound[r].push(g);
+        });
+        const rounds = Object.keys(byRound).map(Number).sort((a, b) => a - b);
+        const maxRound = Math.max(...rounds);
+
+        // Renderiza bracket em colunas
+        let html = '<div class="bracket-rounds">';
+        rounds.forEach(round => {
+          const rGames = byRound[round];
+          const phaseName = getKnockoutPhaseName(rGames.length);
+          const isFinal = rGames.length === 1;
+          html += `<div class="bracket-round">
+            <div class="bracket-round-title">${phaseName}</div>`;
+          rGames.forEach(g => {
+            const hs = g.result?.home_score ?? null;
+            const as_ = g.result?.away_score ?? null;
+            const homeWin = hs !== null && as_ !== null && hs > as_;
+            const awayWin = hs !== null && as_ !== null && as_ > hs;
+            const homeName = g.home_team?.name || '—';
+            const awayName = g.away_team?.name || '—';
+            html += `<div class="bracket-match${isFinal ? ' final-match' : ''}">
+              <div class="bracket-team${homeWin ? ' winner' : ''}">
+                <span>${homeName}</span>
+                <span class="bracket-team-score">${hs !== null ? hs : '·'}</span>
               </div>
-              <div class="game-meta">${gameStatusBadge(g.status)}</div>
+              <div class="bracket-team${awayWin ? ' winner' : ''}">
+                <span>${awayName}</span>
+                <span class="bracket-team-score">${as_ !== null ? as_ : '·'}</span>
+              </div>
             </div>`;
-        }).join('');
+          });
+          html += '</div>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+        // Mostra botão avançar se todos da rodada atual finalizados e não é final
+        const maxRoundGames = byRound[maxRound];
+        const allDone = maxRoundGames.every(g => g.status === 'finished');
+        if (allDone && maxRoundGames.length > 1) {
+          advBtn.style.display = 'inline-flex';
+        }
+
       } catch {
         container.innerHTML = '<div style="padding:16px; color:var(--text-secondary); font-size:13px;">Erro ao carregar jogos.</div>';
       }

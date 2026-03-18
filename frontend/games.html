@@ -66,7 +66,6 @@
         <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
         <span class="topbar-title">Jogos</span>
         <div class="topbar-actions">
-          <button class="btn btn-secondary" id="btn-view-bracket-top" style="display:none;">Ver Chave</button>
           <button class="btn btn-primary" id="btn-new-game-top" style="display:none;">+ Criar Jogo</button>
         </div>
       </header>
@@ -90,9 +89,6 @@
                 </select>
               </div>
               <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                <button class="btn btn-secondary" id="btn-view-bracket" style="display:none;">🏆 Ver Chave</button>
-                <button class="btn btn-teal" id="btn-draw-rr" style="display:none;">🔄 Sortear Round Robin</button>
-                <button class="btn btn-teal" id="btn-draw-elim" style="display:none;">⚔️ Sortear Eliminatório</button>
                 <button class="btn btn-primary" id="btn-new-game" style="display:none;">+ Criar Jogo</button>
               </div>
             </div>
@@ -218,59 +214,6 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-game')">Cancelar</button>
         <button class="btn btn-primary" id="game-save-btn">Criar Jogo</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Draw -->
-  <div class="modal-overlay" id="modal-draw">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">Sortear Chave</span>
-        <button class="modal-close" onclick="closeModal('modal-draw')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="draw-alert" class="alert alert-error" style="display:none;"></div>
-        <p style="color:var(--text-secondary); margin-bottom:20px; font-size:14px;">
-          Selecione o tipo de sorteio para: <strong id="draw-champ-name" style="color:var(--text-primary);"></strong>
-        </p>
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          <div class="card" style="border-color:rgba(108,99,255,0.3);">
-            <div class="card-body" style="padding:16px;">
-              <h3 style="font-size:15px; margin-bottom:6px;">🔄 Pontos Corridos (Round Robin)</h3>
-              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Todos os times se enfrentam. O melhor nos pontos avança.</p>
-              <button class="btn btn-primary btn-sm" id="draw-rr-btn">Sortear Round Robin</button>
-            </div>
-          </div>
-          <div class="card" style="border-color:rgba(0,212,170,0.3);">
-            <div class="card-body" style="padding:16px;">
-              <h3 style="font-size:15px; margin-bottom:6px;">⚔️ Eliminatório</h3>
-              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Mata-mata direto. Quem perde está fora do campeonato.</p>
-              <button class="btn btn-teal btn-sm" id="draw-elim-btn">Sortear Eliminatório</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-draw')">Fechar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Bracket -->
-  <div class="modal-overlay" id="modal-bracket">
-    <div class="modal modal-xl">
-      <div class="modal-header">
-        <span class="modal-title">🏆 Chave do Campeonato</span>
-        <button class="modal-close" onclick="closeModal('modal-bracket')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="bracket-content">
-          <div class="page-loading"><div class="spinner"></div><span>Carregando chave...</span></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-bracket')">Fechar</button>
       </div>
     </div>
   </div>
@@ -486,10 +429,6 @@
       document.getElementById('no-champ-msg').style.display = 'block';
       document.getElementById('champ-info-bar').style.display = 'none';
       document.getElementById('games-area').style.display = 'none';
-      document.getElementById('btn-view-bracket').style.display = 'none';
-      document.getElementById('btn-view-bracket-top').style.display = 'none';
-      document.getElementById('btn-draw-rr').style.display = 'none';
-      document.getElementById('btn-draw-elim').style.display = 'none';
       document.getElementById('btn-new-game').style.display = 'none';
       document.getElementById('btn-new-game-top').style.display = 'none';
     }
@@ -497,28 +436,14 @@
     function selectChampionship(champ) {
       currentChamp = champ;
 
-      // Hide no-champ msg
       document.getElementById('no-champ-msg').style.display = 'none';
-
-      // Show info bar
       document.getElementById('champ-info-bar').style.display = 'block';
       document.getElementById('champ-info-name').textContent = champ.name;
       document.getElementById('champ-info-sport').textContent = champ.sport?.name || champ.sport_name || '—';
       document.getElementById('champ-info-format').textContent = formatName(champ.format);
       document.getElementById('champ-info-status').innerHTML = champStatusBadge(champ.status);
-
-      // Show action buttons
-      document.getElementById('btn-view-bracket').style.display = 'inline-flex';
-      document.getElementById('btn-view-bracket-top').style.display = 'inline-flex';
-      document.getElementById('btn-draw-rr').style.display = 'inline-flex';
-      document.getElementById('btn-draw-elim').style.display = 'inline-flex';
       document.getElementById('btn-new-game').style.display = 'inline-flex';
       document.getElementById('btn-new-game-top').style.display = 'inline-flex';
-
-      // Update draw modal title
-      document.getElementById('draw-champ-name').textContent = champ.name;
-
-      // Show games area
       document.getElementById('games-area').style.display = 'block';
       document.getElementById('games-card-title').textContent = `Jogos — ${champ.name}`;
 
@@ -537,20 +462,12 @@
         populateRoundFilter();
         renderGames();
       } catch (err) {
-        if (err.message.includes('404') || err.message.includes('not found') || err.message.includes('Not Found')) {
-          container.innerHTML = `<div class="empty-state">
+        container.innerHTML = `<div class="empty-state">
             <span class="empty-icon">🎮</span>
             <p>Nenhum jogo encontrado para este campeonato.</p>
-            <p style="font-size:13px; margin-top:8px;">Realize um sorteio ou crie jogos manualmente.</p>
-            <div style="display:flex; gap:8px; justify-content:center; margin-top:16px; flex-wrap:wrap;">
-              <button class="btn btn-primary btn-sm" onclick="openDrawModal()">🔄 Sortear</button>
-              <button class="btn btn-secondary btn-sm" onclick="openNewGameModal()">+ Criar Jogo</button>
-            </div>
+            <p style="font-size:13px; margin-top:8px; color:var(--text-secondary);">Gere os jogos na aba Mata-mata ou Grupos do campeonato.</p>
+            <a href="championships.html" class="btn btn-secondary btn-sm" style="margin-top:12px;">Gerenciar Campeonato</a>
           </div>`;
-        } else {
-          container.innerHTML = `<div class="alert alert-error">${err.message}</div>
-            <p style="color:var(--text-secondary); font-size:13px; padding:0 20px 16px;">Realize um sorteio primeiro para gerar os jogos.</p>`;
-        }
         allGames = [];
       }
     }
@@ -585,10 +502,7 @@
         container.innerHTML = `<div class="empty-state">
           <span class="empty-icon">🎮</span>
           <p>Nenhum jogo encontrado.</p>
-          <div style="display:flex; gap:8px; justify-content:center; margin-top:16px; flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" onclick="openDrawModal()">🔄 Sortear</button>
-            <button class="btn btn-secondary btn-sm" onclick="openNewGameModal()">+ Criar Jogo</button>
-          </div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="openNewGameModal()">+ Criar Jogo</button>
         </div>`;
         return;
       }
@@ -650,156 +564,6 @@
 
     document.getElementById('round-filter').addEventListener('change', renderGames);
     document.getElementById('status-filter').addEventListener('change', renderGames);
-
-    // Draw buttons
-    function openDrawModal() {
-      document.getElementById('draw-alert').style.display = 'none';
-      openModal('modal-draw');
-    }
-    document.getElementById('btn-draw-rr').addEventListener('click', openDrawModal);
-    document.getElementById('btn-draw-elim').addEventListener('click', openDrawModal);
-
-    document.getElementById('draw-rr-btn').addEventListener('click', async () => {
-      if (!currentChamp) return;
-      const btn = document.getElementById('draw-rr-btn');
-      const alertEl = document.getElementById('draw-alert');
-      alertEl.style.display = 'none';
-      btnLoading(btn, true, 'Sorteando...');
-      try {
-        await ChampAPI.drawRoundRobin(currentChamp.id, {});
-        showToast('Chave Round Robin gerada!', 'success');
-        closeModal('modal-draw');
-        loadGames(currentChamp.id);
-      } catch (err) {
-        alertEl.textContent = `Erro: ${err.message}`;
-        alertEl.style.display = 'flex';
-      } finally {
-        btnLoading(btn, false);
-      }
-    });
-
-    document.getElementById('draw-elim-btn').addEventListener('click', async () => {
-      if (!currentChamp) return;
-      const btn = document.getElementById('draw-elim-btn');
-      const alertEl = document.getElementById('draw-alert');
-      alertEl.style.display = 'none';
-      btnLoading(btn, true, 'Sorteando...');
-      try {
-        await ChampAPI.drawElimination(currentChamp.id, {});
-        showToast('Chave Eliminatória gerada!', 'success');
-        closeModal('modal-draw');
-        loadGames(currentChamp.id);
-      } catch (err) {
-        alertEl.textContent = `Erro: ${err.message}`;
-        alertEl.style.display = 'flex';
-      } finally {
-        btnLoading(btn, false);
-      }
-    });
-
-    // Bracket
-    async function viewBracket() {
-      if (!currentChamp) return;
-      const container = document.getElementById('bracket-content');
-      container.innerHTML = '<div class="page-loading"><div class="spinner"></div><span>Carregando chave...</span></div>';
-      openModal('modal-bracket');
-
-      try {
-        const data = await ChampAPI.bracket(currentChamp.id);
-        renderBracket(data, container);
-      } catch (err) {
-        container.innerHTML = `<div class="alert alert-error">${err.message}</div>
-          <p style="color:var(--text-secondary); font-size:13px; margin-top:8px;">Verifique se o campeonato possui times e se o sorteio foi realizado.</p>`;
-      }
-    }
-
-    document.getElementById('btn-view-bracket').addEventListener('click', viewBracket);
-    document.getElementById('btn-view-bracket-top').addEventListener('click', viewBracket);
-
-    function renderBracket(data, container) {
-      if (!data) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Nenhuma chave disponível ainda.</p></div>';
-        return;
-      }
-
-      let games = [];
-      if (Array.isArray(data)) {
-        games = data;
-      } else if (data.games) {
-        games = data.games;
-      } else if (data.rounds) {
-        renderRoundsBracket(data.rounds, container);
-        return;
-      } else {
-        container.innerHTML = `<div class="info-box">Dados da chave recebidos:</div>
-          <pre style="background:var(--bg-tertiary); padding:16px; border-radius:8px; font-size:12px; overflow-x:auto; color:var(--text-primary);">${JSON.stringify(data, null, 2)}</pre>`;
-        return;
-      }
-
-      if (!games.length) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Nenhum jogo na chave ainda.</p></div>';
-        return;
-      }
-
-      const rounds = {};
-      games.forEach(g => {
-        const r = g.round_number || g.round || 1;
-        if (!rounds[r]) rounds[r] = [];
-        rounds[r].push(g);
-      });
-
-      let html = '<div class="bracket-container"><div class="bracket-rounds">';
-      Object.keys(rounds).sort((a, b) => Number(a) - Number(b)).forEach(round => {
-        html += `<div class="bracket-round">
-          <div class="bracket-round-title">Rodada ${round}</div>`;
-        rounds[round].forEach(g => {
-          const homeScore = g.home_score !== null && g.home_score !== undefined ? g.home_score : '—';
-          const awayScore = g.away_score !== null && g.away_score !== undefined ? g.away_score : '—';
-          const homeWinner = g.home_score != null && g.away_score != null && g.home_score > g.away_score;
-          const awayWinner = g.home_score != null && g.away_score != null && g.away_score > g.home_score;
-          html += `
-            <div class="bracket-match">
-              <div class="bracket-team ${homeWinner ? 'winner' : ''}">
-                <span>${g.home_team?.name || g.home_team_name || 'TBD'}</span>
-                <span class="bracket-team-score">${homeScore}</span>
-              </div>
-              <div class="bracket-team ${awayWinner ? 'winner' : ''}">
-                <span>${g.away_team?.name || g.away_team_name || 'TBD'}</span>
-                <span class="bracket-team-score">${awayScore}</span>
-              </div>
-            </div>`;
-        });
-        html += '</div>';
-      });
-      html += '</div></div>';
-      container.innerHTML = html;
-    }
-
-    function renderRoundsBracket(rounds, container) {
-      let html = '<div class="bracket-container"><div class="bracket-rounds">';
-      rounds.forEach((round, idx) => {
-        html += `<div class="bracket-round">
-          <div class="bracket-round-title">${round.name || `Rodada ${idx + 1}`}</div>`;
-        (round.games || round.matches || []).forEach(g => {
-          const homeScore = g.home_score !== null && g.home_score !== undefined ? g.home_score : '—';
-          const awayScore = g.away_score !== null && g.away_score !== undefined ? g.away_score : '—';
-          html += `
-            <div class="bracket-match">
-              <div class="bracket-team">
-                <span>${g.home_team?.name || 'TBD'}</span>
-                <span class="bracket-team-score">${homeScore}</span>
-              </div>
-              <div class="bracket-team">
-                <span>${g.away_team?.name || 'TBD'}</span>
-                <span class="bracket-team-score">${awayScore}</span>
-              </div>
-            </div>`;
-        });
-        html += '</div>';
-      });
-      html += '</div></div>';
-      container.innerHTML = html;
-    }
 
     // New Game
     function openNewGameModal() {

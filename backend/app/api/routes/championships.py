@@ -467,15 +467,18 @@ def setup_knockout(
 @router.post("/{championship_id}/knockout/generate", status_code=201)
 def generate_knockout_games(
     championship_id: int,
+    body: dict = {},
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_organizer),
 ):
     """
     Gera os jogos do mata-mata baseado no knockout_bracket definido.
     Resolve "1A" → time que está em 1º no grupo A na classificação atual.
+    Body opcional: { "round_number": int } — padrão 1.
     """
     champ = _get_championship_or_404(championship_id, db)
     bracket = champ.knockout_bracket
+    round_number: int = (body or {}).get("round_number", 1)
 
     if not bracket or not bracket.get("matches"):
         raise HTTPException(
@@ -503,16 +506,166 @@ def generate_knockout_games(
             scheduled_at=base_date,
             status="scheduled",
             phase="knockout",
-            round_number=1,
+            round_number=round_number,
         )
         db.add(game)
         games_created.append(game)
 
     db.commit()
+    phase_name = _get_phase_name(len(games_created))
     return {
+        "phase_name": phase_name,
+        "round_number": round_number,
         "games_created": len(games_created),
         "errors": errors,
     }
+
+
+@router.post("/{championship_id}/knockout/advance")
+def advance_knockout(
+    championship_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    """
+    Verifica se todos os jogos da rodada atual do mata-mata foram finalizados,
+    determina os vencedores e gera automaticamente os confrontos da próxima rodada.
+    Retorna { phase_name, round_number, games_created, champion } onde champion é
+    preenchido se a final foi disputada.
+    """
+    champ = _get_championship_or_404(championship_id, db)
+
+    ko_games = (
+        db.query(Game)
+        .filter(Game.championship_id == championship_id, Game.phase == "knockout")
+        .order_by(Game.round_number)
+        .all()
+    )
+
+    if not ko_games:
+        raise HTTPException(status_code=400, detail="Nenhum jogo de mata-mata encontrado")
+
+    max_round = max((g.round_number or 1) for g in ko_games)
+    current_round_games = [g for g in ko_games if (g.round_number or 1) == max_round]
+
+    unfinished = [g for g in current_round_games if g.status != "finished"]
+    if unfinished:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Nem todos os jogos da rodada foram finalizados ({len(unfinished)} pendentes)",
+        )
+
+    def get_winner_id(game: Game) -> Optional[int]:
+        if not game.result:
+            return None
+        if game.result.home_score > game.result.away_score:
+            return game.home_team_id
+        elif game.result.away_score > game.result.home_score:
+            return game.away_team_id
+        # Empate: mandante avança (regra de desempate simples)
+        return game.home_team_id
+
+    winners = [get_winner_id(g) for g in current_round_games]
+    winners = [w for w in winners if w is not None]
+
+    # Se sobrou só 1 vencedor = final foi disputada → campeão
+    if len(winners) == 1:
+        team = db.query(Team).filter(Team.id == winners[0]).first()
+        return {
+            "phase_name": "Final",
+            "round_number": max_round,
+            "games_created": 0,
+            "champion": {"team_id": team.id, "team_name": team.name, "logo_url": getattr(team, "logo_url", None)} if team else None,
+        }
+
+    next_round = max_round + 1
+    base_date = champ.start_date or datetime.now(timezone.utc)
+    new_games = []
+    for i in range(0, len(winners) - 1, 2):
+        game = Game(
+            championship_id=championship_id,
+            home_team_id=winners[i],
+            away_team_id=winners[i + 1],
+            scheduled_at=base_date,
+            status="scheduled",
+            phase="knockout",
+            round_number=next_round,
+        )
+        db.add(game)
+        new_games.append(game)
+
+    db.commit()
+    phase_name = _get_phase_name(len(new_games))
+    return {
+        "phase_name": phase_name,
+        "round_number": next_round,
+        "games_created": len(new_games),
+        "champion": None,
+    }
+
+
+@router.get("/{championship_id}/champion")
+def get_champion(championship_id: int, db: Session = Depends(get_db)):
+    """
+    Retorna o campeão do campeonato (vencedor do último jogo do mata-mata com 1 único confronto)
+    ou null se o campeonato ainda não terminou.
+    """
+    _get_championship_or_404(championship_id, db)
+
+    ko_games = (
+        db.query(Game)
+        .filter(
+            Game.championship_id == championship_id,
+            Game.phase == "knockout",
+            Game.status == "finished",
+        )
+        .order_by(Game.round_number.desc())
+        .all()
+    )
+
+    if not ko_games:
+        return {"champion": None}
+
+    max_round = ko_games[0].round_number or 1
+    last_round_games = [g for g in ko_games if (g.round_number or 1) == max_round]
+
+    # Só há campeão se a rodada final teve exatamente 1 jogo
+    if len(last_round_games) != 1:
+        return {"champion": None}
+
+    final = last_round_games[0]
+    if not final.result:
+        return {"champion": None}
+
+    if final.result.home_score > final.result.away_score:
+        winner_id = final.home_team_id
+    elif final.result.away_score > final.result.home_score:
+        winner_id = final.away_team_id
+    else:
+        return {"champion": None}  # Empate na final — sem campeão
+
+    team = db.query(Team).filter(Team.id == winner_id).first()
+    return {
+        "champion": {
+            "team_id": team.id,
+            "team_name": team.name,
+            "logo_url": getattr(team, "logo_url", None),
+        } if team else None
+    }
+
+
+def _get_phase_name(match_count: int) -> str:
+    """Retorna nome da fase baseado no número de confrontos (= metade dos times)."""
+    if match_count == 1:
+        return "Final"
+    elif match_count == 2:
+        return "Semifinal"
+    elif match_count <= 4:
+        return "Quartas de Final"
+    elif match_count <= 8:
+        return "Oitavas de Final"
+    else:
+        return f"Rodada de {match_count * 2}"
 
 
 def _resolve_slot(slot: Optional[str], champ: Championship, db: Session, groups_data: list, id_only: bool = False):
