@@ -1,8 +1,13 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.api.routes import auth, championships, draws, games, sports, teams, users
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -10,6 +15,8 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+logger.info(f"CORS allowed origins: {settings.allowed_origins_list}")
 
 app.add_middleware(
     CORSMiddleware,
