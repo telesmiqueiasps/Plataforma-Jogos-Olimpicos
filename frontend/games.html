@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Jogos — Sports Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,31 +16,31 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <a href="index.html" class="sidebar-logo">
-          <span>🏆</span>
+          <img src="img/logo.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
           <span>Sports Platform</span>
         </a>
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Principal</span>
         <a href="dashboard.html" class="nav-item">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Dashboard</span>
         </a>
         <a href="championships.html" class="nav-item">
-          <span class="nav-icon">🏆</span>
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Campeonatos</span>
         </a>
         <a href="games.html" class="nav-item active">
-          <span class="nav-icon">🎮</span>
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Jogos</span>
         </a>
         <span class="nav-section-label">Gestão</span>
         <a href="teams.html" class="nav-item">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Equipes</span>
         </a>
         <a href="athletes.html" class="nav-item">
-          <span class="nav-icon">🏅</span>
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Atletas</span>
         </a>
       </nav>
@@ -358,6 +359,54 @@
     </div>
   </div>
 
+  <!-- Modal: Edit Game -->
+  <div class="modal-overlay" id="modal-edit-game">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Editar Jogo</span>
+        <button class="modal-close" onclick="closeModal('modal-edit-game')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="edit-game-alert" class="alert alert-error" style="display:none;"></div>
+        <div style="font-weight:600; font-size:14px; margin-bottom:16px;" id="edit-game-title"></div>
+        <form id="edit-game-form" onsubmit="return false;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-game-date">Data e Hora</label>
+              <input type="datetime-local" id="edit-game-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edit-game-venue">Local</label>
+              <input type="text" id="edit-game-venue" class="form-control" placeholder="Ex: Estádio Municipal">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-game-phase">Fase</label>
+              <select id="edit-game-phase" class="form-control">
+                <option value="">Selecione...</option>
+                <option value="group">Fase de Grupos</option>
+                <option value="round_of_16">Oitavas de Final</option>
+                <option value="quarter">Quartas de Final</option>
+                <option value="semi">Semifinal</option>
+                <option value="final">Final</option>
+                <option value="third">Disputa 3º Lugar</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-game-round">Rodada</label>
+              <input type="number" id="edit-game-round" class="form-control" min="1">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-edit-game')">Cancelar</button>
+        <button class="btn btn-primary" id="edit-game-save-btn">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <script src="js/api.js"></script>
@@ -583,9 +632,11 @@
                     ${g.venue ? `<span>📍 ${g.venue}</span>` : ''}
                     ${g.phase ? `<span>🏷️ ${formatName(g.phase)}</span>` : ''}
                   </div>
-                  <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px;">
+                  <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
                     <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openResultModal(${g.id})">📝 Resultado</button>
                     <button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openEventModal(${g.id})">⚡ Evento</button>
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openEditGameModal(${g.id})">✏️ Editar</button>
+                    <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="event.stopPropagation(); deleteGame(${g.id})">🗑️</button>
                   </div>
                 </div>
               </div>
@@ -973,6 +1024,68 @@
         btnLoading(btn, false);
       }
     });
+
+    // ---- Edit Game modal ----
+    function openEditGameModal(gameId) {
+      const game = gamesById[gameId];
+      if (!game) return;
+      currentGameForModal = game;
+      const homeName = game.home_team?.name || `Time #${game.home_team_id}`;
+      const awayName = game.away_team?.name || `Time #${game.away_team_id}`;
+      document.getElementById('edit-game-title').textContent = `${homeName} × ${awayName}`;
+      // Fill datetime
+      if (game.scheduled_at) {
+        const dt = new Date(game.scheduled_at);
+        dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
+        document.getElementById('edit-game-date').value = dt.toISOString().slice(0, 16);
+      } else {
+        document.getElementById('edit-game-date').value = '';
+      }
+      document.getElementById('edit-game-venue').value = game.venue || '';
+      document.getElementById('edit-game-phase').value = game.phase || '';
+      document.getElementById('edit-game-round').value = game.round_number || '';
+      document.getElementById('edit-game-alert').style.display = 'none';
+      openModal('modal-edit-game');
+    }
+
+    document.getElementById('edit-game-save-btn').addEventListener('click', async () => {
+      if (!currentGameForModal) return;
+      const btn = document.getElementById('edit-game-save-btn');
+      const alertEl = document.getElementById('edit-game-alert');
+      alertEl.style.display = 'none';
+      const scheduledAt = document.getElementById('edit-game-date').value;
+      const venue = document.getElementById('edit-game-venue').value.trim();
+      const phase = document.getElementById('edit-game-phase').value;
+      const round = document.getElementById('edit-game-round').value;
+      const data = {};
+      if (scheduledAt) data.scheduled_at = new Date(scheduledAt).toISOString();
+      if (venue) data.venue = venue;
+      if (phase) data.phase = phase;
+      if (round) data.round_number = Number(round);
+      btnLoading(btn, true, 'Salvando...');
+      try {
+        await GamesAPI.update(currentGameForModal.id, data);
+        closeModal('modal-edit-game');
+        showToast('Jogo atualizado!', 'success');
+        loadGames(currentChamp.id);
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    async function deleteGame(gameId) {
+      if (!confirm('Excluir este jogo? Esta ação não pode ser desfeita.')) return;
+      try {
+        await GamesAPI.delete(gameId);
+        showToast('Jogo excluído.', 'success');
+        loadGames(currentChamp.id);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
 
     loadChampionships();
   </script>

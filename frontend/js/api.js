@@ -78,6 +78,8 @@ const ChampAPI = {
   list: () => apiFetch('/api/championships/'),
   get: (id) => apiFetch(`/api/championships/${id}`),
   create: (data) => apiFetch('/api/championships/', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/api/championships/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/api/championships/${id}`, { method: 'DELETE' }),
   bracket: (id) => apiFetch(`/api/championships/${id}/bracket`),
   drawRoundRobin: (id, data) => apiFetch(`/api/championships/${id}/draw/round-robin`, { method: 'POST', body: JSON.stringify(data || {}) }),
   drawElimination: (id, data) => apiFetch(`/api/championships/${id}/draw/elimination`, { method: 'POST', body: JSON.stringify(data || {}) }),
@@ -110,6 +112,8 @@ const TeamsAPI = {
   },
   get: (id) => apiFetch(`/api/teams/${id}`),
   create: (data) => apiFetch('/api/teams/', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/api/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/api/teams/${id}`, { method: 'DELETE' }),
   athletes: (teamId) => apiFetch(`/api/teams/${teamId}/athletes/`),
   createAthlete: (teamId, data) => apiFetch(`/api/teams/${teamId}/athletes/`, { method: 'POST', body: JSON.stringify(data) }),
 };
@@ -117,6 +121,8 @@ const TeamsAPI = {
 // --- Games ---
 const GamesAPI = {
   get: (id) => apiFetch(`/api/games/${id}`),
+  update: (id, data) => apiFetch(`/api/games/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/api/games/${id}`, { method: 'DELETE' }),
   result: (id, data) => apiFetch(`/api/games/${id}/result`, { method: 'PUT', body: JSON.stringify(data) }),
   setResult: (id, data) => apiFetch(`/api/games/${id}/result`, { method: 'PUT', body: JSON.stringify(data) }),
   events: (id) => apiFetch(`/api/games/${id}/events`),

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Campeonatos — Sports Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,31 +16,31 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <a href="index.html" class="sidebar-logo">
-          <span>🏆</span>
+          <img src="img/logo.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
           <span>Sports Platform</span>
         </a>
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Principal</span>
         <a href="dashboard.html" class="nav-item">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Dashboard</span>
         </a>
         <a href="championships.html" class="nav-item active">
-          <span class="nav-icon">🏆</span>
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Campeonatos</span>
         </a>
         <a href="games.html" class="nav-item">
-          <span class="nav-icon">🎮</span>
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Jogos</span>
         </a>
         <span class="nav-section-label">Gestão</span>
         <a href="teams.html" class="nav-item">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Equipes</span>
         </a>
         <a href="athletes.html" class="nav-item">
-          <span class="nav-icon">🏅</span>
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Atletas</span>
         </a>
       </nav>
@@ -261,6 +262,7 @@
     let currentPage = 1;
     const PER_PAGE = 10;
     let selectedChampId = null;
+    let editChampId = null;
 
     function fmtDate(d) {
       if (!d) return '—';
@@ -330,6 +332,8 @@
                       <button class="btn btn-sm btn-secondary" onclick="openGroupsModal(${c.id}, '${c.name.replace(/'/g, "\\'")}')">Grupos</button>
                       <button class="btn btn-sm btn-secondary" onclick="viewBracket(${c.id})">Chave</button>
                       <a href="games.html?championship_id=${c.id}" class="btn btn-sm btn-ghost">Jogos</a>
+                      <button class="btn btn-sm btn-secondary" onclick="openEditChampModal(${c.id})">✏️ Editar</button>
+                      <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="deleteChamp(${c.id}, '${c.name.replace(/'/g, "\\'")}')">🗑️ Excluir</button>
                     </div>
                   </td>
                 </tr>
@@ -381,9 +385,12 @@
     });
 
     async function openNewChampModal() {
+      editChampId = null;
       document.getElementById('champ-form').reset();
       document.getElementById('champ-alert').style.display = 'none';
       document.getElementById('champ-teams-section').style.display = 'none';
+      document.querySelector('#modal-champ .modal-title').textContent = 'Novo Campeonato';
+      document.getElementById('champ-save-btn').textContent = 'Criar Campeonato';
       await loadSports();
       // Load teams for selection
       try {
@@ -407,6 +414,38 @@
     document.getElementById('btn-new-champ').addEventListener('click', openNewChampModal);
     document.getElementById('btn-new-champ2').addEventListener('click', openNewChampModal);
 
+    async function openEditChampModal(champId) {
+      const champ = allChamps.find(c => c.id === champId);
+      if (!champ) return;
+      editChampId = champId;
+      document.getElementById('champ-alert').style.display = 'none';
+      document.getElementById('champ-form').reset();
+      document.getElementById('champ-teams-section').style.display = 'none';
+      await loadSports();
+      document.getElementById('champ-name').value = champ.name || '';
+      document.getElementById('champ-sport').value = champ.sport_id || (champ.sport?.id || '');
+      document.getElementById('champ-format').value = champ.format || '';
+      document.getElementById('champ-start').value = champ.start_date ? champ.start_date.slice(0, 10) : '';
+      document.getElementById('champ-end').value = champ.end_date ? champ.end_date.slice(0, 10) : '';
+      document.getElementById('champ-group-count').value = champ.group_count || '';
+      document.getElementById('champ-group-format').value = champ.group_phase_format || 'round_robin';
+      document.querySelector('#modal-champ .modal-title').textContent = 'Editar Campeonato';
+      document.getElementById('champ-save-btn').textContent = 'Salvar Alterações';
+      openModal('modal-champ');
+    }
+
+    async function deleteChamp(champId, champName) {
+      if (!confirm(`Excluir o campeonato "${champName}"? Esta ação não pode ser desfeita.`)) return;
+      try {
+        await ChampAPI.delete(champId);
+        showToast(`Campeonato "${champName}" excluído.`, 'success');
+        allChamps = await ChampAPI.list();
+        renderTable();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
     document.getElementById('champ-save-btn').addEventListener('click', async () => {
       const btn = document.getElementById('champ-save-btn');
       const alertEl = document.getElementById('champ-alert');
@@ -417,7 +456,6 @@
       const format = document.getElementById('champ-format').value;
       const start_date = document.getElementById('champ-start').value;
       const end_date = document.getElementById('champ-end').value;
-      const description = document.getElementById('champ-desc').value.trim();
 
       if (!name || !sport_id || !format) {
         alertEl.textContent = 'Por favor, preencha os campos obrigatórios: Nome, Modalidade e Formato.';
@@ -425,28 +463,46 @@
         return;
       }
 
-      const team_ids = [...document.querySelectorAll('.champ-team-check:checked')].map(el => Number(el.value));
       const group_count = document.getElementById('champ-group-count').value;
       const group_phase_format = document.getElementById('champ-group-format').value;
-      const data = { name, sport_id: Number(sport_id), format, team_ids, group_phase_format };
+      const data = { name, sport_id: Number(sport_id), format, group_phase_format };
       if (start_date) data.start_date = start_date;
       if (end_date) data.end_date = end_date;
       if (group_count) data.group_count = Number(group_count);
 
-      btnLoading(btn, true, 'Criando...');
-      try {
-        const created = await ChampAPI.create(data);
-        closeModal('modal-champ');
-        showToast(`Campeonato "${name}" criado com sucesso!`, 'success');
-        allChamps = await ChampAPI.list();
-        renderTable();
-        // Offer draw options
-        openDrawModal(created.id, created.name);
-      } catch (err) {
-        alertEl.textContent = err.message;
-        alertEl.style.display = 'flex';
-      } finally {
-        btnLoading(btn, false);
+      if (editChampId) {
+        // Edit mode
+        btnLoading(btn, true, 'Salvando...');
+        try {
+          await ChampAPI.update(editChampId, data);
+          closeModal('modal-champ');
+          showToast(`Campeonato "${name}" atualizado!`, 'success');
+          allChamps = await ChampAPI.list();
+          renderTable();
+        } catch (err) {
+          alertEl.textContent = err.message;
+          alertEl.style.display = 'flex';
+        } finally {
+          btnLoading(btn, false);
+        }
+      } else {
+        // Create mode
+        const team_ids = [...document.querySelectorAll('.champ-team-check:checked')].map(el => Number(el.value));
+        data.team_ids = team_ids;
+        btnLoading(btn, true, 'Criando...');
+        try {
+          const created = await ChampAPI.create(data);
+          closeModal('modal-champ');
+          showToast(`Campeonato "${name}" criado com sucesso!`, 'success');
+          allChamps = await ChampAPI.list();
+          renderTable();
+          openDrawModal(created.id, created.name);
+        } catch (err) {
+          alertEl.textContent = err.message;
+          alertEl.style.display = 'flex';
+        } finally {
+          btnLoading(btn, false);
+        }
       }
     });
 

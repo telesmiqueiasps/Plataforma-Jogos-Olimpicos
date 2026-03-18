@@ -28,6 +28,14 @@ class GameCreate(BaseModel):
         return self
 
 
+class GameUpdate(BaseModel):
+    scheduled_at: Optional[datetime] = None
+    venue: Optional[str] = None
+    phase: Optional[str] = None
+    round_number: Optional[int] = None
+    status: Optional[str] = None
+
+
 class GameResultUpdate(BaseModel):
     home_score: int
     away_score: int

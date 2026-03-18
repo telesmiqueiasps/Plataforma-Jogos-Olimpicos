@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Equipes — Sports Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,31 +16,31 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <a href="index.html" class="sidebar-logo">
-          <span>🏆</span>
+          <img src="img/logo.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
           <span>Sports Platform</span>
         </a>
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Principal</span>
         <a href="dashboard.html" class="nav-item">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Dashboard</span>
         </a>
         <a href="championships.html" class="nav-item">
-          <span class="nav-icon">🏆</span>
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Campeonatos</span>
         </a>
         <a href="games.html" class="nav-item">
-          <span class="nav-icon">🎮</span>
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Jogos</span>
         </a>
         <span class="nav-section-label">Gestão</span>
         <a href="teams.html" class="nav-item active">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Equipes</span>
         </a>
         <a href="athletes.html" class="nav-item">
-          <span class="nav-icon">🏅</span>
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Atletas</span>
         </a>
       </nav>
@@ -165,6 +166,7 @@
     let currentPage = 1;
     const PER_PAGE = 10;
     let apiAvailable = true;
+    let editTeamId = null;
 
     // Demo data when API is not available
     const DEMO_TEAMS = [
@@ -223,7 +225,7 @@
                   <td>
                     <div style="display:flex; align-items:center; gap:10px;">
                       ${t.logo_url
-                        ? `<img src="${t.logo_url}" alt="${t.name}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">`
+                        ? `<img src="${driveImageUrl(t.logo_url)}" alt="${t.name}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><div style="display:none;width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal)); align-items:center; justify-content:center; font-weight:700; font-size:13px; color:white; flex-shrink:0;">${t.name[0].toUpperCase()}</div>`
                         : `<div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal)); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:white; flex-shrink:0;">${t.name[0].toUpperCase()}</div>`
                       }
                       <div>
@@ -241,6 +243,8 @@
                   <td>
                     <div class="actions">
                       <a href="athletes.html?team_id=${t.id}" class="btn btn-sm btn-secondary">Ver Atletas</a>
+                      <button class="btn btn-sm btn-secondary" onclick="openEditTeamModal(${t.id})">✏️ Editar</button>
+                      <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="deleteTeam(${t.id}, '${t.name.replace(/'/g, "\\'")}')">🗑️ Excluir</button>
                     </div>
                   </td>
                 </tr>
@@ -297,10 +301,13 @@
     });
 
     async function openNewTeamModal() {
+      editTeamId = null;
       document.getElementById('team-form').reset();
       document.getElementById('team-alert').style.display = 'none';
       document.getElementById('free-athletes-section').style.display = 'none';
       document.getElementById('free-athletes-list').innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">Carregando...</span>';
+      document.querySelector('#modal-team .modal-title').textContent = 'Nova Equipe';
+      document.getElementById('team-save-btn').textContent = 'Criar Equipe';
       openModal('modal-team');
       try {
         const freeAthletes = await AthletesAPI.list({ free: true });
@@ -323,6 +330,33 @@
     document.getElementById('btn-new-team').addEventListener('click', openNewTeamModal);
     document.getElementById('btn-new-team-top').addEventListener('click', openNewTeamModal);
 
+    async function openEditTeamModal(teamId) {
+      const team = allTeams.find(t => t.id === teamId);
+      if (!team) return;
+      editTeamId = teamId;
+      document.getElementById('team-form').reset();
+      document.getElementById('team-alert').style.display = 'none';
+      document.getElementById('free-athletes-section').style.display = 'none';
+      document.getElementById('team-name').value = team.name || '';
+      document.getElementById('team-sport').value = team.sport_id || (team.sport?.id || '');
+      document.getElementById('team-logo').value = team.logo_url || '';
+      document.querySelector('#modal-team .modal-title').textContent = 'Editar Equipe';
+      document.getElementById('team-save-btn').textContent = 'Salvar Alterações';
+      openModal('modal-team');
+    }
+
+    async function deleteTeam(teamId, teamName) {
+      if (!confirm(`Excluir a equipe "${teamName}"? Os atletas ficarão sem equipe.`)) return;
+      try {
+        await TeamsAPI.delete(teamId);
+        showToast(`Equipe "${teamName}" excluída.`, 'success');
+        allTeams = await TeamsAPI.list().catch(() => allTeams.filter(t => t.id !== teamId));
+        renderTeams();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
     document.getElementById('team-save-btn').addEventListener('click', async () => {
       const btn = document.getElementById('team-save-btn');
       const alertEl = document.getElementById('team-alert');
@@ -331,8 +365,6 @@
       const name = document.getElementById('team-name').value.trim();
       const sport_id = document.getElementById('team-sport').value;
       const logo_url = document.getElementById('team-logo').value.trim();
-      const city = document.getElementById('team-city').value.trim();
-      const coach = document.getElementById('team-coach').value.trim();
 
       if (!name || !sport_id) {
         alertEl.textContent = 'Por favor, preencha o nome e a modalidade da equipe.';
@@ -340,26 +372,45 @@
         return;
       }
 
-      const athlete_ids = [...document.querySelectorAll('.athlete-check:checked')].map(el => Number(el.value));
-      const data = { name, sport_id: Number(sport_id), athlete_ids };
-      if (logo_url) data.logo_url = logo_url;
-
-      btnLoading(btn, true, 'Criando...');
-      try {
-        const created = await TeamsAPI.create(data);
-        closeModal('modal-team');
-        showToast(`Equipe "${name}" criada com sucesso!`, 'success');
-        allTeams = await TeamsAPI.list().catch(() => [created, ...allTeams]);
-        renderTeams();
-      } catch (err) {
-        if (err.message.includes('404') || err.message.includes('405') || err.message.includes('não disponível')) {
-          alertEl.textContent = 'Endpoint de equipes ainda não disponível na API. Esta funcionalidade estará disponível em breve.';
-        } else {
+      if (editTeamId) {
+        // Edit mode
+        const data = { name, sport_id: Number(sport_id) };
+        if (logo_url) data.logo_url = logo_url;
+        btnLoading(btn, true, 'Salvando...');
+        try {
+          await TeamsAPI.update(editTeamId, data);
+          closeModal('modal-team');
+          showToast(`Equipe "${name}" atualizada!`, 'success');
+          allTeams = await TeamsAPI.list().catch(() => allTeams);
+          renderTeams();
+        } catch (err) {
           alertEl.textContent = err.message;
+          alertEl.style.display = 'flex';
+        } finally {
+          btnLoading(btn, false);
         }
-        alertEl.style.display = 'flex';
-      } finally {
-        btnLoading(btn, false);
+      } else {
+        // Create mode
+        const athlete_ids = [...document.querySelectorAll('.athlete-check:checked')].map(el => Number(el.value));
+        const data = { name, sport_id: Number(sport_id), athlete_ids };
+        if (logo_url) data.logo_url = logo_url;
+        btnLoading(btn, true, 'Criando...');
+        try {
+          const created = await TeamsAPI.create(data);
+          closeModal('modal-team');
+          showToast(`Equipe "${name}" criada com sucesso!`, 'success');
+          allTeams = await TeamsAPI.list().catch(() => [created, ...allTeams]);
+          renderTeams();
+        } catch (err) {
+          if (err.message.includes('404') || err.message.includes('405') || err.message.includes('não disponível')) {
+            alertEl.textContent = 'Endpoint de equipes ainda não disponível na API.';
+          } else {
+            alertEl.textContent = err.message;
+          }
+          alertEl.style.display = 'flex';
+        } finally {
+          btnLoading(btn, false);
+        }
       }
     });
 

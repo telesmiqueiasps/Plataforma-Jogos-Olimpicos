@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Atletas — Sports Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,18 +15,18 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <a href="index.html" class="sidebar-logo">
-          <span>🏆</span>
+          <img src="img/logo.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;">
           <span>Sports Platform</span>
         </a>
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Principal</span>
-        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard</span></a>
-        <a href="championships.html" class="nav-item"><span class="nav-icon">🏆</span><span>Campeonatos</span></a>
-        <a href="games.html" class="nav-item"><span class="nav-icon">🎮</span><span>Jogos</span></a>
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span><span>Dashboard</span></a>
+        <a href="championships.html" class="nav-item"><span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span><span>Campeonatos</span></a>
+        <a href="games.html" class="nav-item"><span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span><span>Jogos</span></a>
         <span class="nav-section-label">Gestão</span>
-        <a href="teams.html" class="nav-item"><span class="nav-icon">👥</span><span>Equipes</span></a>
-        <a href="athletes.html" class="nav-item active"><span class="nav-icon">🏅</span><span>Atletas</span></a>
+        <a href="teams.html" class="nav-item"><span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span><span>Equipes</span></a>
+        <a href="athletes.html" class="nav-item active"><span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span><span>Atletas</span></a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -90,6 +91,13 @@
               <input type="checkbox" id="active-only" style="width:auto;"> Apenas ativos
             </label>
           </div>
+        </div>
+        <!-- Team filter badge -->
+        <div id="team-filter-badge" style="display:none; margin-bottom:8px; display:none;">
+          <span style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(108,99,255,0.15); border:1px solid rgba(108,99,255,0.4); border-radius:8px; font-size:13px; color:var(--accent-purple);">
+            👥 Filtrando por equipe: <strong id="badge-team-name"></strong>
+            <button onclick="clearTeamFilter()" style="background:none;border:none;color:var(--accent-purple);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;">&times;</button>
+          </span>
         </div>
 
         <!-- Table -->
@@ -186,10 +194,33 @@
     let allTeams = [];
     let currentPage = 1;
     let currentAthleteId = null;
+    let editAthleteId = null;
     const PER_PAGE = 15;
 
     async function initPage() {
       await Promise.all([loadAthletes(), loadTeams()]);
+      // Apply team_id query param filter after teams are loaded
+      const teamIdParam = getParam('team_id');
+      if (teamIdParam) {
+        const sel = document.getElementById('team-filter');
+        sel.value = teamIdParam;
+        const team = allTeams.find(t => t.id == teamIdParam);
+        if (team) showTeamBadge(team.name);
+        currentPage = 1;
+        renderAthletes();
+      }
+    }
+
+    function showTeamBadge(teamName) {
+      document.getElementById('badge-team-name').textContent = teamName;
+      document.getElementById('team-filter-badge').style.display = 'block';
+    }
+
+    function clearTeamFilter() {
+      document.getElementById('team-filter').value = '';
+      document.getElementById('team-filter-badge').style.display = 'none';
+      currentPage = 1;
+      renderAthletes();
     }
 
     async function loadAthletes() {
@@ -270,7 +301,7 @@
                   <td>
                     <div style="display:flex; align-items:center; gap:10px;">
                       ${a.photo_url
-                        ? `<img src="${a.photo_url}" alt="${a.name}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`
+                        ? `<img src="${driveImageUrl(a.photo_url)}" alt="${a.name}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><div style="display:none;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal));align-items:center;justify-content:center;font-weight:700;font-size:14px;color:white;flex-shrink:0;">${a.name[0].toUpperCase()}</div>`
                         : `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal));display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:white;flex-shrink:0;">${a.name[0].toUpperCase()}</div>`
                       }
                       <div>
@@ -287,9 +318,11 @@
                       <button class="btn btn-sm btn-secondary" onclick="openLinkTeamModal(${a.id}, '${a.name.replace(/'/g, "\\'")}')">
                         ${a.team_id ? 'Mudar Equipe' : 'Vincular Equipe'}
                       </button>
+                      <button class="btn btn-sm btn-secondary" onclick="openEditAthleteModal(${a.id})">✏️ Editar</button>
                       <button class="btn btn-sm btn-ghost" onclick="toggleActive(${a.id}, ${!a.active})">
                         ${a.active !== false ? 'Desativar' : 'Ativar'}
                       </button>
+                      <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="deleteAthlete(${a.id}, '${a.name.replace(/'/g, "\\'")}')">🗑️</button>
                     </div>
                   </td>
                 </tr>
@@ -309,10 +342,42 @@
     document.getElementById('active-only').addEventListener('change', () => { currentPage = 1; renderAthletes(); });
 
     function openNewAthleteModal() {
+      editAthleteId = null;
       document.getElementById('athlete-form').reset();
       document.getElementById('athlete-active').checked = true;
       document.getElementById('athlete-alert').style.display = 'none';
+      document.querySelector('#modal-athlete .modal-title').textContent = 'Novo Atleta';
+      document.getElementById('athlete-save-btn').textContent = 'Cadastrar Atleta';
       openModal('modal-athlete');
+    }
+
+    function openEditAthleteModal(athleteId) {
+      const a = allAthletes.find(x => x.id === athleteId);
+      if (!a) return;
+      editAthleteId = athleteId;
+      document.getElementById('athlete-form').reset();
+      document.getElementById('athlete-alert').style.display = 'none';
+      document.getElementById('athlete-name').value = a.name || '';
+      document.getElementById('athlete-number').value = a.number != null ? a.number : '';
+      document.getElementById('athlete-position').value = a.position || '';
+      document.getElementById('athlete-photo').value = a.photo_url || '';
+      document.getElementById('athlete-active').checked = a.active !== false;
+      document.querySelector('#modal-athlete .modal-title').textContent = 'Editar Atleta';
+      document.getElementById('athlete-save-btn').textContent = 'Salvar Alterações';
+      openModal('modal-athlete');
+    }
+
+    async function deleteAthlete(athleteId, athleteName) {
+      if (!confirm(`Excluir o atleta "${athleteName}"? Esta ação não pode ser desfeita.`)) return;
+      try {
+        await AthletesAPI.delete(athleteId);
+        allAthletes = allAthletes.filter(a => a.id !== athleteId);
+        showToast(`Atleta "${athleteName}" excluído.`, 'success');
+        updateStats();
+        renderAthletes();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
     }
 
     document.getElementById('btn-new-athlete').addEventListener('click', openNewAthleteModal);
@@ -340,19 +405,37 @@
       if (position) data.position = position;
       if (photo_url) data.photo_url = photo_url;
 
-      btnLoading(btn, true, 'Cadastrando...');
-      try {
-        const created = await AthletesAPI.create(data);
-        closeModal('modal-athlete');
-        showToast(`Atleta "${name}" cadastrado!`, 'success');
-        allAthletes = [created, ...allAthletes];
-        updateStats();
-        renderAthletes();
-      } catch (err) {
-        alertEl.textContent = err.message;
-        alertEl.style.display = 'flex';
-      } finally {
-        btnLoading(btn, false);
+      if (editAthleteId) {
+        btnLoading(btn, true, 'Salvando...');
+        try {
+          const updated = await AthletesAPI.update(editAthleteId, data);
+          closeModal('modal-athlete');
+          showToast(`Atleta "${name}" atualizado!`, 'success');
+          const idx = allAthletes.findIndex(a => a.id === editAthleteId);
+          if (idx >= 0) allAthletes[idx] = updated;
+          updateStats();
+          renderAthletes();
+        } catch (err) {
+          alertEl.textContent = err.message;
+          alertEl.style.display = 'flex';
+        } finally {
+          btnLoading(btn, false);
+        }
+      } else {
+        btnLoading(btn, true, 'Cadastrando...');
+        try {
+          const created = await AthletesAPI.create(data);
+          closeModal('modal-athlete');
+          showToast(`Atleta "${name}" cadastrado!`, 'success');
+          allAthletes = [created, ...allAthletes];
+          updateStats();
+          renderAthletes();
+        } catch (err) {
+          alertEl.textContent = err.message;
+          alertEl.style.display = 'flex';
+        } finally {
+          btnLoading(btn, false);
+        }
       }
     });
 

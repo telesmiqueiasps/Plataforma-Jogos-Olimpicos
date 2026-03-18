@@ -18,6 +18,7 @@ from app.schemas.game import (
     GameOut,
     GameResultOut,
     GameResultUpdate,
+    GameUpdate,
 )
 
 router = APIRouter(prefix="/games", tags=["Jogos"])
@@ -41,6 +42,36 @@ def _get_game_or_404(game_id: int, db: Session) -> Game:
 @router.get("/{game_id}", response_model=GameOut)
 def get_game(game_id: int, db: Session = Depends(get_db)):
     return _get_game_or_404(game_id, db)
+
+
+# ---------------------------------------------------------------------------
+# Atualizar jogo
+# ---------------------------------------------------------------------------
+
+@router.put("/{game_id}", response_model=GameOut)
+def update_game(
+    game_id: int,
+    data: GameUpdate,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    game = _get_game_or_404(game_id, db)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(game, field, value)
+    db.commit()
+    db.refresh(game)
+    return game
+
+
+@router.delete("/{game_id}", status_code=204)
+def delete_game(
+    game_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_organizer),
+):
+    game = _get_game_or_404(game_id, db)
+    db.delete(game)
+    db.commit()
 
 
 # ---------------------------------------------------------------------------
