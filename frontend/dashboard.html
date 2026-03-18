@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
-  <title>Dashboard — Sports Platform</title>
+  <title>Dashboard — Jogos Olímpicos Sinodal PB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
@@ -85,27 +85,27 @@
         <!-- Stats -->
         <div class="stats-grid">
           <div class="stat-card">
-            <span class="stat-icon">🏆</span>
+            <span class="stat-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:28px;height:28px;object-fit:contain;"></span>
             <div class="stat-value" id="stat-total-champs">—</div>
             <div class="stat-label">Total de Campeonatos</div>
           </div>
           <div class="stat-card">
-            <span class="stat-icon">✅</span>
+            <span class="stat-icon"><img src="img/check.png" alt="Ativos" style="width:28px;height:28px;object-fit:contain;"></span>
             <div class="stat-value" id="stat-active-champs" style="color:var(--accent-teal);">—</div>
             <div class="stat-label">Campeonatos Ativos</div>
           </div>
           <div class="stat-card">
-            <span class="stat-icon">⚽</span>
+            <span class="stat-icon"><img src="img/bola.png" alt="Modalidades" style="width:28px;height:28px;object-fit:contain;"></span>
             <div class="stat-value" id="stat-sports">—</div>
             <div class="stat-label">Modalidades</div>
           </div>
           <div class="stat-card">
-            <span class="stat-icon">👥</span>
+            <span class="stat-icon"><img src="img/equipe.png" alt="Equipes" style="width:28px;height:28px;object-fit:contain;"></span>
             <div class="stat-value" id="stat-teams" style="color:var(--warning);">—</div>
             <div class="stat-label">Equipes</div>
           </div>
           <div class="stat-card">
-            <span class="stat-icon">🏅</span>
+            <span class="stat-icon"><img src="img/medalha.png" alt="Atletas" style="width:28px;height:28px;object-fit:contain;"></span>
             <div class="stat-value" id="stat-athletes" style="color:#a78bfa;">—</div>
             <div class="stat-label">Atletas</div>
           </div>
@@ -115,7 +115,7 @@
           <!-- Active championships -->
           <div class="card section">
             <div class="card-header">
-              <span class="card-title">🏆 Campeonatos Ativos</span>
+              <span class="card-title"><img src="img/campeonatos.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;">Campeonatos Ativos</span>
               <a href="championships.html" class="btn btn-sm btn-secondary">Ver todos</a>
             </div>
             <div class="card-body" id="active-champs-list">
@@ -126,7 +126,7 @@
           <!-- Sports -->
           <div class="card section">
             <div class="card-header">
-              <span class="card-title">⚽ Modalidades</span>
+              <span class="card-title"><img src="img/bola.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;">Modalidades</span>
               <button class="btn btn-sm btn-teal" id="btn-add-sport">+ Adicionar</button>
             </div>
             <div class="card-body" id="sports-list">
@@ -261,7 +261,7 @@
     function renderSports() {
       const container = document.getElementById('sports-list');
       if (!allSports.length) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-icon">⚽</span><p>Nenhuma modalidade cadastrada.</p></div>';
+        container.innerHTML = '<div class="empty-state"><img src="img/bola.png" alt="" style="width:48px;height:48px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><p>Nenhuma modalidade cadastrada.</p></div>';
         return;
       }
       container.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px;">
@@ -280,7 +280,7 @@
     function renderActiveChamps(active) {
       const container = document.getElementById('active-champs-list');
       if (!active.length) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-icon">🏆</span><p>Nenhum campeonato ativo.</p><a href="championships.html" class="btn btn-primary btn-sm">Criar Campeonato</a></div>';
+        container.innerHTML = '<div class="empty-state"><img src="img/campeonatos.png" alt="" style="width:48px;height:48px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><p>Nenhum campeonato ativo.</p><a href="championships.html" class="btn btn-primary btn-sm">Criar Campeonato</a></div>';
         return;
       }
       container.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px;">
@@ -301,7 +301,7 @@
       const container = document.getElementById('recent-champs-card');
       const recent = champs.slice(0, 8);
       if (!recent.length) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-icon">🏆</span><p>Nenhum campeonato encontrado.</p></div>';
+        container.innerHTML = '<div class="empty-state"><img src="img/campeonatos.png" alt="" style="width:48px;height:48px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><p>Nenhum campeonato encontrado.</p></div>';
         return;
       }
       container.innerHTML = `
