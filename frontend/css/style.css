@@ -77,8 +77,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-header {
-  height: 64px;
-  padding: 0 24px;
+  min-height: 72px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -86,13 +86,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-logo {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
+  line-height: 1.25;
 }
 
 .sidebar-logo:hover {
@@ -186,7 +187,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* === Topbar === */
 .topbar {
-  height: 64px;
+  height: 72px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -406,14 +407,14 @@ h1, h2, h3, h4, h5, h6 {
 
 .auth-logo {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .auth-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  margin-bottom: 8px;
-  margin-top: 8px;
+  margin-bottom: 6px;
+  margin-top: 4px;
   color: var(--text-primary);
 }
 
@@ -524,7 +525,7 @@ h1, h2, h3, h4, h5, h6 {
   background: #3a3c50;
 }
 
-/* === Responsive === */
+/* === Responsive — Tablet (≤ 768px) === */
 @media (max-width: 768px) {
   .app-layout {
     grid-template-columns: 1fr;
@@ -561,6 +562,13 @@ h1, h2, h3, h4, h5, h6 {
     gap: 12px;
   }
 
+  .page-header .topbar-actions,
+  .page-header > .btn,
+  .page-header > div > .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -568,22 +576,192 @@ h1, h2, h3, h4, h5, h6 {
   .hero {
     padding: 48px 16px;
   }
+
+  /* Topbar: compact actions */
+  .topbar {
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .topbar-title {
+    font-size: 15px;
+  }
+
+  .topbar-actions {
+    gap: 8px;
+  }
+
+  /* Tables scroll on mobile */
+  .table-wrapper {
+    border-radius: 8px;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Modal full-width on tablet */
+  .modal {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    max-height: 92vh;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  /* Game rows stack better */
+  .game-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .game-meta {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
+/* === Responsive — Mobile (≤ 480px) === */
 @media (max-width: 480px) {
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 26px;
   }
 
   .hero h1 {
-    font-size: 32px;
+    font-size: 28px;
+  }
+
+  .hero p {
+    font-size: 15px;
+  }
+
+  .auth-wrapper {
+    align-items: flex-start;
+    padding: 16px 12px;
   }
 
   .auth-card {
-    padding: 24px 20px;
+    padding: 24px 18px;
+    border-radius: 12px;
+  }
+
+  .auth-title {
+    font-size: 18px;
   }
 
   .topbar {
-    padding: 0 16px;
+    padding: 0 12px;
+    height: 60px;
+  }
+
+  .topbar-title {
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-actions .btn-sm {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  /* Sidebar header compact */
+  .sidebar-header {
+    padding: 8px 16px;
+    min-height: 64px;
+  }
+
+  /* Touch-friendly buttons */
+  .btn {
+    min-height: 40px;
+  }
+
+  .btn-sm {
+    min-height: 34px;
+  }
+
+  /* Full-width modals */
+  .modal {
+    border-radius: 12px 12px 0 0;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Table: hide less important columns via data-hide-mobile */
+  [data-hide-mobile] {
+    display: none;
+  }
+
+  /* Card body compact */
+  .card-body {
+    padding: 14px;
+  }
+
+  .card-header {
+    padding: 12px 14px;
+  }
+
+  /* Page title smaller */
+  .page-title {
+    font-size: 20px;
+  }
+
+  /* Content padding */
+  .content {
+    padding: 12px;
+  }
+
+  /* Bracket horizontal scroll */
+  .bracket-container {
+    margin: 0 -12px;
+    padding: 0 12px 16px;
+  }
+
+  /* Filter tabs scroll */
+  .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .filter-tab {
+    flex-shrink: 0;
+  }
+
+  /* Toast on mobile */
+  #toast-container {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    max-width: none;
   }
 }
