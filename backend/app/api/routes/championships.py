@@ -5,6 +5,7 @@ CRUD de campeonatos, gestão de equipes inscritas,
 listagem de jogos e tabela de classificação.
 """
 
+import math
 import random
 from datetime import datetime, timezone
 from functools import cmp_to_key
@@ -275,7 +276,7 @@ def list_games(
         .all()
     )
 
-    # Compute max knockout round for backward phase naming
+    # Fallback dinâmico para jogos de knockout sem phase_name salvo em extra_data
     ko_rounds = [g.round_number or 1 for g in games if g.phase == "knockout"]
     max_ko_round = max(ko_rounds) if ko_rounds else 0
 
@@ -284,18 +285,22 @@ def list_games(
             rn = g.round_number
             g.phase_name = f"Fase de Grupos - Rodada {rn}" if rn else "Fase de Grupos"
         elif g.phase == "knockout":
-            rn = g.round_number or 1
-            diff = max_ko_round - rn
-            if diff == 0:
-                g.phase_name = "Final"
-            elif diff == 1:
-                g.phase_name = "Semifinal"
-            elif diff == 2:
-                g.phase_name = "Quartas de Final"
-            elif diff == 3:
-                g.phase_name = "Oitavas de Final"
+            saved = (g.extra_data or {}).get("phase_name")
+            if saved:
+                g.phase_name = saved
             else:
-                g.phase_name = f"Mata-mata - Rodada {rn}"
+                rn = g.round_number or 1
+                diff = max_ko_round - rn
+                if diff == 0:
+                    g.phase_name = "Final"
+                elif diff == 1:
+                    g.phase_name = "Semifinal"
+                elif diff == 2:
+                    g.phase_name = "Quartas de Final"
+                elif diff == 3:
+                    g.phase_name = "Oitavas de Final"
+                else:
+                    g.phase_name = f"Mata-mata - Rodada {rn}"
         else:
             g.phase_name = None
 
@@ -517,6 +522,12 @@ def generate_knockout_games(
     games_created = []
     errors = []
 
+    # Calcula total de rodadas a partir do número de confrontos do bracket
+    num_matches = len(bracket["matches"])
+    total_teams = num_matches * 2
+    total_rounds = math.ceil(math.log2(total_teams)) if total_teams >= 2 else 1
+    phase_name = get_knockout_phase_name(total_rounds, round_number)
+
     for match in bracket["matches"]:
         home_id = _resolve_slot(match.get("home"), champ, db, groups_data, id_only=True)
         away_id = _resolve_slot(match.get("away"), champ, db, groups_data, id_only=True)
@@ -533,12 +544,12 @@ def generate_knockout_games(
             status="scheduled",
             phase="knockout",
             round_number=round_number,
+            extra_data={"phase_name": phase_name},
         )
         db.add(game)
         games_created.append(game)
 
     db.commit()
-    phase_name = _get_phase_name(len(games_created))
     return {
         "phase_name": phase_name,
         "round_number": round_number,
@@ -606,6 +617,14 @@ def advance_knockout(
 
     next_round = max_round + 1
     base_date = champ.start_date or datetime.now(timezone.utc)
+
+    # Calcula total de rodadas a partir da primeira rodada do mata-mata
+    min_round = min((g.round_number or 1) for g in ko_games)
+    first_round_count = sum(1 for g in ko_games if (g.round_number or 1) == min_round)
+    total_teams = first_round_count * 2
+    total_rounds = math.ceil(math.log2(total_teams)) if total_teams >= 2 else 1
+    phase_name = get_knockout_phase_name(total_rounds, next_round)
+
     new_games = []
     for i in range(0, len(winners) - 1, 2):
         game = Game(
@@ -616,12 +635,12 @@ def advance_knockout(
             status="scheduled",
             phase="knockout",
             round_number=next_round,
+            extra_data={"phase_name": phase_name},
         )
         db.add(game)
         new_games.append(game)
 
     db.commit()
-    phase_name = _get_phase_name(len(new_games))
     return {
         "phase_name": phase_name,
         "round_number": next_round,
@@ -692,6 +711,20 @@ def _get_phase_name(match_count: int) -> str:
         return "Oitavas de Final"
     else:
         return f"Rodada de {match_count * 2}"
+
+
+def get_knockout_phase_name(total_rounds: int, current_round: int) -> str:
+    """Retorna nome fixo da fase com base na posição relativa ao total de rodadas."""
+    rounds_from_end = total_rounds - current_round
+    if rounds_from_end == 0:
+        return "Final"
+    if rounds_from_end == 1:
+        return "Semifinal"
+    if rounds_from_end == 2:
+        return "Quartas de Final"
+    if rounds_from_end == 3:
+        return "Oitavas de Final"
+    return f"Mata-mata - Rodada {current_round}"
 
 
 def _resolve_slot(slot: Optional[str], champ: Championship, db: Session, groups_data: list, id_only: bool = False):
