@@ -1145,43 +1145,19 @@
         // Index games for events lookup
         games.forEach(g => { detailGamesById[g.id] = g; });
 
-        // Separate and sort: groups first (by round asc), then knockout (by round asc)
-        const groupGames    = games.filter(g => g.phase === 'groups')
-                                   .sort((a, b) => (a.round_number || 0) - (b.round_number || 0));
-        const knockoutGames = games.filter(g => g.phase === 'knockout')
-                                   .sort((a, b) => (a.round_number || 0) - (b.round_number || 0));
-        const otherGames    = games.filter(g => g.phase !== 'groups' && g.phase !== 'knockout');
+        // Grupos primeiro, depois mata-mata
+        const groupGames    = games.filter(g => g.phase === 'groups');
+        const knockoutGames = games.filter(g => g.phase === 'knockout');
+        const allOrdered    = [...groupGames, ...knockoutGames];
 
-        // Compute frontend fallback phase_name for knockout (backwards naming)
-        const maxKoRound = knockoutGames.reduce((m, g) => Math.max(m, g.round_number || 0), 0);
-        function koFallbackName(rn) {
-          const diff = maxKoRound - (rn || 0);
-          if (diff === 0) return 'Final';
-          if (diff === 1) return 'Semifinal';
-          if (diff === 2) return 'Quartas de Final';
-          if (diff === 3) return 'Oitavas de Final';
-          return `Mata-mata - Rodada ${rn}`;
+        // Agrupar por phase_name da API
+        const grouped = {};
+        const order   = [];
+        for (const g of allOrdered) {
+          const label = g.phase_name || (g.phase === 'groups' ? 'Fase de Grupos' : 'Mata-mata');
+          if (!grouped[label]) { grouped[label] = []; order.push(label); }
+          grouped[label].push(g);
         }
-
-        function resolvePhaseLabel(g) {
-          if (g.phase_name) return g.phase_name;
-          if (g.phase === 'groups') return `Fase de Grupos - Rodada ${g.round_number || 1}`;
-          if (g.phase === 'knockout') return koFallbackName(g.round_number);
-          return g.phase || 'Geral';
-        }
-
-        // Build ordered list of [phaseName, games[]] without duplicates
-        const ordered = [...groupGames, ...knockoutGames, ...otherGames];
-        const byPhaseName = {};
-        const phaseNameOrder = [];
-        ordered.forEach(g => {
-          const pn = resolvePhaseLabel(g);
-          if (!byPhaseName[pn]) {
-            byPhaseName[pn] = [];
-            phaseNameOrder.push(pn);
-          }
-          byPhaseName[pn].push(g);
-        });
 
         function renderGameRow(g) {
           const ht = g.home_team?.name || '—';
@@ -1207,10 +1183,10 @@
         }
 
         let html = '';
-        for (const pn of phaseNameOrder) {
+        for (const label of order) {
           html += `<div style="margin-bottom:20px;">
-            <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">${pn}</div>`;
-          byPhaseName[pn].forEach(g => { html += renderGameRow(g); });
+            <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">${label}</div>`;
+          grouped[label].forEach(g => { html += renderGameRow(g); });
           html += '</div>';
         }
         container.innerHTML = `<div class="card"><div class="card-body" style="padding:0;">${html}</div></div>`;
