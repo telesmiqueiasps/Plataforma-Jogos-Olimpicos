@@ -105,6 +105,7 @@
         <!-- Teams table -->
         <div class="card">
           <div class="card-body" style="padding:0;">
+            <div id="teams-count-bar" style="padding:10px 16px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text-secondary); display:none;"></div>
             <div id="teams-table-container">
               <div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando equipes...</span></div>
             </div>
@@ -202,6 +203,17 @@
       const filtered = getFiltered();
       const state = paginate(filtered, currentPage, PER_PAGE);
       const container = document.getElementById('teams-table-container');
+      const countBar = document.getElementById('teams-count-bar');
+
+      const isFiltered = getSearchValue() || getSportFilter();
+      if (filtered.length > 0) {
+        countBar.style.display = 'block';
+        countBar.textContent = isFiltered
+          ? `${filtered.length} equipe${filtered.length !== 1 ? 's' : ''} encontrada${filtered.length !== 1 ? 's' : ''} (de ${allTeams.length} no total)`
+          : `${filtered.length} equipe${filtered.length !== 1 ? 's' : ''} cadastrada${filtered.length !== 1 ? 's' : ''}`;
+      } else {
+        countBar.style.display = 'none';
+      }
 
       if (!filtered.length) {
         container.innerHTML = `<div class="empty-state"><span class="empty-icon">👥</span><p>Nenhuma equipe encontrada.</p><button class="btn btn-primary btn-sm" onclick="openNewTeamModal()">+ Criar Equipe</button></div>`;
