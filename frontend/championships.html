@@ -1523,17 +1523,26 @@
             <div class="card-body">
               <h3 style="margin-bottom:16px; font-size:15px;">🚫 Suspensões Ativas</h3>
               ${stats.suspensions && stats.suspensions.length
-                ? `<table class="stat-table">
-                    <thead><tr><th>Atleta</th><th>Jogos Restantes</th><th>Motivo</th></tr></thead>
-                    <tbody>
-                      ${stats.suspensions.map(s => `
-                        <tr>
-                          <td style="font-weight:500;">${s.name} <span class="badge-suspended">Suspenso</span></td>
-                          <td>${s.games_remaining}</td>
-                          <td style="color:var(--text-secondary); font-size:12px;">${s.reason || '—'}</td>
-                        </tr>`).join('')}
-                    </tbody>
-                  </table>`
+                ? `<div style="display:flex; flex-direction:column; gap:10px;">
+                    ${stats.suspensions.map(s => `
+                      <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--bg-primary); border-radius:8px; border:1px solid var(--border);">
+                        ${athleteAvatar({id: s.athlete_id, name: s.name, photo_url: s.photo_url}, 38)}
+                        <div style="flex:1; min-width:0;">
+                          <div style="font-weight:600; font-size:14px;">${s.name}</div>
+                          <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+                            ${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 16)}
+                            <span style="font-size:12px; color:var(--text-secondary);">${s.team_name}</span>
+                          </div>
+                          <div style="font-size:11px; color:var(--text-secondary); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.reason || '—'}</div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0;">
+                          ${s.expulsion
+                            ? '<span style="background:#7f1d1d; color:#fca5a5; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700;">Expulso</span>'
+                            : `<span style="background:#92400e; color:#fcd34d; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700;">${s.games_remaining} jogo${s.games_remaining !== 1 ? 's' : ''}</span>`}
+                          <button class="btn btn-sm btn-ghost" style="color:var(--error); font-size:11px; padding:2px 8px;" onclick="removeSuspension(${s.suspension_id})">Remover</button>
+                        </div>
+                      </div>`).join('')}
+                  </div>`
                 : '<div style="color:var(--text-secondary);font-size:13px;">Nenhuma suspensão ativa.</div>'}
             </div>
           </div>`;
@@ -1541,6 +1550,20 @@
         container.innerHTML = standingsHtml + scorersHtml + cardsHtml + suspHtml;
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    // ================================================================
+    // SUSPENSÕES
+    // ================================================================
+    async function removeSuspension(suspensionId) {
+      if (!confirm('Remover esta suspensão?')) return;
+      try {
+        await SuspensionsAPI.delete(suspensionId);
+        showToast('Suspensão removida.', 'success');
+        if (currentChamp) loadStats();
+      } catch (err) {
+        showToast(err.message || 'Erro ao remover suspensão.', 'error');
       }
     }
 

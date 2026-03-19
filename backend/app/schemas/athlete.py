@@ -29,5 +29,7 @@ class AthleteOut(BaseModel):
     photo_url: Optional[str] = None
     active: bool
     team_id: Optional[int] = None
+    suspended: bool = False
+    suspension_reason: Optional[str] = None
 
     model_config = {"from_attributes": True}

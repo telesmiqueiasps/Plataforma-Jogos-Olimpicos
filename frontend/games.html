@@ -285,6 +285,9 @@
             <select id="event-athlete" class="form-control">
               <option value="">— Sem atleta específico —</option>
             </select>
+            <div id="event-susp-warning" style="display:none; margin-top:6px; padding:8px 12px; background:rgba(239,68,68,0.15); border:1px solid #ef4444; border-radius:6px; color:#f87171; font-size:13px; align-items:center; gap:6px;">
+              ⚠️ <strong>Este atleta está SUSPENSO</strong> — verifique antes de registrar o evento.
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -775,6 +778,7 @@
       document.getElementById('event-minute').value = '';
       document.getElementById('event-desc').value = '';
       document.getElementById('event-alert').style.display = 'none';
+      document.getElementById('event-susp-warning').style.display = 'none';
       openModal('modal-event');
       await loadEventAthletes('home');
     }
@@ -786,16 +790,31 @@
     async function loadEventAthletes(side) {
       if (!currentGameForModal) return;
       const teamId = side === 'home' ? currentGameForModal.home_team_id : currentGameForModal.away_team_id;
+      const champId = currentChamp?.id;
       const sel = document.getElementById('event-athlete');
       sel.innerHTML = '<option value="">Carregando...</option>';
       try {
-        const athletes = await TeamsAPI.athletes(teamId);
+        const params = champId ? { championship_id: champId } : {};
+        const athletes = await TeamsAPI.athletes(teamId, params);
         sel.innerHTML = '<option value="">— Sem atleta específico —</option>' +
-          athletes.map(a => `<option value="${a.id}">${a.name}${a.number != null ? ` (#${a.number})` : ''}</option>`).join('');
+          athletes.map(a => {
+            const suspTag = a.suspended ? ' ⚠️ SUSPENSO' : '';
+            return `<option value="${a.id}" data-suspended="${a.suspended ? '1' : '0'}">${a.name}${a.number != null ? ` (#${a.number})` : ''}${suspTag}</option>`;
+          }).join('');
       } catch {
         sel.innerHTML = '<option value="">— Sem atleta específico —</option>';
       }
     }
+
+    document.getElementById('event-athlete').addEventListener('change', (e) => {
+      const opt = e.target.selectedOptions[0];
+      const suspWarning = document.getElementById('event-susp-warning');
+      if (opt && opt.dataset.suspended === '1') {
+        suspWarning.style.display = 'flex';
+      } else {
+        suspWarning.style.display = 'none';
+      }
+    });
 
     document.getElementById('event-save-btn').addEventListener('click', async () => {
       if (!currentGameForModal) return;
@@ -814,9 +833,17 @@
       if (description) data.description = description;
       btnLoading(btn, true, 'Registrando...');
       try {
-        await GamesAPI.addEvent(currentGameForModal.id, data);
+        const resp = await GamesAPI.addEvent(currentGameForModal.id, data);
         closeModal('modal-event');
-        showToast('Evento registrado!', 'success');
+        // Resetar warning de suspenso
+        document.getElementById('event-susp-warning').style.display = 'none';
+        // Mostrar toast especial se gerou suspensão
+        if (resp && resp.suspension) {
+          const s = resp.suspension;
+          showToast(s.message, s.expulsion ? 'error' : 'warning', 5000);
+        } else {
+          showToast('Evento registrado!', 'success');
+        }
         loadGames(currentChamp.id);
       } catch (err) {
         alertEl.textContent = err.message;

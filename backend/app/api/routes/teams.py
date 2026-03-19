@@ -12,10 +12,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_organizer
 from sqlalchemy import func, update as sa_update
 
-from app.db.models import Athlete, Sport, Team, User
+from app.db.models import Athlete, Sport, Suspension, Team, User
 from app.db.session import get_db
 from app.schemas.athlete import AthleteCreate, AthleteOut, AthleteUpdate
 from app.schemas.team import TeamCreate, TeamDetail, TeamOut, TeamUpdate
+from app.services import suspension_service
 
 router = APIRouter(prefix="/teams", tags=["Equipes"])
 
@@ -134,14 +135,24 @@ def delete_team(
 # ---------------------------------------------------------------------------
 
 @router.get("/{team_id}/athletes/", response_model=list[AthleteOut])
-def list_athletes(team_id: int, db: Session = Depends(get_db)):
+def list_athletes(
+    team_id: int,
+    championship_id: Optional[int] = Query(None, description="Se informado, inclui status de suspensão"),
+    db: Session = Depends(get_db),
+):
     _get_team_or_404(team_id, db)
-    return (
+    athletes = (
         db.query(Athlete)
         .filter(Athlete.team_id == team_id)
         .order_by(Athlete.number, Athlete.name)
         .all()
     )
+    if championship_id:
+        for a in athletes:
+            susp = suspension_service.get_athlete_suspension(db, a.id, championship_id)
+            a.suspended = susp is not None
+            a.suspension_reason = susp.reason if susp else None
+    return athletes
 
 
 @router.post("/{team_id}/athletes/", response_model=AthleteOut, status_code=status.HTTP_201_CREATED)

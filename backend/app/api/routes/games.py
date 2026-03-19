@@ -2,7 +2,7 @@
 routes/games.py
 ===============
 Detalhe de jogo, registro de resultado e eventos.
-Após registrar resultado, verifica suspensões automáticas.
+Após registrar cartão, verifica suspensões automáticas via suspension_service.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,6 +20,7 @@ from app.schemas.game import (
     GameResultUpdate,
     GameUpdate,
 )
+from app.services import suspension_service
 
 router = APIRouter(prefix="/games", tags=["Jogos"])
 
@@ -106,6 +107,7 @@ def set_result(
     db.commit()
     db.refresh(game)
 
+    # Verificar suspensões automáticas por acúmulo de amarelos ao fechar jogo
     _check_suspensions(game, db)
 
     return game.result
@@ -115,24 +117,72 @@ def set_result(
 # Eventos
 # ---------------------------------------------------------------------------
 
-@router.post("/{game_id}/events", response_model=GameEventOut, status_code=201)
+@router.post("/{game_id}/events", status_code=201)
 def add_event(
     game_id: int,
     data: GameEventCreate,
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_organizer),
 ):
+    """
+    Registra evento. Para cartões, processa suspensão automática via suspension_service.
+    Retorna: { event: GameEventOut, suspension: dict | null }
+    """
     game = _get_game_or_404(game_id, db)
     event = GameEvent(**data.model_dump(), game_id=game_id)
     db.add(event)
     db.commit()
     db.refresh(event)
 
-    # Cartão vermelho gera suspensão imediata
-    if data.event_type == "red_card":
-        _check_suspensions(game, db)
+    susp_info = None
+    if data.event_type in ("yellow_card", "red_card") and data.athlete_id:
+        champ = game.championship
+        rules = champ.rules_config or {}
+        result = suspension_service.process_card_event(
+            db=db,
+            athlete_id=data.athlete_id,
+            championship_id=champ.id,
+            game_id=game_id,
+            event_type=data.event_type,
+            rules_config=rules,
+        )
+        if result:
+            athlete = db.query(Athlete).filter(Athlete.id == data.athlete_id).first()
+            athlete_name = athlete.name if athlete else f"Atleta #{data.athlete_id}"
+            if result["type"] == "red_card" and result.get("expulsion"):
+                msg = f"🚫 {athlete_name} está EXPULSO do campeonato!"
+            elif result["type"] == "red_card":
+                n = result["suspension_games"]
+                msg = f"🟥 Cartão vermelho! {athlete_name} suspenso para o{'s próximos' if n > 1 else ' próximo'} {n} jogo{'s' if n > 1 else ''}."
+            else:
+                n = result["yellow_count"]
+                sg = result["suspension_games"]
+                msg = f"🟨 {athlete_name} atingiu {n} cartões amarelos e está suspenso para o próximo jogo!"
+            susp_info = {**result, "message": msg}
 
-    return event
+    # Montar resposta do evento com nomes
+    athlete_name = None
+    team_name = None
+    if event.athlete_id:
+        a = db.query(Athlete).filter(Athlete.id == event.athlete_id).first()
+        athlete_name = a.name if a else None
+    if event.team_id:
+        t = db.query(Team).filter(Team.id == event.team_id).first()
+        team_name = t.name if t else None
+
+    event_out = {
+        "id": event.id,
+        "game_id": event.game_id,
+        "athlete_id": event.athlete_id,
+        "athlete_name": athlete_name,
+        "team_id": event.team_id,
+        "team_name": team_name,
+        "event_type": event.event_type,
+        "minute": event.minute,
+        "description": event.description,
+    }
+
+    return {"event": event_out, "suspension": susp_info}
 
 
 @router.get("/{game_id}/events", response_model=list[GameEventOut])
@@ -178,51 +228,22 @@ def list_events(game_id: int, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
-# Suspensões automáticas
+# Suspensões automáticas (acúmulo de amarelos ao finalizar jogo)
 # ---------------------------------------------------------------------------
 
 def _check_suspensions(game: Game, db: Session) -> None:
     """
-    Verifica e cria suspensões automáticas após um resultado ou evento de cartão.
-
-    Regras (configuráveis em championship.rules_config):
-    - red_card      → suspension_games jogos de suspensão (default 1)
-    - yellow_card   → suspensão a cada yellow_card_threshold amarelos (default 3)
-
-    Usa tags no campo `reason` para idempotência.
+    Verifica acúmulo de cartões amarelos ao encerrar um jogo.
+    Cartões vermelhos geram suspensão imediata via process_card_event no add_event.
     """
     champ            = game.championship
     rules            = champ.rules_config or {}
     yellow_threshold = rules.get("yellow_card_threshold", 3)
-    suspend_games    = rules.get("suspension_games", 1)
+    suspend_games    = rules.get("yellow_suspension_games", rules.get("suspension_games", 1))
 
-    events = db.query(GameEvent).filter(GameEvent.game_id == game.id).all()
+    if yellow_threshold <= 0:
+        return
 
-    # --- Cartões vermelhos ------------------------------------------------
-    for ev in events:
-        if ev.event_type != "red_card" or ev.athlete_id is None:
-            continue
-
-        tag = f"[red_card:game={game.id}:event={ev.id}]"
-        already = (
-            db.query(Suspension)
-            .filter(
-                Suspension.athlete_id == ev.athlete_id,
-                Suspension.championship_id == champ.id,
-                Suspension.reason.contains(tag),
-            )
-            .first()
-        )
-        if not already:
-            db.add(Suspension(
-                athlete_id=ev.athlete_id,
-                championship_id=champ.id,
-                games_remaining=suspend_games,
-                reason=f"Cartão vermelho {tag}",
-                auto_generated=True,
-            ))
-
-    # --- Acúmulo de cartões amarelos -------------------------------------
     athlete_yellows = (
         db.query(GameEvent.athlete_id, func.count(GameEvent.id).label("cnt"))
         .join(Game, Game.id == GameEvent.game_id)
@@ -236,7 +257,7 @@ def _check_suspensions(game: Game, db: Session) -> None:
     )
 
     for athlete_id, cnt in athlete_yellows:
-        if yellow_threshold > 0 and cnt % yellow_threshold == 0:
+        if cnt % yellow_threshold == 0:
             tag = f"[yellow:{cnt}:champ={champ.id}]"
             already = (
                 db.query(Suspension)

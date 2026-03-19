@@ -137,8 +137,17 @@ const TeamsAPI = {
   create: (data) => apiFetch('/api/teams/', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiFetch(`/api/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/api/teams/${id}`, { method: 'DELETE' }),
-  athletes: (teamId) => apiFetch(`/api/teams/${teamId}/athletes/`),
+  athletes: (teamId, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiFetch(`/api/teams/${teamId}/athletes/` + (qs ? '?' + qs : ''));
+  },
   createAthlete: (teamId, data) => apiFetch(`/api/teams/${teamId}/athletes/`, { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// --- Suspensions ---
+const SuspensionsAPI = {
+  create: (data) => apiFetch('/api/suspensions/', { method: 'POST', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/api/suspensions/${id}`, { method: 'DELETE' }),
 };
 
 // --- Games ---

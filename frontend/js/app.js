@@ -1,5 +1,5 @@
 // --- Toast notifications ---
-function showToast(msg, type = 'success') {
+function showToast(msg, type = 'success', duration = 3500) {
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -14,7 +14,7 @@ function showToast(msg, type = 'success') {
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 350);
-  }, 3500);
+  }, duration);
 }
 
 // --- Button loading state ---

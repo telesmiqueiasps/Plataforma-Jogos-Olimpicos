@@ -863,11 +863,22 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
         athlete = athletes.get(s.athlete_id)
         if athlete is None:
             athlete = db.query(Athlete).filter(Athlete.id == s.athlete_id).first()
+        team_obj = None
+        if athlete and athlete.team_id:
+            team_obj = teams_map.get(athlete.team_id)
+            if team_obj is None:
+                team_obj = db.query(Team).filter(Team.id == athlete.team_id).first()
         susp_list.append({
+            "suspension_id": s.id,
             "athlete_id": s.athlete_id,
             "name": athlete.name if athlete else "—",
+            "photo_url": athlete.photo_url if athlete else None,
+            "team_id": athlete.team_id if athlete else None,
+            "team_name": team_obj.name if team_obj else "—",
+            "team_logo_url": team_obj.logo_url if team_obj else None,
             "games_remaining": s.games_remaining,
             "reason": s.reason,
+            "expulsion": s.games_remaining >= 999,
         })
 
     return {"scorers": scorers, "cards": cards_list, "suspensions": susp_list}
