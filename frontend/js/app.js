@@ -144,11 +144,35 @@ function renderPagination(containerId, state, onPage) {
 // --- Google Drive image URL converter ---
 function driveImageUrl(url) {
   if (!url) return null;
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-  const match2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (match2) return `https://drive.google.com/uc?export=view&id=${match2[1]}`;
+  const m1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1) return `https://lh3.googleusercontent.com/d/${m1[1]}`;
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m2) return `https://lh3.googleusercontent.com/d/${m2[1]}`;
+  const m3 = url.match(/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (m3) return `https://lh3.googleusercontent.com/d/${m3[1]}`;
   return url;
+}
+
+function teamAvatar(team, size = 36) {
+  const url = driveImageUrl(team?.logo_url);
+  const initials = (team?.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  const colors = ['#6c63ff', '#00d4aa', '#ff6b6b', '#ffa500', '#4ecdc4', '#45b7d1'];
+  const color = colors[(team?.id || 0) % colors.length];
+  if (url) {
+    return `<img src="${url}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML='<div style=width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.35)}px;font-weight:700;color:#fff;flex-shrink:0>${initials}</div>'" alt="${team?.name || ''}">`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.35)}px;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>`;
+}
+
+function athleteAvatar(athlete, size = 36) {
+  const url = driveImageUrl(athlete?.photo_url);
+  const initials = (athlete?.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  const colors = ['#6c63ff', '#00d4aa', '#ff6b6b', '#ffa500', '#4ecdc4'];
+  const color = colors[(athlete?.id || 0) % colors.length];
+  if (url) {
+    return `<img src="${url}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML='<div style=width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.35)}px;font-weight:700;color:#fff;flex-shrink:0>${initials}</div>'" alt="${athlete?.name || ''}">`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.35)}px;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>`;
 }
 
 // --- URL params ---

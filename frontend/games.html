@@ -505,14 +505,14 @@
       return `
         <div style="border-bottom:1px solid var(--border);">
           <div class="game-row" style="cursor:pointer;" onclick="toggleEvents(${g.id})">
-            <div class="team-name ${homeWinner ? 'winner' : ''}">${homeName}</div>
+            <div class="team-name ${homeWinner ? 'winner' : ''}" style="display:flex;align-items:center;gap:8px;">${teamAvatar(g.home_team || {name:homeName,id:g.home_team_id}, 28)}<span>${homeName}</span></div>
             <div class="game-score">
               ${hasScore
                 ? `<span style="font-size:18px; font-weight:800; color:var(--accent-purple);">${homeScore} × ${awayScore}</span>`
                 : '<span style="font-size:14px; color:var(--text-secondary);">vs</span>'
               }
             </div>
-            <div class="team-name ${awayWinner ? 'winner' : ''}" style="text-align:right;">${awayName}</div>
+            <div class="team-name ${awayWinner ? 'winner' : ''}" style="text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:8px;"><span>${awayName}</span>${teamAvatar(g.away_team || {name:awayName,id:g.away_team_id}, 28)}</div>
             <div style="min-width:160px; text-align:right;">
               <div>${gameStatusBadge(g.status)}</div>
               <div class="game-meta" style="justify-content:flex-end; margin-top:4px;">

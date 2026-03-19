@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
+  <title>Campeonatos — Jogos Olímpicos Sinodal PB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; margin: 0; }
+    .pub-header { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .pub-header .logo-wrap { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-primary); }
+    .pub-header .logo-wrap img { width: 36px; height: 36px; object-fit: contain; }
+    .pub-header .logo-wrap span { font-weight: 700; font-size: 15px; line-height: 1.2; }
+    .pub-header .champ-info { flex: 1; min-width: 0; }
+    .pub-header .champ-title { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pub-header .champ-sport { font-size: 12px; color: var(--text-secondary); }
+    .pub-content { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
+    .pub-footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 12px; border-top: 1px solid var(--border); margin-top: 48px; }
+    .pub-footer a { color: var(--accent-purple); text-decoration: none; }
+    .tab-nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+    .tab-btn { padding: 8px 16px; border: none; background: none; color: var(--text-secondary); cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; border-radius: 0; }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active { color: var(--accent-purple); border-bottom-color: var(--accent-purple); }
+    .standings-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .standings-table th { padding: 6px 10px; text-align: center; color: var(--text-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .standings-table th:nth-child(2) { text-align: left; }
+    .standings-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .standings-table td:nth-child(2) { text-align: left; }
+    .standings-table .pts { font-weight: 800; color: var(--accent-purple); }
+    .classified-row { background: rgba(0, 212, 170, 0.06); }
+    .badge-classified { display: inline-block; padding: 2px 6px; border-radius: 4px; background: rgba(0,212,170,0.15); color: var(--accent-teal); font-size: 10px; font-weight: 600; margin-left: 6px; }
+    .badge-suspended { display: inline-block; padding: 2px 6px; border-radius: 4px; background: rgba(239,68,68,0.15); color: #f87171; font-size: 10px; font-weight: 600; }
+    .badge-free { display: inline-block; padding: 2px 6px; border-radius: 4px; background: rgba(0,212,170,0.12); color: var(--accent-teal); font-size: 10px; font-weight: 600; }
+    .stat-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .stat-table th { padding: 6px 10px; text-align: left; color: var(--text-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .stat-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+    .game-status-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    .pub-champ-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color .15s, transform .15s; text-decoration: none; color: inherit; display: block; }
+    .pub-champ-card:hover { border-color: var(--accent-purple); transform: translateY(-2px); }
+    .back-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3); color: var(--accent-purple); font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer; }
+    .game-row-pub { display: flex; align-items: center; gap: 12px; padding: 12px 16px; flex-wrap: wrap; }
+    .game-teams-pub { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
+    .game-team-pub { flex: 1; font-size: 14px; font-weight: 600; min-width: 80px; display: flex; align-items: center; gap: 6px; }
+    .game-team-pub.right { justify-content: flex-end; text-align: right; }
+    .game-score-pub { font-size: 20px; font-weight: 800; color: var(--accent-purple); white-space: nowrap; padding: 0 8px; }
+    .game-vs-pub { font-size: 13px; color: var(--text-secondary); padding: 0 8px; }
+    .game-meta-pub { font-size: 11px; color: var(--text-secondary); text-align: right; min-width: 100px; }
+  </style>
+</head>
+<body>
+
+<header class="pub-header" id="pub-header">
+  <a href="public.html" class="logo-wrap">
+    <img src="img/logo.png" alt="Logo">
+    <span>Jogos Olímpicos<br>Sinodal PB</span>
+  </a>
+  <div class="champ-info" id="header-champ-info" style="display:none;">
+    <div class="champ-title" id="header-champ-name"></div>
+    <div class="champ-sport" id="header-champ-sport"></div>
+  </div>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+    <span id="header-champ-status"></span>
+    <a href="public.html" id="btn-back" class="back-btn" style="display:none;">← Outros campeonatos</a>
+  </div>
+</header>
+
+<div class="pub-content" id="pub-content">
+  <div class="page-loading" style="padding:60px; display:flex; flex-direction:column; align-items:center; gap:12px;">
+    <div class="spinner"></div>
+    <span>Carregando...</span>
+  </div>
+</div>
+
+<footer class="pub-footer">
+  Powered by <a href="https://jogossinodal.netlify.app" target="_blank">Sports Platform</a> ·
+  <a href="https://jogossinodal.netlify.app" target="_blank">Acesso para organizadores →</a>
+</footer>
+
+<div id="toast-container"></div>
+
+<script src="js/app.js"></script>
+<script>
+  const API_BASE = 'https://sports-platform-api.onrender.com';
+
+  async function pubFetch(path) {
+    const token = localStorage.getItem('sp_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(API_BASE + path, { headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Erro ${res.status}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  function pubStatusBadge(status) {
+    const map = {
+      draft:    ['Rascunho', '#6b7280'],
+      active:   ['Ativo', '#00d4aa'],
+      finished: ['Encerrado', '#6c63ff'],
+    };
+    const [label, color] = map[status] || [status, '#6b7280'];
+    return `<span style="display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;background:${color}22;color:${color};">${label}</span>`;
+  }
+
+  function gameStatusBadge(status) {
+    if (status === 'live') {
+      return `<span class="game-status-badge" style="background:rgba(0,212,170,0.15);color:#00d4aa;">● Ao Vivo</span>`;
+    }
+    if (status === 'finished' || status === 'completed') {
+      return `<span class="game-status-badge" style="background:rgba(108,99,255,0.15);color:#6c63ff;">Encerrado</span>`;
+    }
+    return `<span class="game-status-badge" style="background:rgba(107,114,128,0.15);color:#9ca3af;">Agendado</span>`;
+  }
+
+  const champId = new URLSearchParams(window.location.search).get('championship');
+
+  if (champId) {
+    showChampionshipPage(Number(champId));
+  } else {
+    showChampionshipList();
+  }
+
+  // ================================================================
+  // LISTA DE CAMPEONATOS ATIVOS
+  // ================================================================
+  async function showChampionshipList() {
+    const content = document.getElementById('pub-content');
+    try {
+      const all = await pubFetch('/api/championships/');
+      const active = all.filter(c => c.status === 'active' || c.status === 'finished');
+
+      if (!active.length) {
+        content.innerHTML = `
+          <div style="text-align:center; padding:60px 20px;">
+            <div style="font-size:48px; margin-bottom:16px;">🏆</div>
+            <h2 style="margin-bottom:8px;">Nenhum campeonato ativo</h2>
+            <p style="color:var(--text-secondary);">Ainda não há campeonatos disponíveis para visualização.</p>
+          </div>`;
+        return;
+      }
+
+      content.innerHTML = `
+        <h2 style="margin-bottom:20px; font-size:20px;">Campeonatos</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
+          ${active.map(c => `
+            <a href="public.html?championship=${c.id}" class="pub-champ-card">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <div style="font-size:17px; font-weight:700;">${c.name}</div>
+                ${pubStatusBadge(c.status)}
+              </div>
+              <div style="font-size:13px; color:var(--text-secondary); margin-bottom:4px;">
+                ${c.sport?.name || '—'}
+              </div>
+              <div style="font-size:12px; color:var(--text-secondary);">
+                ${c.start_date ? fmtDate(c.start_date) : ''}${c.end_date ? ' – ' + fmtDate(c.end_date) : ''}
+              </div>
+            </a>
+          `).join('')}
+        </div>`;
+    } catch (err) {
+      content.innerHTML = `<div class="alert alert-error" style="margin:24px 0;">${err.message}</div>`;
+    }
+  }
+
+  // ================================================================
+  // PÁGINA DO CAMPEONATO
+  // ================================================================
+  let currentChamp = null;
+
+  async function showChampionshipPage(id) {
+    const content = document.getElementById('pub-content');
+    try {
+      currentChamp = await pubFetch(`/api/championships/${id}`);
+      const c = currentChamp;
+
+      // Update header
+      document.getElementById('header-champ-info').style.display = 'block';
+      document.getElementById('header-champ-name').textContent = c.name;
+      document.getElementById('header-champ-sport').textContent = c.sport?.name || '';
+      document.getElementById('header-champ-status').innerHTML = pubStatusBadge(c.status);
+      document.getElementById('btn-back').style.display = 'flex';
+      document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;
+
+      // Build tabs
+      content.innerHTML = `
+        <div class="tab-nav">
+          <button class="tab-btn active" data-pub-tab="standings">Classificação</button>
+          <button class="tab-btn" data-pub-tab="scorers">Artilharia</button>
+          <button class="tab-btn" data-pub-tab="cards">Cartões</button>
+          <button class="tab-btn" data-pub-tab="games">Jogos</button>
+        </div>
+        <div id="pub-tab-standings"></div>
+        <div id="pub-tab-scorers" style="display:none;"></div>
+        <div id="pub-tab-cards" style="display:none;"></div>
+        <div id="pub-tab-games" style="display:none;"></div>
+      `;
+
+      document.querySelectorAll('[data-pub-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('[data-pub-tab]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          ['standings', 'scorers', 'cards', 'games'].forEach(t => {
+            document.getElementById(`pub-tab-${t}`).style.display = 'none';
+          });
+          const tab = btn.dataset.pubTab;
+          document.getElementById(`pub-tab-${tab}`).style.display = 'block';
+          loadPubTab(tab);
+        });
+      });
+
+      loadPubTab('standings');
+    } catch (err) {
+      content.innerHTML = `<div class="alert alert-error" style="margin:24px 0;">${err.message}</div>`;
+    }
+  }
+
+  const loadedTabs = {};
+
+  async function loadPubTab(tab) {
+    if (loadedTabs[tab]) return;
+    loadedTabs[tab] = true;
+    const el = document.getElementById(`pub-tab-${tab}`);
+    el.innerHTML = '<div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando...</span></div>';
+    try {
+      if (tab === 'standings') await renderStandings(el);
+      else if (tab === 'scorers') await renderScorers(el);
+      else if (tab === 'cards') await renderCards(el);
+      else if (tab === 'games') await renderGames(el);
+    } catch (err) {
+      el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  }
+
+  // ================================================================
+  // ABA: CLASSIFICAÇÃO
+  // ================================================================
+  async function renderStandings(el) {
+    const c = currentChamp;
+    const classified = c.classifieds_per_group || (c.rules_config?.classifieds_per_group) || 2;
+
+    try {
+      const groups = await pubFetch(`/api/championships/${c.id}/groups`);
+
+      if (!groups || !groups.length) {
+        // Sem grupos: mostrar tabela geral
+        const standings = await pubFetch(`/api/championships/${c.id}/standings`);
+        if (!standings || !standings.length) {
+          el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum dado de classificação disponível.</div>`;
+          return;
+        }
+        el.innerHTML = `<div class="card"><div class="card-body" style="padding:0;">${standingsTable(standings, 0)}</div></div>`;
+        return;
+      }
+
+      // Com grupos
+      const standingsArr = await Promise.all(
+        groups.map(g => pubFetch(`/api/championships/${c.id}/standings?group=${g.group}&phase=groups`).catch(() => []))
+      );
+
+      let html = '';
+      groups.forEach((g, i) => {
+        const rows = standingsArr[i] || [];
+        html += `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-body" style="padding:0;">
+              <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">
+                Grupo ${g.group}
+              </div>
+              ${standingsTable(rows, classified)}
+            </div>
+          </div>`;
+      });
+      el.innerHTML = html || `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum jogo disputado ainda.</div>`;
+    } catch {
+      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum dado de classificação disponível.</div>`;
+    }
+  }
+
+  function standingsTable(rows, classifiedPerGroup) {
+    if (!rows.length) return `<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>`;
+    return `
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th style="text-align:center;width:36px;">#</th>
+            <th>Equipe</th>
+            <th>J</th><th>V</th><th>E</th><th>D</th>
+            <th>GP</th><th>GC</th><th>SG</th>
+            <th class="pts">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((s, i) => `
+            <tr class="${classifiedPerGroup > 0 && i < classifiedPerGroup ? 'classified-row' : ''}">
+              <td style="text-align:center; color:var(--text-secondary);">${s.position}</td>
+              <td style="font-weight:500;">
+                ${s.team_name}
+                ${classifiedPerGroup > 0 && i < classifiedPerGroup ? '<span class="badge-classified">Classificado</span>' : ''}
+              </td>
+              <td>${s.games_played}</td>
+              <td>${s.wins}</td>
+              <td>${s.draws}</td>
+              <td>${s.losses}</td>
+              <td>${s.goals_for}</td>
+              <td>${s.goals_against}</td>
+              <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+              <td class="pts">${s.points}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // ================================================================
+  // ABA: ARTILHARIA
+  // ================================================================
+  async function renderScorers(el) {
+    const stats = await pubFetch(`/api/championships/${currentChamp.id}/stats`);
+    const scorers = (stats.scorers || []).slice(0, 10);
+    if (!scorers.length) {
+      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum gol registrado.</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">⚽ Artilharia — Top ${scorers.length}</div>
+          <table class="stat-table">
+            <thead><tr><th style="width:36px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
+            <tbody>
+              ${scorers.map((s, i) => `
+                <tr>
+                  <td style="color:var(--text-secondary); font-weight:600;">${i + 1}</td>
+                  <td>${athleteAvatar({name: s.name, id: s.scorer_id}, 32)}</td>
+                  <td style="font-weight:600;">${s.name}</td>
+                  <td style="color:var(--text-secondary);">${s.team_name}</td>
+                  <td style="text-align:center; font-weight:800; color:var(--accent-teal); font-size:16px;">${s.goals}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  // ================================================================
+  // ABA: CARTÕES
+  // ================================================================
+  async function renderCards(el) {
+    const stats = await pubFetch(`/api/championships/${currentChamp.id}/stats`);
+    const cards = stats.cards || [];
+    const suspendedNames = new Set((stats.suspensions || []).map(s => s.name));
+    if (!cards.length) {
+      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum cartão registrado.</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">🟨 Disciplina</div>
+          <table class="stat-table">
+            <thead><tr><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">🟨</th><th style="text-align:center;">🟥</th><th>Status</th></tr></thead>
+            <tbody>
+              ${cards.map(c => `
+                <tr>
+                  <td>${athleteAvatar({name: c.name, id: c.athlete_id}, 32)}</td>
+                  <td style="font-weight:600;">${c.name}</td>
+                  <td style="color:var(--text-secondary);">${c.team_name}</td>
+                  <td style="text-align:center; font-weight:700; color:#fbbf24;">${c.yellow}</td>
+                  <td style="text-align:center; font-weight:700; color:#f87171;">${c.red}</td>
+                  <td>${suspendedNames.has(c.name)
+                    ? '<span class="badge-suspended">Suspenso</span>'
+                    : '<span class="badge-free">Livre</span>'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  // ================================================================
+  // ABA: JOGOS
+  // ================================================================
+  async function renderGames(el) {
+    const games = await pubFetch(`/api/championships/${currentChamp.id}/games`);
+    if (!games || !games.length) {
+      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum jogo cadastrado.</div>`;
+      return;
+    }
+
+    const grouped = {};
+    const order = [];
+    const groupGames    = games.filter(g => g.phase === 'groups');
+    const knockoutGames = games.filter(g => g.phase === 'knockout');
+    const allOrdered = [...groupGames, ...knockoutGames];
+
+    for (const g of allOrdered) {
+      const label = g.phase_name || (g.phase === 'groups' ? 'Fase de Grupos' : 'Mata-mata');
+      if (!grouped[label]) { grouped[label] = []; order.push(label); }
+      grouped[label].push(g);
+    }
+
+    let html = '';
+    for (const label of order) {
+      html += `
+        <div class="card" style="margin-bottom:16px;">
+          <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">${label}</div>
+          <div class="card-body" style="padding:0;">
+            ${grouped[label].map(g => renderGameRow(g)).join('')}
+          </div>
+        </div>`;
+    }
+    el.innerHTML = html;
+  }
+
+  function renderGameRow(g) {
+    const hs = g.result?.home_score ?? null;
+    const as_ = g.result?.away_score ?? null;
+    const hasScore = hs !== null && as_ !== null;
+    const ht = g.home_team?.name || '—';
+    const at = g.away_team?.name || '—';
+    const homeWin = hasScore && hs > as_;
+    const awayWin = hasScore && as_ > hs;
+    const groupLabel = g.extra_data?.group ? ` · Grupo ${g.extra_data.group}` : '';
+    return `
+      <div style="border-bottom:1px solid rgba(255,255,255,0.04);">
+        <div class="game-row-pub">
+          <div class="game-teams-pub">
+            <div class="game-team-pub" style="${homeWin ? 'color:var(--accent-teal);' : ''}">
+              ${teamAvatar(g.home_team || {name:ht,id:g.home_team_id}, 26)}
+              <span>${ht}</span>
+            </div>
+            ${hasScore
+              ? `<div class="game-score-pub">${hs} – ${as_}</div>`
+              : `<div class="game-vs-pub">vs</div>`}
+            <div class="game-team-pub right" style="${awayWin ? 'color:var(--accent-teal);' : ''}">
+              <span>${at}</span>
+              ${teamAvatar(g.away_team || {name:at,id:g.away_team_id}, 26)}
+            </div>
+          </div>
+          <div class="game-meta-pub">
+            ${gameStatusBadge(g.status)}<br>
+            ${g.scheduled_at ? `<span>📅 ${fmtDatetime(g.scheduled_at)}</span><br>` : ''}
+            ${g.venue ? `<span>📍 ${g.venue}</span><br>` : ''}
+            <span style="font-size:10px; color:var(--text-secondary);">${groupLabel}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+</script>
+</body>
+</html>

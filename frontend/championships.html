@@ -520,6 +520,7 @@
                       <button class="btn btn-sm btn-primary" onclick="openChampDetail(${c.id})">Gerenciar</button>
                       <a href="games.html?championship_id=${c.id}" class="btn btn-sm btn-ghost">Jogos</a>
                       ${c.status !== 'active' ? `<button class="btn btn-sm btn-teal" onclick="activateChamp(${c.id})">▶ Ativar</button>` : ''}
+                      <button class="btn btn-sm btn-ghost" onclick="copyPublicLink(${c.id})" title="Copiar link público">🔗 Link Público</button>
                       <button class="btn btn-sm btn-secondary" onclick="openEditChampModal(${c.id})">✏️ Editar</button>
                       <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="deleteChamp(${c.id}, '${c.name.replace(/'/g, "\\'")}')">🗑️</button>
                     </div>
@@ -780,6 +781,7 @@
           <button class="btn btn-secondary btn-sm" onclick="switchTab('groups')">📋 Grupos</button>
           <button class="btn btn-secondary btn-sm" onclick="switchTab('knockout')">⚔️ Mata-mata</button>
           <a href="games.html?championship_id=${c.id}" class="btn btn-ghost btn-sm">Todos os Jogos ↗</a>
+          <button class="btn btn-ghost btn-sm" onclick="copyPublicLink(${c.id})">🔗 Compartilhar página pública</button>
         </div>
       `;
 
@@ -1017,7 +1019,7 @@
           <div style="margin-bottom:8px;">
             ${g.teams.map(t => `
               <div style="display:flex; align-items:center; gap:6px; font-size:13px; padding:4px 0; border-bottom:1px solid var(--border);">
-                <span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal));display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:white;flex-shrink:0;">${t.name[0]}</span>
+                ${teamAvatar(t, 22)}
                 ${t.name}
               </div>
             `).join('')}
@@ -1538,6 +1540,16 @@
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
+    }
+
+    // ================================================================
+    // LINK PÚBLICO
+    // ================================================================
+    function copyPublicLink(champId) {
+      const url = `${window.location.origin}/public.html?championship=${champId}`;
+      navigator.clipboard.writeText(url).then(() => showToast('Link copiado!', 'success')).catch(() => {
+        prompt('Copie o link:', url);
+      });
     }
 
     // ================================================================

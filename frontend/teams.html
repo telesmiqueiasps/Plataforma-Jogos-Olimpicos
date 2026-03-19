@@ -227,10 +227,7 @@
                 <tr>
                   <td>
                     <div style="display:flex; align-items:center; gap:10px;">
-                      ${t.logo_url
-                        ? `<img src="${driveImageUrl(t.logo_url)}" alt="${t.name}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><div style="display:none;width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal)); align-items:center; justify-content:center; font-weight:700; font-size:13px; color:white; flex-shrink:0;">${t.name[0].toUpperCase()}</div>`
-                        : `<div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent-purple),var(--accent-teal)); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:white; flex-shrink:0;">${t.name[0].toUpperCase()}</div>`
-                      }
+                      ${teamAvatar(t, 32)}
                       <div>
                         <div style="font-weight:600;">${t.name}</div>
                         ${t.coach ? `<div style="font-size:12px; color:var(--text-secondary);">Técnico: ${t.coach}</div>` : ''}
