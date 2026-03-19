@@ -268,12 +268,38 @@ def list_games(
     db: Session = Depends(get_db),
 ):
     _get_championship_or_404(championship_id, db)
-    return (
+    games = (
         db.query(Game)
         .filter(Game.championship_id == championship_id)
         .order_by(Game.phase, Game.round_number, Game.scheduled_at)
         .all()
     )
+
+    # Compute max knockout round for backward phase naming
+    ko_rounds = [g.round_number or 1 for g in games if g.phase == "knockout"]
+    max_ko_round = max(ko_rounds) if ko_rounds else 0
+
+    for g in games:
+        if g.phase == "groups":
+            rn = g.round_number
+            g.phase_name = f"Fase de Grupos - Rodada {rn}" if rn else "Fase de Grupos"
+        elif g.phase == "knockout":
+            rn = g.round_number or 1
+            diff = max_ko_round - rn
+            if diff == 0:
+                g.phase_name = "Final"
+            elif diff == 1:
+                g.phase_name = "Semifinal"
+            elif diff == 2:
+                g.phase_name = "Quartas de Final"
+            elif diff == 3:
+                g.phase_name = "Oitavas de Final"
+            else:
+                g.phase_name = f"Mata-mata - Rodada {rn}"
+        else:
+            g.phase_name = None
+
+    return games
 
 
 @router.post("/{championship_id}/games", response_model=GameOut, status_code=201)

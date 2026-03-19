@@ -1060,6 +1060,78 @@
     // ================================================================
     // TAB: JOGOS
     // ================================================================
+    function detailEventBadge(type) {
+      const map = {
+        goal:        ['🥅', '#10b981', 'Gol'],
+        yellow_card: ['🟨', '#f59e0b', 'Cartão Amarelo'],
+        red_card:    ['🟥', '#ef4444', 'Cartão Vermelho'],
+        foul:        ['⚠️', '#f97316', 'Falta'],
+        point:       ['🎯', '#00d4aa', 'Ponto'],
+      };
+      const [icon, color, label] = map[type] || ['📌', '#6c63ff', type];
+      return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:${color}22;color:${color};font-size:11px;font-weight:600;">${icon} ${label}</span>`;
+    }
+
+    const detailGamesById = {};
+
+    function toggleDetailEvents(gameId) {
+      const panel = document.getElementById(`detail-events-${gameId}`);
+      if (!panel) return;
+      if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        loadDetailGameEvents(gameId, panel);
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+
+    async function loadDetailGameEvents(gameId, panel) {
+      panel.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">Carregando...</div>';
+      try {
+        const game = detailGamesById[gameId];
+        const events = await GamesAPI.events(gameId);
+
+        if (!events.length) {
+          panel.innerHTML = '<p style="color:var(--text-secondary);font-size:12px;margin:0;padding:8px 12px;">Nenhum evento registrado.</p>';
+          return;
+        }
+
+        const homeTeamId = game?.home_team_id;
+        const awayTeamId = game?.away_team_id;
+        const homeName = game?.home_team?.name || `Time #${homeTeamId}`;
+        const awayName = game?.away_team?.name || `Time #${awayTeamId}`;
+
+        const homeEvents = events.filter(ev => ev.team_id === homeTeamId);
+        const awayEvents = events.filter(ev => ev.team_id === awayTeamId);
+        const neutralEvents = events.filter(ev => !ev.team_id || (ev.team_id !== homeTeamId && ev.team_id !== awayTeamId));
+
+        function renderLine(ev) {
+          const name = ev.athlete_name || (ev.athlete_id ? `Atleta #${ev.athlete_id}` : '');
+          const min = ev.minute != null ? ` ${ev.minute}'` : '';
+          return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:12px;">
+            ${detailEventBadge(ev.event_type)}
+            <span style="color:var(--text-primary);">${name}${min}</span>
+          </div>`;
+        }
+
+        panel.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);">
+            <div style="padding:10px 12px;border-right:1px solid var(--border);">
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;margin-bottom:6px;">${homeName}</div>
+              ${homeEvents.length ? homeEvents.map(renderLine).join('') : '<span style="color:var(--text-secondary);font-size:11px;">—</span>'}
+            </div>
+            <div style="padding:10px 12px;">
+              <div style="font-size:10px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;margin-bottom:6px;">${awayName}</div>
+              ${awayEvents.length ? awayEvents.map(renderLine).join('') : '<span style="color:var(--text-secondary);font-size:11px;">—</span>'}
+            </div>
+          </div>
+          ${neutralEvents.length ? `<div style="padding:8px 12px;border-top:1px solid var(--border);">${neutralEvents.map(renderLine).join('')}</div>` : ''}
+        `;
+      } catch (err) {
+        panel.innerHTML = `<p style="color:var(--text-secondary);font-size:12px;margin:0;padding:8px 12px;">Erro: ${err.message}</p>`;
+      }
+    }
+
     async function loadDetailGames() {
       const container = document.getElementById('games-detail-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando jogos...</span></div>';
@@ -1070,20 +1142,20 @@
           return;
         }
 
-        // Agrupa por fase, garantindo grupos antes do mata-mata
-        const byPhase = {};
-        games.forEach(g => {
-          const key = g.phase || 'geral';
-          if (!byPhase[key]) byPhase[key] = [];
-          byPhase[key].push(g);
-        });
+        // Index games for events lookup
+        games.forEach(g => { detailGamesById[g.id] = g; });
 
-        // Ordena fases: groups → knockout → resto
-        const phaseOrder = ['groups', 'knockout'];
-        const sortedPhases = [
-          ...phaseOrder.filter(p => byPhase[p]),
-          ...Object.keys(byPhase).filter(p => !phaseOrder.includes(p)),
-        ];
+        // Group by phase_name returned from API (preserving order)
+        const byPhaseName = {};
+        const phaseNameOrder = [];
+        games.forEach(g => {
+          const pn = g.phase_name || (g.phase === 'groups' ? 'Fase de Grupos' : g.phase === 'knockout' ? 'Mata-mata' : g.phase || 'Geral');
+          if (!byPhaseName[pn]) {
+            byPhaseName[pn] = [];
+            phaseNameOrder.push(pn);
+          }
+          byPhaseName[pn].push(g);
+        });
 
         function renderGameRow(g) {
           const ht = g.home_team?.name || '—';
@@ -1092,46 +1164,28 @@
           const as_ = g.result?.away_score ?? null;
           const groupLabel = (g.extra_data?.group) ? ` · Grupo ${g.extra_data.group}` : '';
           return `
-            <div class="game-row">
-              <div class="game-teams">
-                <span class="game-team" style="${hs !== null && as_ !== null && hs > as_ ? 'color:var(--accent-teal);' : ''}">${ht}</span>
-                <div class="game-score">${hs !== null ? `${hs} – ${as_}` : 'x'}</div>
-                <span class="game-team" style="${hs !== null && as_ !== null && as_ > hs ? 'color:var(--accent-teal);' : ''}">${at}</span>
+            <div style="border-bottom:1px solid rgba(255,255,255,0.05);">
+              <div class="game-row" style="cursor:pointer;" onclick="toggleDetailEvents(${g.id})">
+                <div class="game-teams">
+                  <span class="game-team" style="${hs !== null && as_ !== null && hs > as_ ? 'color:var(--accent-teal);font-weight:700;' : ''}">${ht}</span>
+                  <div class="game-score">${hs !== null ? `${hs} – ${as_}` : 'x'}</div>
+                  <span class="game-team" style="${hs !== null && as_ !== null && as_ > hs ? 'color:var(--accent-teal);font-weight:700;' : ''}">${at}</span>
+                </div>
+                <div class="game-meta">
+                  ${gameStatusBadge(g.status)}<br>
+                  <span style="font-size:11px;">${fmtDate(g.scheduled_at)}${groupLabel}</span>
+                </div>
               </div>
-              <div class="game-meta">
-                ${gameStatusBadge(g.status)}<br>
-                <span style="font-size:11px;">${fmtDate(g.scheduled_at)}${groupLabel}</span>
-              </div>
+              <div id="detail-events-${g.id}" style="display:none; background:var(--bg-primary);"></div>
             </div>`;
         }
 
         let html = '';
-        for (const phase of sortedPhases) {
-          const phaseGames = byPhase[phase];
-          // Sub-agrupa por rodada
-          const byRound = {};
-          phaseGames.forEach(g => {
-            const r = g.round_number || 1;
-            if (!byRound[r]) byRound[r] = [];
-            byRound[r].push(g);
-          });
-
-          const phaseHeader = phase === 'groups' ? 'Fase de Grupos' : phase === 'knockout' ? 'Mata-mata' : phaseName(phase);
+        for (const phaseName of phaseNameOrder) {
+          const phaseGames = byPhaseName[phaseName];
           html += `<div style="margin-bottom:20px;">
-            <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">${phaseHeader}</div>`;
-
-          for (const [round, roundGames] of Object.entries(byRound).sort(([a],[b]) => Number(a)-Number(b))) {
-            let roundLabel = '';
-            if (phase === 'groups') {
-              roundLabel = `Rodada ${round}`;
-            } else if (phase === 'knockout') {
-              roundLabel = getKnockoutPhaseName(roundGames.length);
-            }
-            if (roundLabel) {
-              html += `<div style="padding:6px 16px 2px; font-size:11px; color:var(--text-secondary); font-weight:600; text-transform:uppercase;">${roundLabel}</div>`;
-            }
-            roundGames.forEach(g => { html += renderGameRow(g); });
-          }
+            <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">${phaseName}</div>`;
+          phaseGames.forEach(g => { html += renderGameRow(g); });
           html += '</div>';
         }
         container.innerHTML = `<div class="card"><div class="card-body" style="padding:0;">${html}</div></div>`;

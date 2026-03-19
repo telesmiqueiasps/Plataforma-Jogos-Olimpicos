@@ -10,7 +10,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_organizer
-from app.db.models import Athlete, Game, GameEvent, GameResult, Suspension, User
+from app.db.models import Athlete, Game, GameEvent, GameResult, Suspension, Team, User
 from app.db.session import get_db
 from app.schemas.game import (
     GameEventCreate,
@@ -153,6 +153,14 @@ def list_events(game_id: int, db: Session = Depends(get_db)):
             for a in db.query(Athlete).filter(Athlete.id.in_(athlete_ids)).all()
         }
 
+    team_ids = {e.team_id for e in events if e.team_id}
+    teams: dict[int, str] = {}
+    if team_ids:
+        teams = {
+            t.id: t.name
+            for t in db.query(Team).filter(Team.id.in_(team_ids)).all()
+        }
+
     return [
         {
             "id": e.id,
@@ -160,6 +168,7 @@ def list_events(game_id: int, db: Session = Depends(get_db)):
             "athlete_id": e.athlete_id,
             "athlete_name": athletes.get(e.athlete_id) if e.athlete_id else None,
             "team_id": e.team_id,
+            "team_name": teams.get(e.team_id) if e.team_id else None,
             "event_type": e.event_type,
             "minute": e.minute,
             "description": e.description,

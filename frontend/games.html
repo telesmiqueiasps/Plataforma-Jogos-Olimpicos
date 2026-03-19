@@ -665,24 +665,46 @@
     async function loadGameEvents(gameId, panel) {
       panel.innerHTML = '<div class="page-loading" style="padding:8px 0;"><div class="spinner"></div><span>Carregando eventos...</span></div>';
       try {
+        const game = gamesById[gameId];
         const events = await GamesAPI.events(gameId);
+
         if (!events.length) {
-          panel.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;margin:0;">Nenhum evento registrado.</p>';
+          panel.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;margin:0;padding:8px 0;">Nenhum evento registrado.</p>';
           return;
         }
-        panel.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
-          ${events.map(ev => {
-            const athleteName = ev.athlete_name || (ev.athlete_id ? `Atleta #${ev.athlete_id}` : null);
-            const minuteStr = ev.minute != null ? ` (${ev.minute}')` : '';
-            const descStr = ev.description ? ` — ${ev.description}` : '';
-            const who = athleteName ? ` — ${athleteName}${minuteStr}${descStr}` : `${minuteStr}${descStr}`;
-            return `
-            <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
-              ${eventBadge(ev.event_type)}
-              <span style="color:var(--text-primary);">${who}</span>
-            </div>`;
-          }).join('')}
-        </div>`;
+
+        const homeTeamId = game?.home_team_id;
+        const awayTeamId = game?.away_team_id;
+        const homeName = game?.home_team?.name || `Time #${homeTeamId}`;
+        const awayName = game?.away_team?.name || `Time #${awayTeamId}`;
+
+        const homeEvents = events.filter(ev => ev.team_id === homeTeamId);
+        const awayEvents = events.filter(ev => ev.team_id === awayTeamId);
+        const neutralEvents = events.filter(ev => !ev.team_id || (ev.team_id !== homeTeamId && ev.team_id !== awayTeamId));
+
+        function renderEventLine(ev) {
+          const name = ev.athlete_name || (ev.athlete_id ? `Atleta #${ev.athlete_id}` : '');
+          const min = ev.minute != null ? ` ${ev.minute}'` : '';
+          const desc = ev.description ? ` — ${ev.description}` : '';
+          return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;">
+            ${eventBadge(ev.event_type)}
+            <span style="color:var(--text-primary);">${name}${min}${desc}</span>
+          </div>`;
+        }
+
+        panel.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);">
+            <div style="padding:10px 12px;border-right:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;margin-bottom:8px;">${homeName}</div>
+              ${homeEvents.length ? homeEvents.map(renderEventLine).join('') : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}
+            </div>
+            <div style="padding:10px 12px;">
+              <div style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;margin-bottom:8px;">${awayName}</div>
+              ${awayEvents.length ? awayEvents.map(renderEventLine).join('') : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}
+            </div>
+          </div>
+          ${neutralEvents.length ? `<div style="padding:8px 12px;border-top:1px solid var(--border);">${neutralEvents.map(renderEventLine).join('')}</div>` : ''}
+        `;
       } catch (err) {
         panel.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;margin:0;">Erro: ${err.message}</p>`;
       }

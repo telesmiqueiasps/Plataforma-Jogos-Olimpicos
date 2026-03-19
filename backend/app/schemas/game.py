@@ -66,6 +66,7 @@ class GameEventOut(BaseModel):
     athlete_id: Optional[int] = None
     athlete_name: Optional[str] = None
     team_id: Optional[int] = None
+    team_name: Optional[str] = None
     event_type: str
     minute: Optional[int] = None
     description: Optional[str] = None
@@ -87,5 +88,6 @@ class GameOut(BaseModel):
     round_number: Optional[int] = None
     extra_data: Optional[dict] = None
     result: Optional[GameResultOut] = None
+    phase_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
