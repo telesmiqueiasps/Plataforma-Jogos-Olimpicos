@@ -184,7 +184,48 @@
 
           <!-- ---- ABA: Configurações ---- -->
           <div id="tab-config" style="display:none;">
-            <div class="card" style="margin-bottom:16px;">
+
+            <!-- === Configurações específicas de VÔLEI === -->
+            <div id="cfg-volleyball-section" style="display:none;">
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:16px; font-size:15px;">🏐 Configurações de Vôlei</h3>
+                  <div class="form-group" style="margin-bottom:16px;">
+                    <label>Melhor de quantos sets</label>
+                    <select id="cfg-vball-best-of" class="form-control" style="max-width:200px;">
+                      <option value="3">Melhor de 3</option>
+                      <option value="5">Melhor de 5</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:16px; font-size:15px;">Pontuação (Vôlei)</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Vitória 3-0 ou 3-1 (pontos)</label>
+                      <input type="number" id="cfg-vball-pts-win-easy" class="form-control" value="3" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Vitória 3-2 (pontos)</label>
+                      <input type="number" id="cfg-vball-pts-win-hard" class="form-control" value="2" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Derrota 2-3 (pontos)</label>
+                      <input type="number" id="cfg-vball-pts-loss-close" class="form-control" value="1" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Derrota 0-3 ou 1-3 (pontos)</label>
+                      <input type="number" id="cfg-vball-pts-loss-easy" class="form-control" value="0" min="0">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- === Pontuação Futsal (V/E/D) — oculto para vôlei === -->
+            <div id="cfg-futsal-pts" class="card" style="margin-bottom:16px;">
               <div class="card-body">
                 <h3 style="margin-bottom:20px; font-size:15px;">Pontuação</h3>
                 <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
@@ -212,7 +253,8 @@
               </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <!-- Cartões — oculto para vôlei -->
+            <div id="cfg-cards-section" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
               <div class="card">
                 <div class="card-body">
                   <h3 style="margin-bottom:16px; font-size:15px; color:#fbbf24;">Cartão Amarelo</h3>
@@ -396,6 +438,21 @@
               <option value="finished">Encerrado</option>
             </select>
           </div>
+          <!-- Config extra para Vôlei -->
+          <div id="vball-champ-config" style="display:none; margin-bottom:4px;">
+            <div style="background:rgba(108,99,255,0.08); border:1px solid rgba(108,99,255,0.2); border-radius:8px; padding:12px 14px; margin-bottom:12px;">
+              <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--accent-purple);">🏐 Configurações de Vôlei</div>
+              <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:12px;">Melhor de quantos sets</label>
+                <select id="vball-best-of" class="form-control" style="max-width:160px;">
+                  <option value="3">Melhor de 3</option>
+                  <option value="5">Melhor de 5</option>
+                </select>
+              </div>
+              <div style="font-size:11px; color:var(--text-secondary);">Pontuação automática: 3-0/3-1 = 3pts · 3-2 = 2pts · 2-3 = 1pt · 0-3/1-3 = 0pts</div>
+            </div>
+          </div>
+
           <div class="form-group" id="champ-teams-section" style="display:none;">
             <label>Equipes Inscritas (opcional)</label>
             <div id="champ-teams-list" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--bg-tertiary);">
@@ -439,7 +496,13 @@
     const TIEBREAKER_LABELS = {
       points: 'Pontos', wins: 'Vitórias', draws: 'Empates', losses: 'Derrotas',
       goal_difference: 'Saldo de Gols', goals_scored: 'Gols Pró', head_to_head: 'Confronto Direto',
+      set_difference: 'Saldo de Sets', set_average: 'Índice de Sets',
+      points_average: 'Índice de Pontos (sets)', points_scored: 'Pontos Feitos',
     };
+
+    function isVolleyball() {
+      return currentChamp?.sport?.slug === 'volleyball';
+    }
 
     // ================================================================
     // UTILS
@@ -569,6 +632,29 @@
     // ================================================================
     // MODAL: NOVO / EDITAR CAMPEONATO
     // ================================================================
+    let _allTeamsForModal = [];
+
+    function renderModalTeamsList(sportId) {
+      const list = document.getElementById('champ-teams-list');
+      const sport = allSports.find(s => s.id === Number(sportId));
+      const filtered = sportId
+        ? _allTeamsForModal.filter(t => t.sport_id === Number(sportId))
+        : _allTeamsForModal;
+      if (!filtered.length) {
+        const msg = sportId && sport
+          ? `Nenhuma equipe de ${sport.name} cadastrada.`
+          : 'Nenhuma equipe cadastrada.';
+        list.innerHTML = `<span style="color:var(--text-secondary);font-size:13px;">${msg}</span>`;
+      } else {
+        list.innerHTML = filtered.map(t => `
+          <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;">
+            <input type="checkbox" class="champ-team-check" value="${t.id}" style="width:auto;">
+            <span>${t.name}${t.sport?.name ? ` — ${t.sport.name}` : ''}</span>
+          </label>
+        `).join('');
+      }
+    }
+
     async function openNewChampModal() {
       editChampId = null;
       document.getElementById('champ-form').reset();
@@ -577,22 +663,24 @@
       document.getElementById('champ-save-btn').textContent = 'Criar Campeonato';
       document.getElementById('champ-status').value = 'draft';
       document.getElementById('champ-teams-section').style.display = 'none';
+      document.getElementById('vball-champ-config').style.display = 'none';
       await loadSports();
       try {
-        const teams = await TeamsAPI.list();
-        const list = document.getElementById('champ-teams-list');
-        if (!teams.length) {
-          list.innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">Nenhuma equipe cadastrada.</span>';
-        } else {
-          list.innerHTML = teams.map(t => `
-            <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;">
-              <input type="checkbox" class="champ-team-check" value="${t.id}" style="width:auto;">
-              <span>${t.name}${t.sport?.name ? ` — ${t.sport.name}` : ''}</span>
-            </label>
-          `).join('');
-        }
+        _allTeamsForModal = await TeamsAPI.list();
+        renderModalTeamsList('');
         document.getElementById('champ-teams-section').style.display = 'block';
       } catch {}
+
+      // Handler para filtrar equipes por modalidade e mostrar config vôlei
+      const sportSel = document.getElementById('champ-sport');
+      sportSel.onchange = () => {
+        const sportId = sportSel.value;
+        const sport = allSports.find(s => s.id === Number(sportId));
+        const isVball = sport?.slug === 'volleyball';
+        document.getElementById('vball-champ-config').style.display = isVball ? '' : 'none';
+        renderModalTeamsList(sportId);
+      };
+
       openModal('modal-champ');
     }
 
@@ -658,6 +746,20 @@
       const data = { name, sport_id: Number(sport_id), format, status: champ_status };
       if (start_date) data.start_date = start_date;
       if (end_date) data.end_date = end_date;
+
+      // Adiciona config de vôlei se selecionado
+      const sportSel = document.getElementById('champ-sport');
+      const selSport = allSports.find(s => s.id === Number(sportSel.value));
+      if (selSport?.slug === 'volleyball') {
+        const bestOf = Number(document.getElementById('vball-best-of')?.value || 3);
+        data.rules_config = {
+          best_of: bestOf,
+          pts_win_easy: 3, pts_win_hard: 2,
+          pts_loss_close: 1, pts_loss_easy: 0,
+          tiebreaker_order: ['points', 'wins', 'set_difference', 'set_average', 'points_average'],
+        };
+        data.extra_data = { best_of: bestOf };
+      }
 
       if (editChampId) {
         btnLoading(btn, true, 'Salvando...');
@@ -817,17 +919,38 @@
     async function loadConfig() {
       try {
         const cfg = await ChampAPI.config(currentChamp.id);
-        document.getElementById('cfg-pts-win').value  = cfg.points_win  ?? 3;
-        document.getElementById('cfg-pts-draw').value = cfg.points_draw ?? 1;
-        document.getElementById('cfg-pts-loss').value = cfg.points_loss ?? 0;
-        document.getElementById('cfg-yellow-threshold').value = cfg.yellow_card_threshold ?? 3;
-        document.getElementById('cfg-yellow-susp').value      = cfg.yellow_suspension_games ?? 1;
-        document.getElementById('cfg-red-susp').value         = cfg.red_card_suspension_games ?? 1;
-        document.getElementById('cfg-red-expulsion').checked  = cfg.red_card_expulsion ?? false;
-        document.getElementById('cfg-classifieds').value      = cfg.classifieds_per_group ?? 2;
-        tiebreakerOrder = cfg.tiebreaker_order?.length
-          ? cfg.tiebreaker_order
-          : ['points', 'wins', 'goal_difference', 'goals_scored', 'head_to_head'];
+        const vball = isVolleyball();
+
+        // Mostra/oculta seções dependentes de modalidade
+        document.getElementById('cfg-volleyball-section').style.display = vball ? '' : 'none';
+        document.getElementById('cfg-futsal-pts').style.display         = vball ? 'none' : '';
+        document.getElementById('cfg-cards-section').style.display      = vball ? 'none' : 'grid';
+
+        if (vball) {
+          // Vôlei
+          document.getElementById('cfg-vball-best-of').value        = cfg.best_of ?? 3;
+          document.getElementById('cfg-vball-pts-win-easy').value   = cfg.pts_win_easy   ?? 3;
+          document.getElementById('cfg-vball-pts-win-hard').value   = cfg.pts_win_hard   ?? 2;
+          document.getElementById('cfg-vball-pts-loss-close').value = cfg.pts_loss_close ?? 1;
+          document.getElementById('cfg-vball-pts-loss-easy').value  = cfg.pts_loss_easy  ?? 0;
+          tiebreakerOrder = cfg.tiebreaker_order?.length
+            ? cfg.tiebreaker_order
+            : ['points', 'wins', 'set_difference', 'set_average', 'points_average'];
+        } else {
+          // Futsal / demais
+          document.getElementById('cfg-pts-win').value  = cfg.points_win  ?? 3;
+          document.getElementById('cfg-pts-draw').value = cfg.points_draw ?? 1;
+          document.getElementById('cfg-pts-loss').value = cfg.points_loss ?? 0;
+          document.getElementById('cfg-yellow-threshold').value = cfg.yellow_card_threshold ?? 3;
+          document.getElementById('cfg-yellow-susp').value      = cfg.yellow_suspension_games ?? 1;
+          document.getElementById('cfg-red-susp').value         = cfg.red_card_suspension_games ?? 1;
+          document.getElementById('cfg-red-expulsion').checked  = cfg.red_card_expulsion ?? false;
+          tiebreakerOrder = cfg.tiebreaker_order?.length
+            ? cfg.tiebreaker_order
+            : ['points', 'wins', 'goal_difference', 'goals_scored', 'head_to_head'];
+        }
+
+        document.getElementById('cfg-classifieds').value = cfg.classifieds_per_group ?? 2;
         renderTiebreakerList();
       } catch {}
     }
@@ -855,21 +978,37 @@
       const btn = document.getElementById('btn-save-config');
       const alertEl = document.getElementById('config-alert');
       alertEl.style.display = 'none';
-      const data = {
-        points_win: Number(document.getElementById('cfg-pts-win').value),
-        points_draw: Number(document.getElementById('cfg-pts-draw').value),
-        points_loss: Number(document.getElementById('cfg-pts-loss').value),
-        tiebreaker_order: tiebreakerOrder,
-        yellow_card_threshold: Number(document.getElementById('cfg-yellow-threshold').value),
-        yellow_suspension_games: Number(document.getElementById('cfg-yellow-susp').value),
-        red_card_suspension_games: Number(document.getElementById('cfg-red-susp').value),
-        red_card_expulsion: document.getElementById('cfg-red-expulsion').checked,
-        classifieds_per_group: Number(document.getElementById('cfg-classifieds').value),
-      };
+
+      const vball = isVolleyball();
+      let data;
+
+      if (vball) {
+        data = {
+          tiebreaker_order: tiebreakerOrder,
+          classifieds_per_group: Number(document.getElementById('cfg-classifieds').value),
+          best_of:          Number(document.getElementById('cfg-vball-best-of').value),
+          pts_win_easy:     Number(document.getElementById('cfg-vball-pts-win-easy').value),
+          pts_win_hard:     Number(document.getElementById('cfg-vball-pts-win-hard').value),
+          pts_loss_close:   Number(document.getElementById('cfg-vball-pts-loss-close').value),
+          pts_loss_easy:    Number(document.getElementById('cfg-vball-pts-loss-easy').value),
+        };
+      } else {
+        data = {
+          points_win: Number(document.getElementById('cfg-pts-win').value),
+          points_draw: Number(document.getElementById('cfg-pts-draw').value),
+          points_loss: Number(document.getElementById('cfg-pts-loss').value),
+          tiebreaker_order: tiebreakerOrder,
+          yellow_card_threshold: Number(document.getElementById('cfg-yellow-threshold').value),
+          yellow_suspension_games: Number(document.getElementById('cfg-yellow-susp').value),
+          red_card_suspension_games: Number(document.getElementById('cfg-red-susp').value),
+          red_card_expulsion: document.getElementById('cfg-red-expulsion').checked,
+          classifieds_per_group: Number(document.getElementById('cfg-classifieds').value),
+        };
+      }
+
       btnLoading(btn, true, 'Salvando...');
       try {
         await ChampAPI.updateConfig(currentChamp.id, data);
-        // Atualiza objeto local
         currentChamp.rules_config = { ...currentChamp.rules_config, ...data };
         currentChamp.classifieds_per_group = data.classifieds_per_group;
         showToast('Configurações salvas!', 'success');
@@ -990,23 +1129,31 @@
     }
 
     function renderGroupCard(g, standings) {
+      const vball = isVolleyball();
       const standingsHtml = standings && standings.length
         ? `<table class="standings-table" style="margin-top:12px;">
             <thead><tr>
               <th class="pos">#</th><th>Equipe</th>
-              <th>J</th><th>V</th><th>E</th><th>D</th>
-              <th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>
+              ${vball
+                ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Saldo</th><th>S.Avg</th><th class="pts">Pts</th>'
+                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
             </tr></thead>
             <tbody>
-              ${standings.map((s, i) => `
+              ${standings.map((s) => `
                 <tr>
                   <td class="pos">${s.position}</td>
                   <td style="font-weight:500;">${s.team_name}</td>
-                  <td>${s.games_played}</td><td>${s.wins}</td>
-                  <td>${s.draws}</td><td>${s.losses}</td>
-                  <td>${s.goals_for}</td><td>${s.goals_against}</td>
-                  <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                  <td class="pts">${s.points}</td>
+                  ${vball
+                    ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
+                       <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
+                       <td>${(s.set_difference ?? 0) >= 0 ? '+' : ''}${s.set_difference ?? 0}</td>
+                       <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
+                       <td class="pts">${s.points}</td>`
+                    : `<td>${s.games_played}</td><td>${s.wins}</td>
+                       <td>${s.draws}</td><td>${s.losses}</td>
+                       <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                       <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                       <td class="pts">${s.points}</td>`}
                 </tr>
               `).join('')}
             </tbody>
@@ -1171,6 +1318,9 @@
           const hs = g.result?.home_score ?? null;
           const as_ = g.result?.away_score ?? null;
           const groupLabel = (g.extra_data?.group) ? ` · Grupo ${g.extra_data.group}` : '';
+          const vball = isVolleyball();
+          const volleySets = vball && g.extra_data?.volleyball?.sets;
+          const setsStr = volleySets ? `<div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">(${volleySets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>` : '';
           const resultAudit = (() => {
             const r = g.result;
             if (!r || hs === null) return '';
@@ -1189,6 +1339,7 @@
                   <span class="game-team" style="${hs !== null && as_ !== null && hs > as_ ? 'color:var(--accent-teal);font-weight:700;' : ''}">${ht}</span>
                   <div class="game-score" style="text-align:center;">
                     ${hs !== null ? `${hs} – ${as_}` : 'x'}
+                    ${setsStr}
                     ${resultAudit}
                   </div>
                   <span class="game-team" style="${hs !== null && as_ !== null && as_ > hs ? 'color:var(--accent-teal);font-weight:700;' : ''}">${at}</span>
@@ -1469,15 +1620,24 @@
                       <div style="font-weight:700; color:var(--accent-purple); margin-bottom:8px; font-size:14px;">Grupo ${g.group}</div>
                       ${st && st.length ? `
                         <table class="standings-table">
-                          <thead><tr><th class="pos">#</th><th>Equipe</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th></tr></thead>
+                          <thead><tr><th class="pos">#</th><th>Equipe</th>
+                            ${isVolleyball()
+                              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Avg</th><th class="pts">Pts</th>'
+                              : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
+                          </tr></thead>
                           <tbody>
                             ${st.map(s => `<tr>
                               <td class="pos">${s.position}</td>
                               <td style="font-weight:500;">${s.team_name}</td>
-                              <td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
-                              <td>${s.goals_for}</td><td>${s.goals_against}</td>
-                              <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                              <td class="pts">${s.points}</td>
+                              ${isVolleyball()
+                                ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
+                                   <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
+                                   <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
+                                   <td class="pts">${s.points}</td>`
+                                : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+                                   <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                                   <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                                   <td class="pts">${s.points}</td>`}
                             </tr>`).join('')}
                           </tbody>
                         </table>` : `<div style="color:var(--text-secondary);font-size:12px;">Sem jogos disputados.</div>`}
@@ -1564,7 +1724,8 @@
             </div>
           </div>`;
 
-        container.innerHTML = standingsHtml + scorersHtml + cardsHtml + suspHtml;
+        const vball = isVolleyball();
+        container.innerHTML = standingsHtml + (vball ? '' : scorersHtml + cardsHtml) + suspHtml;
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }

@@ -888,12 +888,75 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
 # _build_standings — helper interno
 # ---------------------------------------------------------------------------
 
+def _build_volleyball_standings(
+    champ: Championship,
+    db: Session,
+    group: Optional[str] = None,
+    phase: Optional[str] = None,
+) -> list[StandingEntry]:
+    """Calcula standings para campeonatos de vôlei usando volleyball_service."""
+    from app.services import volleyball_service
+
+    team_names: dict[int, str] = {
+        link.team_id: link.team.name for link in champ.team_links
+    }
+
+    group_upper = group.upper() if group else None
+    if group_upper:
+        groups_data = (champ.extra_data or {}).get("groups", [])
+        group_data = next((g for g in groups_data if g["group"] == group_upper), None)
+        if group_data:
+            group_ids = {t["id"] for t in group_data["teams"]}
+            team_names = {tid: name for tid, name in team_names.items() if tid in group_ids}
+
+    q = db.query(Game).filter(Game.championship_id == champ.id, Game.status == "finished")
+    effective_phase = (phase or "groups") if group_upper else phase
+    if effective_phase:
+        q = q.filter(Game.phase == effective_phase)
+
+    finished_games = q.all()
+    if group_upper:
+        finished_games = [g for g in finished_games if (g.extra_data or {}).get("group") == group_upper]
+
+    rules = champ.rules_config or {}
+    entries = volleyball_service.calculate_volleyball_standings(finished_games, rules, team_names)
+
+    return [
+        StandingEntry(
+            position=e["position"],
+            team_id=e["team_id"],
+            team_name=e["team_name"],
+            games_played=e["games_played"],
+            wins=e["wins"],
+            draws=e["draws"],
+            losses=e["losses"],
+            goals_for=e["goals_for"],
+            goals_against=e["goals_against"],
+            goal_diff=e["goal_diff"],
+            points=e["points"],
+            sets_won=e["sets_won"],
+            sets_lost=e["sets_lost"],
+            set_difference=e["set_difference"],
+            set_average=round(e["set_average"], 3),
+            points_scored=e["points_scored"],
+            points_against=e["points_against"],
+            points_average=round(e["points_average"], 3),
+        )
+        for e in entries
+    ]
+
+
 def _build_standings(
     champ: Championship,
     db: Session,
     group: Optional[str] = None,
     phase: Optional[str] = None,
 ) -> list[StandingEntry]:
+    # Detecta modalidade — vôlei usa lógica própria
+    sport_slug = champ.sport.slug if champ.sport else None
+    if sport_slug == "volleyball":
+        return _build_volleyball_standings(champ, db, group, phase)
+
     rules        = champ.rules_config or {}
     pts_win      = rules.get("points_win",  3)
     pts_draw     = rules.get("points_draw", 1)

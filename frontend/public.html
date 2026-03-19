@@ -188,12 +188,15 @@
       document.getElementById('btn-back').style.display = 'flex';
       document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;
 
-      // Build tabs
+      const isVball = c.sport?.slug === 'volleyball';
+      // Build tabs — oculta artilharia e cartões para vôlei
+      const extraTabs = isVball ? '' : `
+        <button class="tab-btn" data-pub-tab="scorers">Artilharia</button>
+        <button class="tab-btn" data-pub-tab="cards">Cartões</button>`;
       content.innerHTML = `
         <div class="tab-nav">
           <button class="tab-btn active" data-pub-tab="standings">Classificação</button>
-          <button class="tab-btn" data-pub-tab="scorers">Artilharia</button>
-          <button class="tab-btn" data-pub-tab="cards">Cartões</button>
+          ${extraTabs}
           <button class="tab-btn" data-pub-tab="games">Jogos</button>
         </div>
         <div id="pub-tab-standings"></div>
@@ -285,15 +288,16 @@
 
   function standingsTable(rows, classifiedPerGroup) {
     if (!rows.length) return `<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>`;
+    const isVball = currentChamp?.sport?.slug === 'volleyball';
     return `
       <table class="standings-table">
         <thead>
           <tr>
             <th style="text-align:center;width:36px;">#</th>
             <th>Equipe</th>
-            <th>J</th><th>V</th><th>E</th><th>D</th>
-            <th>GP</th><th>GC</th><th>SG</th>
-            <th class="pts">Pts</th>
+            ${isVball
+              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Saldo</th><th>S.Avg</th><th class="pts">Pts</th>'
+              : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
           </tr>
         </thead>
         <tbody>
@@ -304,14 +308,16 @@
                 ${s.team_name}
                 ${classifiedPerGroup > 0 && i < classifiedPerGroup ? '<span class="badge-classified">Classificado</span>' : ''}
               </td>
-              <td>${s.games_played}</td>
-              <td>${s.wins}</td>
-              <td>${s.draws}</td>
-              <td>${s.losses}</td>
-              <td>${s.goals_for}</td>
-              <td>${s.goals_against}</td>
-              <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-              <td class="pts">${s.points}</td>
+              ${isVball
+                ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
+                   <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
+                   <td>${(s.set_difference ?? 0) >= 0 ? '+' : ''}${s.set_difference ?? 0}</td>
+                   <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
+                   <td class="pts">${s.points}</td>`
+                : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+                   <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                   <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                   <td class="pts">${s.points}</td>`}
             </tr>`).join('')}
         </tbody>
       </table>`;
@@ -427,6 +433,11 @@
     const homeWin = hasScore && hs > as_;
     const awayWin = hasScore && as_ > hs;
     const groupLabel = g.extra_data?.group ? ` · Grupo ${g.extra_data.group}` : '';
+    const isVball = currentChamp?.sport?.slug === 'volleyball';
+    const vballSets = isVball && g.extra_data?.volleyball?.sets;
+    const setsDetail = vballSets
+      ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${vballSets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
+      : '';
     return `
       <div style="border-bottom:1px solid rgba(255,255,255,0.04);">
         <div class="game-row-pub">
@@ -436,7 +447,10 @@
               <span>${ht}</span>
             </div>
             ${hasScore
-              ? `<div class="game-score-pub">${hs} – ${as_}</div>`
+              ? `<div style="text-align:center;">
+                   <div class="game-score-pub">${hs} – ${as_}</div>
+                   ${setsDetail}
+                 </div>`
               : `<div class="game-vs-pub">vs</div>`}
             <div class="game-team-pub right" style="${awayWin ? 'color:var(--accent-teal);' : ''}">
               <span>${at}</span>

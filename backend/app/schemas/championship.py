@@ -94,6 +94,14 @@ class StandingEntry(BaseModel):
     goals_against: int
     goal_diff: int
     points: int
+    # Campos extras para vôlei (None para outras modalidades)
+    sets_won: Optional[int] = None
+    sets_lost: Optional[int] = None
+    set_difference: Optional[int] = None
+    set_average: Optional[float] = None
+    points_scored: Optional[int] = None
+    points_against: Optional[int] = None
+    points_average: Optional[float] = None
 
 
 class GroupDrawRequest(BaseModel):

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Any
+from typing import List, Optional, Any
 
 from pydantic import BaseModel, model_validator
 
@@ -40,6 +40,24 @@ class GameResultUpdate(BaseModel):
     home_score: int
     away_score: int
     notes: Optional[str] = None
+
+
+class VolleyballSet(BaseModel):
+    home_points: int
+    away_points: int
+
+
+class VolleyballResultUpdate(BaseModel):
+    sets: List[VolleyballSet]
+    notes: Optional[str] = None
+
+
+class GameResultBody(BaseModel):
+    """Body flexível — aceita futsal (home_score/away_score) e vôlei (sets)."""
+    home_score: Optional[int] = None
+    away_score: Optional[int] = None
+    notes: Optional[str] = None
+    sets: Optional[List[VolleyballSet]] = None
 
 
 class GameResultOut(BaseModel):

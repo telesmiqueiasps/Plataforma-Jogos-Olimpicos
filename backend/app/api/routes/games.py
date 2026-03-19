@@ -18,6 +18,7 @@ from app.schemas.game import (
     GameOut,
     GameResultOut,
     GameResultUpdate,
+    GameResultBody,
     GameUpdate,
 )
 from app.services import suspension_service
@@ -82,24 +83,61 @@ def delete_game(
 @router.put("/{game_id}/result", response_model=GameResultOut)
 def set_result(
     game_id: int,
-    data: GameResultUpdate,
+    data: GameResultBody,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_organizer),
 ):
-    """Registra ou atualiza o resultado de um jogo e marca status como 'finished'."""
+    """Registra ou atualiza o resultado de um jogo e marca status como 'finished'.
+    - Futsal: enviar home_score e away_score
+    - Vôlei: enviar sets = [{home_points, away_points}, ...]
+    """
+    from app.services.volleyball_service import calculate_match_points
+
     game = _get_game_or_404(game_id, db)
 
+    sport_slug = (
+        game.championship.sport.slug
+        if game.championship and game.championship.sport
+        else None
+    )
+
+    if sport_slug == "volleyball":
+        if not data.sets:
+            raise HTTPException(status_code=400, detail="Para vôlei, envie 'sets' no body")
+
+        home_score = sum(1 for s in data.sets if s.home_points > s.away_points)
+        away_score = sum(1 for s in data.sets if s.away_points > s.home_points)
+        home_table_pts, away_table_pts = calculate_match_points(home_score, away_score)
+        notes = data.notes
+
+        # Salva sets detalhados e pontos de tabela no extra_data do jogo
+        extra = dict(game.extra_data or {})
+        extra["volleyball"] = {
+            "sets": [
+                {"home_points": s.home_points, "away_points": s.away_points}
+                for s in data.sets
+            ],
+            "table_points": {"home": home_table_pts, "away": away_table_pts},
+        }
+        game.extra_data = extra
+    else:
+        if data.home_score is None or data.away_score is None:
+            raise HTTPException(status_code=400, detail="Informe home_score e away_score")
+        home_score = data.home_score
+        away_score = data.away_score
+        notes = data.notes
+
     if game.result:
-        game.result.home_score = data.home_score
-        game.result.away_score = data.away_score
-        game.result.notes = data.notes
+        game.result.home_score = home_score
+        game.result.away_score = away_score
+        game.result.notes = notes
         game.result.updated_by = current_user.id
     else:
         result = GameResult(
             game_id=game_id,
-            home_score=data.home_score,
-            away_score=data.away_score,
-            notes=data.notes,
+            home_score=home_score,
+            away_score=away_score,
+            notes=notes,
             created_by=current_user.id,
         )
         db.add(result)

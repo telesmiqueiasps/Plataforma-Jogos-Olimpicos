@@ -235,15 +235,28 @@
           <span style="color:var(--text-secondary); font-size:20px; font-weight:300;">×</span>
           <span id="result-away-name" style="font-weight:700; font-size:15px; flex:1;"></span>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="result-home-score">Placar Mandante *</label>
-            <input type="number" id="result-home-score" class="form-control" min="0" placeholder="0" required>
+        <!-- Futsal: score direto -->
+        <div id="result-futsal-section">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="result-home-score">Placar Mandante *</label>
+              <input type="number" id="result-home-score" class="form-control" min="0" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label for="result-away-score">Placar Visitante *</label>
+              <input type="number" id="result-away-score" class="form-control" min="0" placeholder="0" required>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="result-away-score">Placar Visitante *</label>
-            <input type="number" id="result-away-score" class="form-control" min="0" placeholder="0" required>
+        </div>
+        <!-- Vôlei: sets por set -->
+        <div id="result-volleyball-section" style="display:none;">
+          <div style="margin-bottom:10px; font-weight:600; font-size:14px;">Placar por Set</div>
+          <div id="vball-sets-list"></div>
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="addVballSet()">+ Adicionar Set</button>
+            <button type="button" class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="removeVballSet()">– Remover Último</button>
           </div>
+          <div id="vball-summary" style="margin-top:12px; padding:10px 14px; background:var(--bg-tertiary); border-radius:8px; font-size:13px;"></div>
         </div>
       </div>
       <div class="modal-footer">
@@ -505,6 +518,11 @@
       const homeName = g.home_team?.name || g.home_team_name || `Time #${g.home_team_id || '?'}`;
       const awayName = g.away_team?.name || g.away_team_name || `Time #${g.away_team_id || '?'}`;
 
+      const isVball = currentChamp?.sport?.slug === 'volleyball';
+      const vballSetsData = isVball && g.extra_data?.volleyball?.sets;
+      const vballSetsStr = vballSetsData
+        ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;">(${vballSetsData.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
+        : '';
       return `
         <div style="border-bottom:1px solid var(--border);">
           <div class="game-row" style="cursor:pointer;" onclick="toggleEvents(${g.id})">
@@ -512,6 +530,7 @@
             <div class="game-score">
               ${hasScore
                 ? `<span style="font-size:18px; font-weight:800; color:var(--accent-purple);">${homeScore} × ${awayScore}</span>
+                   ${vballSetsStr}
                    ${(() => {
                      const r = g.result;
                      if (!r) return '';
@@ -737,6 +756,68 @@
     }
 
     // ---- Result modal ----
+    // ---- Vôlei: gerenciamento de sets ----
+    let vballSets = [];
+
+    function renderVballSets() {
+      const container = document.getElementById('vball-sets-list');
+      if (!container) return;
+      const homeName = currentGameForModal?.home_team?.name || 'Mandante';
+      const awayName = currentGameForModal?.away_team?.name || 'Visitante';
+      container.innerHTML = vballSets.map((s, i) => `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="font-size:12px; color:var(--text-secondary); min-width:44px; flex-shrink:0;">Set ${i + 1}</span>
+          <input type="number" min="0" max="40" placeholder="${homeName}" value="${s.home}"
+            class="form-control" style="flex:1; text-align:center;"
+            oninput="vballSets[${i}].home=this.value; updateVballSummary()">
+          <span style="color:var(--text-secondary);">–</span>
+          <input type="number" min="0" max="40" placeholder="${awayName}" value="${s.away}"
+            class="form-control" style="flex:1; text-align:center;"
+            oninput="vballSets[${i}].away=this.value; updateVballSummary()">
+        </div>`).join('');
+      updateVballSummary();
+    }
+
+    function addVballSet() {
+      if (vballSets.length >= 5) { showToast('Máximo de 5 sets.', 'warning'); return; }
+      vballSets.push({ home: '', away: '' });
+      renderVballSets();
+    }
+
+    function removeVballSet() {
+      if (vballSets.length <= 1) return;
+      vballSets.pop();
+      renderVballSets();
+    }
+
+    function updateVballSummary() {
+      const summary = document.getElementById('vball-summary');
+      if (!summary) return;
+      const filled = vballSets.filter(s => s.home !== '' && s.away !== '');
+      let homeSets = 0, awaySets = 0;
+      for (const s of filled) {
+        const h = parseInt(s.home) || 0;
+        const a = parseInt(s.away) || 0;
+        if (h > a) homeSets++;
+        else if (a > h) awaySets++;
+      }
+      const homeName = currentGameForModal?.home_team?.name || 'Mandante';
+      const awayName = currentGameForModal?.away_team?.name || 'Visitante';
+      const setsStr = filled.map(s => `${s.home}-${s.away}`).join(', ');
+      let pts = '';
+      if (homeSets === 3 || awaySets === 3) {
+        const winner = homeSets === 3 ? homeName : awayName;
+        const loser  = homeSets === 3 ? awaySets : homeSets;
+        const winPts = loser === 2 ? 2 : 3;
+        const losPts = loser === 2 ? 1 : 0;
+        pts = `<div style="margin-top:6px; font-size:11px; color:var(--accent-teal);">🏆 ${winner} vence · Pontos na tabela: venc. +${winPts}, perd. +${losPts}</div>`;
+      }
+      summary.innerHTML = `
+        <div style="font-weight:700;">${homeName} <span style="color:var(--accent-purple);">${homeSets}</span> × <span style="color:var(--accent-purple);">${awaySets}</span> ${awayName}</div>
+        <div style="color:var(--text-secondary); margin-top:3px; font-size:12px;">${setsStr || '—'}</div>
+        ${pts}`;
+    }
+
     function openResultModal(gameId) {
       const game = gamesById[gameId];
       if (!game) return;
@@ -745,9 +826,23 @@
       const awayName = game.away_team?.name || game.away_team_name || `Time #${game.away_team_id}`;
       document.getElementById('result-home-name').textContent = homeName;
       document.getElementById('result-away-name').textContent = awayName;
-      document.getElementById('result-home-score').value = game.result?.home_score ?? '';
-      document.getElementById('result-away-score').value = game.result?.away_score ?? '';
       document.getElementById('result-alert').style.display = 'none';
+
+      const isVball = currentChamp?.sport?.slug === 'volleyball';
+      document.getElementById('result-futsal-section').style.display    = isVball ? 'none' : '';
+      document.getElementById('result-volleyball-section').style.display = isVball ? '' : 'none';
+
+      if (isVball) {
+        // Pré-preenche sets se já existem
+        const existing = game.extra_data?.volleyball?.sets;
+        vballSets = existing
+          ? existing.map(s => ({ home: String(s.home_points), away: String(s.away_points) }))
+          : [{ home: '', away: '' }, { home: '', away: '' }, { home: '', away: '' }];
+        renderVballSets();
+      } else {
+        document.getElementById('result-home-score').value = game.result?.home_score ?? '';
+        document.getElementById('result-away-score').value = game.result?.away_score ?? '';
+      }
       openModal('modal-result');
     }
 
@@ -756,16 +851,41 @@
       const btn = document.getElementById('result-save-btn');
       const alertEl = document.getElementById('result-alert');
       alertEl.style.display = 'none';
-      const home_score = document.getElementById('result-home-score').value;
-      const away_score = document.getElementById('result-away-score').value;
-      if (home_score === '' || away_score === '') {
-        alertEl.textContent = 'Informe o placar dos dois times.';
-        alertEl.style.display = 'flex';
-        return;
+
+      const isVball = currentChamp?.sport?.slug === 'volleyball';
+      let payload;
+
+      if (isVball) {
+        const filled = vballSets.filter(s => s.home !== '' && s.away !== '');
+        if (!filled.length) {
+          alertEl.textContent = 'Informe ao menos um set completo.';
+          alertEl.style.display = 'flex';
+          return;
+        }
+        const homeSets = filled.filter(s => parseInt(s.home) > parseInt(s.away)).length;
+        const awaySets = filled.filter(s => parseInt(s.away) > parseInt(s.home)).length;
+        if (homeSets < 3 && awaySets < 3) {
+          alertEl.textContent = 'Nenhuma equipe atingiu 3 sets vencidos. Complete o resultado.';
+          alertEl.style.display = 'flex';
+          return;
+        }
+        payload = {
+          sets: filled.map(s => ({ home_points: parseInt(s.home) || 0, away_points: parseInt(s.away) || 0 })),
+        };
+      } else {
+        const home_score = document.getElementById('result-home-score').value;
+        const away_score = document.getElementById('result-away-score').value;
+        if (home_score === '' || away_score === '') {
+          alertEl.textContent = 'Informe o placar dos dois times.';
+          alertEl.style.display = 'flex';
+          return;
+        }
+        payload = { home_score: Number(home_score), away_score: Number(away_score) };
       }
+
       btnLoading(btn, true, 'Salvando...');
       try {
-        await GamesAPI.setResult(currentGameForModal.id, { home_score: Number(home_score), away_score: Number(away_score) });
+        await GamesAPI.setResult(currentGameForModal.id, payload);
         closeModal('modal-result');
         showToast('Resultado registrado!', 'success');
         loadGames(currentChamp.id);
