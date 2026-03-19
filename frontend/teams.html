@@ -237,7 +237,9 @@
                   <td>${t.sport?.name || t.sport_name || '—'}</td>
                   <td>${t.city || '—'}</td>
                   <td>
-                    <span class="badge badge-info">${t.athletes_count !== undefined ? t.athletes_count : '—'}</span>
+                    ${(t.athlete_count > 0)
+                      ? `<span class="badge badge-active">${t.athlete_count} atleta${t.athlete_count !== 1 ? 's' : ''}</span>`
+                      : `<span class="badge badge-draft">0 atletas</span>`}
                   </td>
                   <td>${fmtDate(t.created_at)}</td>
                   <td>

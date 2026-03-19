@@ -337,9 +337,9 @@
               ${scorers.map((s, i) => `
                 <tr>
                   <td style="color:var(--text-secondary); font-weight:600;">${i + 1}</td>
-                  <td>${athleteAvatar({name: s.name, id: s.scorer_id}, 32)}</td>
+                  <td>${athleteAvatar({name: s.name, id: s.athlete_id, photo_url: s.photo_url}, 32)}</td>
                   <td style="font-weight:600;">${s.name}</td>
-                  <td style="color:var(--text-secondary);">${s.team_name}</td>
+                  <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
                   <td style="text-align:center; font-weight:800; color:var(--accent-teal); font-size:16px;">${s.goals}</td>
                 </tr>`).join('')}
             </tbody>
@@ -368,9 +368,9 @@
             <tbody>
               ${cards.map(c => `
                 <tr>
-                  <td>${athleteAvatar({name: c.name, id: c.athlete_id}, 32)}</td>
+                  <td>${athleteAvatar({name: c.name, id: c.athlete_id, photo_url: c.photo_url}, 32)}</td>
                   <td style="font-weight:600;">${c.name}</td>
-                  <td style="color:var(--text-secondary);">${c.team_name}</td>
+                  <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: c.team_id, name: c.team_name, logo_url: c.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${c.team_name}</span></div></td>
                   <td style="text-align:center; font-weight:700; color:#fbbf24;">${c.yellow}</td>
                   <td style="text-align:center; font-weight:700; color:#f87171;">${c.red}</td>
                   <td>${suspendedNames.has(c.name)

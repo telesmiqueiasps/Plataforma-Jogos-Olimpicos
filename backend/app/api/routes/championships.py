@@ -812,7 +812,15 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
             all_team_ids.add(d["team_id"])
     teams_map: dict = {}
     if all_team_ids:
-        teams_map = {t.id: t.name for t in db.query(Team).filter(Team.id.in_(all_team_ids)).all()}
+        teams_map = {t.id: t for t in db.query(Team).filter(Team.id.in_(all_team_ids)).all()}
+
+    def _team_name(team_id):
+        t = teams_map.get(team_id)
+        return t.name if t else "—"
+
+    def _team_logo(team_id):
+        t = teams_map.get(team_id)
+        return t.logo_url if t else None
 
     scorers = sorted(
         [
@@ -822,7 +830,8 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
                 "photo_url": athletes[aid].photo_url if aid in athletes else None,
                 "goals": d["count"],
                 "team_id": d["team_id"],
-                "team_name": teams_map.get(d["team_id"], "—") if d["team_id"] else "—",
+                "team_name": _team_name(d["team_id"]) if d["team_id"] else "—",
+                "team_logo_url": _team_logo(d["team_id"]) if d["team_id"] else None,
             }
             for aid, d in goal_counts.items()
         ],
@@ -834,10 +843,12 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
             {
                 "athlete_id": aid,
                 "name": athletes[aid].name if aid in athletes else "—",
+                "photo_url": athletes[aid].photo_url if aid in athletes else None,
                 "yellow": d["yellow"],
                 "red": d["red"],
                 "team_id": d["team_id"],
-                "team_name": teams_map.get(d["team_id"], "—") if d["team_id"] else "—",
+                "team_name": _team_name(d["team_id"]) if d["team_id"] else "—",
+                "team_logo_url": _team_logo(d["team_id"]) if d["team_id"] else None,
             }
             for aid, d in card_counts.items()
         ],

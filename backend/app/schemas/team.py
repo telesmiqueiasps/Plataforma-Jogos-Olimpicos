@@ -43,6 +43,7 @@ class TeamOut(BaseModel):
     sport: Optional[SportShort] = None
     created_by: Optional[int] = None
     created_at: datetime
+    athlete_count: int = 0
 
     model_config = {"from_attributes": True}
 

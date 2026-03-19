@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_organizer
-from sqlalchemy import update as sa_update
+from sqlalchemy import func, update as sa_update
 
 from app.db.models import Athlete, Sport, Team, User
 from app.db.session import get_db
@@ -54,7 +54,18 @@ def list_teams(
     q = db.query(Team)
     if sport_id is not None:
         q = q.filter(Team.sport_id == sport_id)
-    return q.order_by(Team.name).all()
+    teams = q.order_by(Team.name).all()
+    if teams:
+        counts = {
+            row[0]: row[1]
+            for row in db.query(Athlete.team_id, func.count(Athlete.id))
+            .filter(Athlete.team_id.in_([t.id for t in teams]), Athlete.active == True)
+            .group_by(Athlete.team_id)
+            .all()
+        }
+        for t in teams:
+            t.athlete_count = counts.get(t.id, 0)
+    return teams
 
 
 @router.post("/", response_model=TeamOut, status_code=status.HTTP_201_CREATED)

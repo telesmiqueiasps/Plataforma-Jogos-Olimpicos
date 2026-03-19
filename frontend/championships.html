@@ -1478,13 +1478,14 @@
               <h3 style="margin-bottom:16px; font-size:15px;">⚽ Artilharia</h3>
               ${stats.scorers && stats.scorers.length
                 ? `<table class="stat-table">
-                    <thead><tr><th>#</th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
+                    <thead><tr><th style="width:32px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
                     <tbody>
                       ${stats.scorers.map((s, i) => `
                         <tr>
                           <td style="color:var(--text-secondary);">${i + 1}</td>
+                          <td>${athleteAvatar({id: s.athlete_id, name: s.name, photo_url: s.photo_url}, 32)}</td>
                           <td style="font-weight:500;">${s.name}</td>
-                          <td style="color:var(--text-secondary);">${s.team_name}</td>
+                          <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
                           <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${s.goals}</td>
                         </tr>`).join('')}
                     </tbody>
@@ -1500,12 +1501,13 @@
               <h3 style="margin-bottom:16px; font-size:15px;">🟨 Cartões</h3>
               ${stats.cards && stats.cards.length
                 ? `<table class="stat-table">
-                    <thead><tr><th>Atleta</th><th>Equipe</th><th style="text-align:center;">🟨</th><th style="text-align:center;">🟥</th></tr></thead>
+                    <thead><tr><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">🟨</th><th style="text-align:center;">🟥</th></tr></thead>
                     <tbody>
                       ${stats.cards.map(c => `
                         <tr>
+                          <td>${athleteAvatar({id: c.athlete_id, name: c.name, photo_url: c.photo_url}, 32)}</td>
                           <td style="font-weight:500;">${c.name}</td>
-                          <td style="color:var(--text-secondary);">${c.team_name}</td>
+                          <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: c.team_id, name: c.team_name, logo_url: c.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${c.team_name}</span></div></td>
                           <td style="text-align:center; font-weight:700; color:#fbbf24;">${c.yellow}</td>
                           <td style="text-align:center; font-weight:700; color:#f87171;">${c.red}</td>
                         </tr>`).join('')}
