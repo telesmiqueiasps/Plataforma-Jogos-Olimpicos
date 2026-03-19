@@ -492,6 +492,46 @@
       });
     }
 
+    function renderGameCard(g) {
+      gamesById[g.id] = g;
+      const homeScore = g.result?.home_score ?? null;
+      const awayScore = g.result?.away_score ?? null;
+      const hasScore = homeScore !== null && awayScore !== null;
+      const homeWinner = hasScore && homeScore > awayScore;
+      const awayWinner = hasScore && awayScore > homeScore;
+      const homeName = g.home_team?.name || g.home_team_name || `Time #${g.home_team_id || '?'}`;
+      const awayName = g.away_team?.name || g.away_team_name || `Time #${g.away_team_id || '?'}`;
+
+      return `
+        <div style="border-bottom:1px solid var(--border);">
+          <div class="game-row" style="cursor:pointer;" onclick="toggleEvents(${g.id})">
+            <div class="team-name ${homeWinner ? 'winner' : ''}">${homeName}</div>
+            <div class="game-score">
+              ${hasScore
+                ? `<span style="font-size:18px; font-weight:800; color:var(--accent-purple);">${homeScore} × ${awayScore}</span>`
+                : '<span style="font-size:14px; color:var(--text-secondary);">vs</span>'
+              }
+            </div>
+            <div class="team-name ${awayWinner ? 'winner' : ''}" style="text-align:right;">${awayName}</div>
+            <div style="min-width:160px; text-align:right;">
+              <div>${gameStatusBadge(g.status)}</div>
+              <div class="game-meta" style="justify-content:flex-end; margin-top:4px;">
+                ${g.scheduled_at ? `<span>📅 ${fmtDatetime(g.scheduled_at)}</span>` : ''}
+                ${g.venue ? `<span>📍 ${g.venue}</span>` : ''}
+                ${g.phase ? `<span>🏷️ ${formatName(g.phase)}</span>` : ''}
+              </div>
+              <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
+                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openResultModal(${g.id})">📝 Resultado</button>
+                <button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openEventModal(${g.id})">⚡ Evento</button>
+                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openEditGameModal(${g.id})">✏️ Editar</button>
+                <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="event.stopPropagation(); deleteGame(${g.id})">🗑️</button>
+              </div>
+            </div>
+          </div>
+          <div id="events-panel-${g.id}" style="display:none; padding:12px 16px; background:var(--bg-primary);"></div>
+        </div>`;
+    }
+
     function renderGames() {
       const filtered = getFilteredGames();
       const container = document.getElementById('games-list');
@@ -510,57 +550,26 @@
         return;
       }
 
-      // Group by round
-      const rounds = {};
-      filtered.forEach(g => {
-        const r = g.round_number || g.round || 1;
-        if (!rounds[r]) rounds[r] = [];
-        rounds[r].push(g);
-      });
+      // Separar grupos e mata-mata
+      const groupGames    = filtered.filter(g => g.phase === 'groups');
+      const knockoutGames = filtered.filter(g => g.phase === 'knockout');
+      const otherGames    = filtered.filter(g => g.phase !== 'groups' && g.phase !== 'knockout');
+      const allOrdered    = [...groupGames, ...knockoutGames, ...otherGames];
+
+      // Agrupar por phase_name vindo da API
+      const grouped = {};
+      const order   = [];
+      for (const g of allOrdered) {
+        const label = g.phase_name || (g.phase === 'groups' ? 'Fase de Grupos' : g.phase === 'knockout' ? 'Mata-mata' : 'Rodada ' + (g.round_number || 1));
+        if (!grouped[label]) { grouped[label] = []; order.push(label); }
+        grouped[label].push(g);
+      }
 
       let html = '';
-      Object.keys(rounds).sort((a,b) => Number(a) - Number(b)).forEach(round => {
-        html += `<div class="round-header">Rodada ${round}</div>`;
-        rounds[round].forEach(g => {
-          gamesById[g.id] = g;
-          const homeScore = g.result?.home_score ?? null;
-          const awayScore = g.result?.away_score ?? null;
-          const hasScore = homeScore !== null && awayScore !== null;
-          const homeWinner = hasScore && homeScore > awayScore;
-          const awayWinner = hasScore && awayScore > homeScore;
-          const homeName = g.home_team?.name || g.home_team_name || `Time #${g.home_team_id || '?'}`;
-          const awayName = g.away_team?.name || g.away_team_name || `Time #${g.away_team_id || '?'}`;
-
-          html += `
-            <div style="border-bottom:1px solid var(--border);">
-              <div class="game-row" style="cursor:pointer;" onclick="toggleEvents(${g.id})">
-                <div class="team-name ${homeWinner ? 'winner' : ''}">${homeName}</div>
-                <div class="game-score">
-                  ${hasScore
-                    ? `<span style="font-size:18px; font-weight:800; color:var(--accent-purple);">${homeScore} × ${awayScore}</span>`
-                    : '<span style="font-size:14px; color:var(--text-secondary);">vs</span>'
-                  }
-                </div>
-                <div class="team-name ${awayWinner ? 'winner' : ''}" style="text-align:right;">${awayName}</div>
-                <div style="min-width:160px; text-align:right;">
-                  <div>${gameStatusBadge(g.status)}</div>
-                  <div class="game-meta" style="justify-content:flex-end; margin-top:4px;">
-                    ${g.scheduled_at ? `<span>📅 ${fmtDatetime(g.scheduled_at)}</span>` : ''}
-                    ${g.venue ? `<span>📍 ${g.venue}</span>` : ''}
-                    ${g.phase ? `<span>🏷️ ${formatName(g.phase)}</span>` : ''}
-                  </div>
-                  <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
-                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openResultModal(${g.id})">📝 Resultado</button>
-                    <button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openEventModal(${g.id})">⚡ Evento</button>
-                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openEditGameModal(${g.id})">✏️ Editar</button>
-                    <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="event.stopPropagation(); deleteGame(${g.id})">🗑️</button>
-                  </div>
-                </div>
-              </div>
-              <div id="events-panel-${g.id}" style="display:none; padding:12px 16px; background:var(--bg-primary);"></div>
-            </div>`;
-        });
-      });
+      for (const label of order) {
+        html += `<div class="round-header">${label}</div>`;
+        grouped[label].forEach(g => { html += renderGameCard(g); });
+      }
 
       container.innerHTML = html || '<div class="empty-state"><span class="empty-icon">🎮</span><p>Nenhum jogo para exibir.</p></div>';
     }
