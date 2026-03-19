@@ -48,6 +48,8 @@ class GameResultOut(BaseModel):
     home_score: int
     away_score: int
     notes: Optional[str] = None
+    created_by_name: Optional[str] = None
+    updated_by_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -70,6 +72,7 @@ class GameEventOut(BaseModel):
     event_type: str
     minute: Optional[int] = None
     description: Optional[str] = None
+    created_by_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

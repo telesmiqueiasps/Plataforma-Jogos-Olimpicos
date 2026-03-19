@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_organizer
+from app.api.deps import get_current_user, require_organizer
 from app.db.models import Athlete, Game, GameEvent, GameResult, Suspension, Team, User
 from app.db.session import get_db
 from app.schemas.game import (
@@ -84,7 +84,7 @@ def set_result(
     game_id: int,
     data: GameResultUpdate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(require_organizer),
+    current_user: User = Depends(require_organizer),
 ):
     """Registra ou atualiza o resultado de um jogo e marca status como 'finished'."""
     game = _get_game_or_404(game_id, db)
@@ -93,12 +93,14 @@ def set_result(
         game.result.home_score = data.home_score
         game.result.away_score = data.away_score
         game.result.notes = data.notes
+        game.result.updated_by = current_user.id
     else:
         result = GameResult(
             game_id=game_id,
             home_score=data.home_score,
             away_score=data.away_score,
             notes=data.notes,
+            created_by=current_user.id,
         )
         db.add(result)
         game.result = result
@@ -122,14 +124,14 @@ def add_event(
     game_id: int,
     data: GameEventCreate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(require_organizer),
+    current_user: User = Depends(require_organizer),
 ):
     """
     Registra evento. Para cartões, processa suspensão automática via suspension_service.
     Retorna: { event: GameEventOut, suspension: dict | null }
     """
     game = _get_game_or_404(game_id, db)
-    event = GameEvent(**data.model_dump(), game_id=game_id)
+    event = GameEvent(**data.model_dump(), game_id=game_id, created_by=current_user.id)
     db.add(event)
     db.commit()
     db.refresh(event)
@@ -180,6 +182,7 @@ def add_event(
         "event_type": event.event_type,
         "minute": event.minute,
         "description": event.description,
+        "created_by_name": current_user.name,
     }
 
     return {"event": event_out, "suspension": susp_info}
@@ -211,6 +214,14 @@ def list_events(game_id: int, db: Session = Depends(get_db)):
             for t in db.query(Team).filter(Team.id.in_(team_ids)).all()
         }
 
+    creator_ids = {e.created_by for e in events if e.created_by}
+    creators: dict[int, str] = {}
+    if creator_ids:
+        creators = {
+            u.id: u.name
+            for u in db.query(User).filter(User.id.in_(creator_ids)).all()
+        }
+
     return [
         {
             "id": e.id,
@@ -222,6 +233,7 @@ def list_events(game_id: int, db: Session = Depends(get_db)):
             "event_type": e.event_type,
             "minute": e.minute,
             "description": e.description,
+            "created_by_name": creators.get(e.created_by) if e.created_by else None,
         }
         for e in events
     ]

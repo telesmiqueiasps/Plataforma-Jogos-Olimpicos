@@ -448,6 +448,7 @@
             ${g.scheduled_at ? `<span>📅 ${fmtDatetime(g.scheduled_at)}</span><br>` : ''}
             ${g.venue ? `<span>📍 ${g.venue}</span><br>` : ''}
             <span style="font-size:10px; color:var(--text-secondary);">${groupLabel}</span>
+            ${hasScore && g.result?.created_by_name ? `<span style="font-size:10px; color:var(--text-secondary); display:block; margin-top:3px;">✓ Resultado por ${g.result.created_by_name}</span>` : ''}
           </div>
         </div>
       </div>`;

@@ -511,7 +511,18 @@
             <div class="team-name ${homeWinner ? 'winner' : ''}" style="display:flex;align-items:center;gap:8px;">${teamAvatar(g.home_team || {name:homeName,id:g.home_team_id}, 28)}<span>${homeName}</span></div>
             <div class="game-score">
               ${hasScore
-                ? `<span style="font-size:18px; font-weight:800; color:var(--accent-purple);">${homeScore} × ${awayScore}</span>`
+                ? `<span style="font-size:18px; font-weight:800; color:var(--accent-purple);">${homeScore} × ${awayScore}</span>
+                   ${(() => {
+                     const r = g.result;
+                     if (!r) return '';
+                     const created = r.created_by_name;
+                     const updated = r.updated_by_name;
+                     if (!created) return '';
+                     const txt = (updated && updated !== created)
+                       ? `✓ Registrado por ${created} · Atualizado por ${updated}`
+                       : `✓ Registrado por ${created}`;
+                     return `<div style="font-size:10px;color:var(--text-secondary);margin-top:3px;white-space:nowrap;">${txt}</div>`;
+                   })()}`
                 : '<span style="font-size:14px; color:var(--text-secondary);">vs</span>'
               }
             </div>
@@ -698,9 +709,12 @@
           const name = ev.athlete_name || (ev.athlete_id ? `Atleta #${ev.athlete_id}` : '');
           const min = ev.minute != null ? ` ${ev.minute}'` : '';
           const desc = ev.description ? ` — ${ev.description}` : '';
-          return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;">
-            ${eventBadge(ev.event_type)}
-            <span style="color:var(--text-primary);">${name}${min}${desc}</span>
+          const auditor = ev.created_by_name ? `<span style="display:block;font-size:10px;color:var(--text-secondary);margin-top:1px;padding-left:2px;">Registrado por ${ev.created_by_name}</span>` : '';
+          return `<div style="margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+              ${eventBadge(ev.event_type)}
+              <span style="color:var(--text-primary);">${name}${min}${desc}</span>
+            </div>${auditor}
           </div>`;
         }
 

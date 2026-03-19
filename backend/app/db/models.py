@@ -260,9 +260,21 @@ class GameResult(Base):
     home_score = Column(Integer, nullable=False, default=0)
     away_score = Column(Integer, nullable=False, default=0)
     notes      = Column(Text, comment="Observações: W.O., prorrogação, etc.")
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     # relationships
-    game = relationship("Game", back_populates="result")
+    game    = relationship("Game", back_populates="result")
+    creator = relationship("User", foreign_keys=[created_by])
+    updater = relationship("User", foreign_keys=[updated_by])
+
+    @property
+    def created_by_name(self):
+        return self.creator.name if self.creator else None
+
+    @property
+    def updated_by_name(self):
+        return self.updater.name if self.updater else None
 
 
 # ---------------------------------------------------------------------------
@@ -279,11 +291,13 @@ class GameEvent(Base):
     event_type  = Column(GameEventType, nullable=False)
     minute      = Column(Integer, comment="Minuto ou momento do evento")
     description = Column(String(300))
+    created_by  = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # relationships
     game    = relationship("Game",    back_populates="events")
     athlete = relationship("Athlete", back_populates="game_events")
     team    = relationship("Team",    foreign_keys=[team_id])
+    creator = relationship("User",    foreign_keys=[created_by])
 
     __table_args__ = (
         Index("ix_game_events_game_id",    "game_id"),
