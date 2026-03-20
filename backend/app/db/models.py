@@ -57,6 +57,9 @@ GameEventType = Enum(
     "red_card",
     "point",
     "foul",
+    "point_1",
+    "point_2",
+    "free_throw",
     name="game_event_type",
 )
 
