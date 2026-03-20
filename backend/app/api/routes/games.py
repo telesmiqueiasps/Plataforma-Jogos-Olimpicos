@@ -266,6 +266,8 @@ def add_event(
     db.refresh(event)
 
     susp_info = None
+    score_info = None
+
     # Basquete: não processa suspensões por cartão por padrão
     sport_slug_ev = (
         game.championship.sport.slug
@@ -273,6 +275,88 @@ def add_event(
         else None
     )
     is_basketball = sport_slug_ev == "basketball"
+
+    # Basquete: atualiza placar automaticamente ao registrar ponto
+    if is_basketball and data.event_type in ("point_1", "point_2", "free_throw") and event.team_id:
+        from app.services.basketball_service import calculate_match_points_table as bball_table_pts
+
+        pts_map = {"point_1": 1, "point_2": 2, "free_throw": 1}
+        pts = pts_map[data.event_type]
+
+        is_home = (event.team_id == game.home_team_id)
+
+        # minute armazena o número do quarto (1-4 = regular, 5+ = prorrogação)
+        quarter_num = event.minute if event.minute and event.minute >= 1 else 1
+        is_overtime_period = quarter_num >= 5
+
+        rules = (game.championship.rules_config or {}) if game.championship else {}
+
+        extra = dict(game.extra_data or {})
+        bball = dict(extra.get("basketball") or {})
+
+        if not is_overtime_period:
+            quarters = list(bball.get("quarters") or [])
+            while len(quarters) < quarter_num:
+                quarters.append({"home_points": 0, "away_points": 0})
+            q = dict(quarters[quarter_num - 1])
+            if is_home:
+                q["home_points"] = q.get("home_points", 0) + pts
+            else:
+                q["away_points"] = q.get("away_points", 0) + pts
+            quarters[quarter_num - 1] = q
+            bball["quarters"] = quarters
+        else:
+            ot = dict(bball.get("overtime") or {"home_points": 0, "away_points": 0})
+            if is_home:
+                ot["home_points"] = ot.get("home_points", 0) + pts
+            else:
+                ot["away_points"] = ot.get("away_points", 0) + pts
+            bball["overtime"] = ot
+
+        all_quarters = bball.get("quarters") or []
+        ot_data = bball.get("overtime")
+        home_total = sum(q2.get("home_points", 0) for q2 in all_quarters)
+        away_total = sum(q2.get("away_points", 0) for q2 in all_quarters)
+        if ot_data:
+            home_total += ot_data.get("home_points", 0)
+            away_total += ot_data.get("away_points", 0)
+
+        home_tp, away_tp = bball_table_pts(home_total, away_total)
+        bball["table_points"] = {"home": home_tp, "away": away_tp}
+        extra["basketball"] = bball
+        game.extra_data = extra
+
+        if game.result:
+            game.result.home_score = home_total
+            game.result.away_score = away_total
+        else:
+            new_result = GameResult(
+                game_id=game_id,
+                home_score=home_total,
+                away_score=away_total,
+                created_by=current_user.id,
+            )
+            db.add(new_result)
+            game.result = new_result
+
+        if game.status == "scheduled":
+            game.status = "live"
+
+        db.commit()
+        db.refresh(game)
+
+        sudden_death_pts = int(rules.get("sudden_death_points", 21))
+        is_sd = not is_overtime_period and (home_total >= sudden_death_pts or away_total >= sudden_death_pts)
+
+        score_info = {
+            "home_score": home_total,
+            "away_score": away_total,
+            "quarters": bball.get("quarters") or [],
+            "overtime": bball.get("overtime"),
+            "current_quarter": quarter_num,
+            "sudden_death": is_sd,
+        }
+
     if data.event_type in ("yellow_card", "red_card") and data.athlete_id and not is_basketball:
         champ = game.championship
         rules = champ.rules_config or {}
@@ -321,7 +405,7 @@ def add_event(
         "created_by_name": current_user.name,
     }
 
-    return {"event": event_out, "suspension": susp_info}
+    return {"event": event_out, "suspension": susp_info, "score": score_info}
 
 
 @router.get("/{game_id}/events", response_model=list[GameEventOut])

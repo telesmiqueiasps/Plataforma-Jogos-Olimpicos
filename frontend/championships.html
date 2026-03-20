@@ -1460,8 +1460,13 @@
           const as_ = g.result?.away_score ?? null;
           const groupLabel = (g.extra_data?.group) ? ` · Grupo ${g.extra_data.group}` : '';
           const vball = isVolleyball();
+          const isBball = isBasketball();
           const volleySets = vball && g.extra_data?.volleyball?.sets;
           const setsStr = volleySets ? `<div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">(${volleySets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>` : '';
+          const bballData = isBball && g.extra_data?.basketball;
+          const bballStr = bballData?.quarters
+            ? `<div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
+            : '';
           const resultAudit = (() => {
             const r = g.result;
             if (!r || hs === null) return '';
@@ -1481,6 +1486,7 @@
                   <div class="game-score" style="text-align:center;">
                     ${hs !== null ? `${hs} – ${as_}` : 'x'}
                     ${setsStr}
+                    ${bballStr}
                     ${resultAudit}
                   </div>
                   <span class="game-team" style="${hs !== null && as_ !== null && as_ > hs ? 'color:var(--accent-teal);font-weight:700;' : ''}">${at}</span>

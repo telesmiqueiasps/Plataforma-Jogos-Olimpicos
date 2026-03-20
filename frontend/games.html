@@ -363,6 +363,16 @@
           </select>
         </div>
         <div class="form-group">
+          <label for="bball-point-quarter">Quarto</label>
+          <select id="bball-point-quarter" class="form-control">
+            <option value="1">1º Quarto</option>
+            <option value="2">2º Quarto</option>
+            <option value="3">3º Quarto</option>
+            <option value="4">4º Quarto</option>
+            <option value="5">Prorrogação</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="bball-point-athlete">Atleta</label>
           <select id="bball-point-athlete" class="form-control">
             <option value="">— Sem atleta específico —</option>
@@ -586,7 +596,7 @@
         ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
         : '';
       return `
-        <div style="border-bottom:1px solid var(--border);">
+        <div id="game-card-${g.id}" style="border-bottom:1px solid var(--border);">
           <div class="game-row" style="cursor:pointer;" onclick="toggleEvents(${g.id})">
             <div class="team-name ${homeWinner ? 'winner' : ''}" style="display:flex;align-items:center;gap:8px;">${teamAvatar(g.home_team || {name:homeName,id:g.home_team_id}, 28)}<span>${homeName}</span></div>
             <div class="game-score">
@@ -1180,6 +1190,18 @@
       // Atualiza placar atual
       updateBballPointScore(game);
 
+      // Pré-seleciona o quarto atual com base nos quartos já jogados
+      const quarterSel = document.getElementById('bball-point-quarter');
+      const existingQuarters = game.extra_data?.basketball?.quarters || [];
+      const hasOvertime = !!game.extra_data?.basketball?.overtime;
+      if (hasOvertime) {
+        quarterSel.value = '5';
+      } else {
+        const quarterCount = currentChamp?.rules_config?.quarter_count || 4;
+        const currentQ = Math.min(existingQuarters.length || 1, quarterCount);
+        quarterSel.value = String(currentQ);
+      }
+
       // Carrega atletas de ambos os times
       try {
         const homeId = game.home_team_id;
@@ -1225,20 +1247,63 @@
       const side = document.getElementById('bball-point-team').value;
       const eventType = document.getElementById('bball-point-type').value;
       const athleteId = document.getElementById('bball-point-athlete').value;
+      const quarter = parseInt(document.getElementById('bball-point-quarter').value) || 1;
       const teamId = side === 'home' ? currentGameForModal.home_team_id : currentGameForModal.away_team_id;
 
       const payload = {
         event_type: eventType,
         team_id: teamId,
         athlete_id: athleteId ? Number(athleteId) : null,
+        minute: quarter,
       };
 
       btnLoading(btn, true, 'Registrando...');
       try {
-        await GamesAPI.addEvent(currentGameForModal.id, payload);
-        showToast('Ponto registrado!', 'success');
-        // Recarrega o jogo para atualizar o placar
-        loadGames(currentChamp.id);
+        const resp = await GamesAPI.addEvent(currentGameForModal.id, payload);
+
+        // Atualiza o game no cache e re-renderiza o card in-place
+        if (resp?.score) {
+          const sc = resp.score;
+          const game = currentGameForModal;
+          game.result = game.result || {};
+          game.result.home_score = sc.home_score;
+          game.result.away_score = sc.away_score;
+          game.extra_data = game.extra_data || {};
+          game.extra_data.basketball = game.extra_data.basketball || {};
+          game.extra_data.basketball.quarters = sc.quarters;
+          if (sc.overtime) game.extra_data.basketball.overtime = sc.overtime;
+          gamesById[game.id] = game;
+
+          const cardEl = document.getElementById(`game-card-${game.id}`);
+          if (cardEl) {
+            const eventsPanel = cardEl.querySelector(`#events-panel-${game.id}`);
+            const eventsContent = eventsPanel ? eventsPanel.innerHTML : '';
+            const eventsDisplay = eventsPanel ? eventsPanel.style.display : 'none';
+            cardEl.outerHTML = renderGameCard(game);
+            const newPanel = document.getElementById(`events-panel-${game.id}`);
+            if (newPanel && eventsContent) {
+              newPanel.innerHTML = eventsContent;
+              newPanel.style.display = eventsDisplay;
+            }
+          }
+
+          // Atualiza placar no modal se ainda estiver aberto
+          updateBballPointScore(game);
+
+          if (sc.sudden_death) {
+            const homeName = game.home_team?.name || 'Mandante';
+            const awayName = game.away_team?.name || 'Visitante';
+            const leader = sc.home_score > sc.away_score ? homeName : awayName;
+            const threshold = currentChamp?.rules_config?.sudden_death_points || 21;
+            showToast(`⚡ MORTE SÚBITA! ${leader} atingiu ${threshold} pontos!`, 'warning');
+          } else {
+            showToast('Ponto registrado!', 'success');
+          }
+        } else {
+          showToast('Ponto registrado!', 'success');
+          loadGames(currentChamp.id);
+        }
+
         closeModal('modal-bball-point');
       } catch (err) {
         alertEl.textContent = err.message;
