@@ -187,6 +187,15 @@
 
   <div id="toast-container"></div>
 
+  <!-- Lightbox de avatar -->
+  <div id="avatar-lightbox" onclick="closeAvatarLightbox()"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; flex-direction:column; cursor:pointer;">
+    <div id="avatar-lb-img-wrap" style="width:240px; height:240px; border-radius:50%; overflow:hidden; margin-bottom:16px; flex-shrink:0;"></div>
+    <div id="avatar-lb-name" style="color:#fff; font-size:20px; font-weight:700; margin-bottom:6px; text-align:center; padding:0 16px;"></div>
+    <div id="avatar-lb-team" style="color:rgba(255,255,255,0.65); font-size:14px; text-align:center;"></div>
+    <div style="margin-top:20px; color:rgba(255,255,255,0.4); font-size:12px;">Clique ou ESC para fechar</div>
+  </div>
+
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
@@ -303,7 +312,7 @@
                 <tr>
                   <td>
                     <div style="display:flex; align-items:center; gap:10px;">
-                      ${athleteAvatar(a, 36)}
+                      <div style="cursor:pointer;" onclick="openAvatarLightbox(${a.id})" title="Ver foto ampliada">${athleteAvatar(a, 36)}</div>
                       <div>
                         <div style="font-weight:600;">${a.name}</div>
                         ${a.number != null ? `<div style="font-size:12px;color:var(--text-secondary);">#${a.number}</div>` : ''}
@@ -485,6 +494,38 @@
       } catch (err) {
         showToast(err.message, 'error');
       }
+    }
+
+    // ---- Lightbox de avatar ----
+    function openAvatarLightbox(athleteId) {
+      const a = allAthletes.find(x => x.id === athleteId);
+      if (!a) return;
+      const lb = document.getElementById('avatar-lightbox');
+      const imgWrap = document.getElementById('avatar-lb-img-wrap');
+      const size = 240;
+      const url = driveImageUrl(a.photo_url);
+      const initials = (a.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+      const colors = ['#6c63ff', '#00d4aa', '#ff6b6b', '#ffa500', '#4ecdc4'];
+      const color = colors[(a.id || 0) % colors.length];
+      if (url) {
+        imgWrap.innerHTML = `<img src="${url}" style="width:${size}px;height:${size}px;object-fit:cover;" onerror="this.outerHTML='<div style=width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${color};font-size:${Math.round(size*0.35)}px;font-weight:700;color:#fff>${initials}</div>'" alt="${a.name}">`;
+      } else {
+        imgWrap.innerHTML = `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:${color};font-size:${Math.round(size*0.35)}px;font-weight:700;color:#fff;">${initials}</div>`;
+      }
+      document.getElementById('avatar-lb-name').textContent = a.name;
+      const team = allTeams.find(t => t.id === a.team_id);
+      document.getElementById('avatar-lb-team').textContent = team ? team.name : 'Sem equipe';
+      lb.style.display = 'flex';
+      document.addEventListener('keydown', _closeLbOnEsc);
+    }
+
+    function closeAvatarLightbox() {
+      document.getElementById('avatar-lightbox').style.display = 'none';
+      document.removeEventListener('keydown', _closeLbOnEsc);
+    }
+
+    function _closeLbOnEsc(e) {
+      if (e.key === 'Escape') closeAvatarLightbox();
     }
 
     initPage();

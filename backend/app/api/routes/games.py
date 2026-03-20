@@ -105,9 +105,12 @@ def set_result(
         if not data.sets:
             raise HTTPException(status_code=400, detail="Para vôlei, envie 'sets' no body")
 
+        finalize = data.finalize if data.finalize is not None else True
         home_score = sum(1 for s in data.sets if s.home_points > s.away_points)
         away_score = sum(1 for s in data.sets if s.away_points > s.home_points)
-        home_table_pts, away_table_pts = calculate_match_points(home_score, away_score)
+
+        best_of = int((game.championship.rules_config or {}).get("best_of", 5)) if game.championship else 5
+        home_table_pts, away_table_pts = calculate_match_points(home_score, away_score, best_of)
         notes = data.notes
 
         # Salva sets detalhados e pontos de tabela no extra_data do jogo
@@ -120,6 +123,36 @@ def set_result(
             "table_points": {"home": home_table_pts, "away": away_table_pts},
         }
         game.extra_data = extra
+
+        if game.result:
+            game.result.home_score = home_score
+            game.result.away_score = away_score
+            game.result.notes = notes
+            game.result.updated_by = current_user.id
+        else:
+            result = GameResult(
+                game_id=game_id,
+                home_score=home_score,
+                away_score=away_score,
+                notes=notes,
+                created_by=current_user.id,
+            )
+            db.add(result)
+            game.result = result
+
+        if finalize:
+            game.status = "finished"
+        elif game.status == "scheduled":
+            game.status = "live"
+
+        db.commit()
+        db.refresh(game)
+
+        if finalize:
+            _check_suspensions(game, db)
+
+        return game.result
+
     else:
         if data.home_score is None or data.away_score is None:
             raise HTTPException(status_code=400, detail="Informe home_score e away_score")
@@ -127,30 +160,30 @@ def set_result(
         away_score = data.away_score
         notes = data.notes
 
-    if game.result:
-        game.result.home_score = home_score
-        game.result.away_score = away_score
-        game.result.notes = notes
-        game.result.updated_by = current_user.id
-    else:
-        result = GameResult(
-            game_id=game_id,
-            home_score=home_score,
-            away_score=away_score,
-            notes=notes,
-            created_by=current_user.id,
-        )
-        db.add(result)
-        game.result = result
+        if game.result:
+            game.result.home_score = home_score
+            game.result.away_score = away_score
+            game.result.notes = notes
+            game.result.updated_by = current_user.id
+        else:
+            result = GameResult(
+                game_id=game_id,
+                home_score=home_score,
+                away_score=away_score,
+                notes=notes,
+                created_by=current_user.id,
+            )
+            db.add(result)
+            game.result = result
 
-    game.status = "finished"
-    db.commit()
-    db.refresh(game)
+        game.status = "finished"
+        db.commit()
+        db.refresh(game)
 
-    # Verificar suspensões automáticas por acúmulo de amarelos ao fechar jogo
-    _check_suspensions(game, db)
+        # Verificar suspensões automáticas por acúmulo de amarelos ao fechar jogo
+        _check_suspensions(game, db)
 
-    return game.result
+        return game.result
 
 
 # ---------------------------------------------------------------------------

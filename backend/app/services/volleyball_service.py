@@ -8,20 +8,19 @@ from functools import cmp_to_key
 from typing import Optional
 
 
-def calculate_match_points(home_sets: int, away_sets: int) -> tuple[int, int]:
+def calculate_match_points(home_sets: int, away_sets: int, best_of: int = 5) -> tuple[int, int]:
     """
-    Retorna (pontos_mandante, pontos_visitante) pelo sistema brasileiro de vôlei:
-    - 3-0 ou 3-1 = 3 pontos para o vencedor, 0 para o perdedor
-    - 3-2        = 2 pontos para o vencedor, 1 para o perdedor
+    Retorna (pontos_mandante, pontos_visitante) pelo sistema brasileiro de vôlei.
+    - Melhor de 3: vence quem chegar a 2 sets (2-0 = 3/0 pts; 2-1 = 2/1 pts)
+    - Melhor de 5: vence quem chegar a 3 sets (3-0/3-1 = 3/0 pts; 3-2 = 2/1 pts)
     """
-    if home_sets == 3 and away_sets in (0, 1):
-        return (3, 0)
-    if home_sets == 3 and away_sets == 2:
-        return (2, 1)
-    if away_sets == 3 and home_sets in (0, 1):
-        return (0, 3)
-    if away_sets == 3 and home_sets == 2:
-        return (1, 2)
+    sets_to_win = 2 if best_of == 3 else 3
+    max_close   = sets_to_win - 1  # 1 para melhor-de-3; 2 para melhor-de-5
+
+    if home_sets == sets_to_win:
+        return (2, 1) if away_sets == max_close else (3, 0)
+    if away_sets == sets_to_win:
+        return (1, 2) if home_sets == max_close else (0, 3)
     return (0, 0)  # Jogo em andamento ou não finalizado
 
 
@@ -40,11 +39,16 @@ def calculate_volleyball_standings(
 
     Retorna lista de dicts com todos os campos necessários para StandingEntry.
     """
+    # Configuração de melhor-de (3 ou 5); afeta quantos sets são necessários para vencer
+    best_of    = int(rules_config.get("best_of", 5))
+    sets_to_win = 2 if best_of == 3 else 3
+    max_close   = sets_to_win - 1
+
     # Pontuação configurável (padrão: 3-2-1-0)
-    pts_win_easy  = int(rules_config.get("pts_win_easy",  3))   # vitória 3-0 ou 3-1
-    pts_win_hard  = int(rules_config.get("pts_win_hard",  2))   # vitória 3-2
-    pts_loss_close = int(rules_config.get("pts_loss_close", 1)) # derrota 2-3
-    pts_loss_easy  = int(rules_config.get("pts_loss_easy",  0)) # derrota 0-3 ou 1-3
+    pts_win_easy  = int(rules_config.get("pts_win_easy",  3))   # vitória fácil (ex: 3-0 ou 3-1)
+    pts_win_hard  = int(rules_config.get("pts_win_hard",  2))   # vitória apertada (ex: 3-2 ou 2-1)
+    pts_loss_close = int(rules_config.get("pts_loss_close", 1)) # derrota apertada
+    pts_loss_easy  = int(rules_config.get("pts_loss_easy",  0)) # derrota fácil
 
     tiebreakers = rules_config.get(
         "tiebreaker_order",
@@ -87,15 +91,17 @@ def calculate_volleyball_standings(
         home_sets = g.result.home_score
         away_sets = g.result.away_score
 
-        # Determina pontos do jogo por resultado
-        if home_sets == 3 and away_sets in (0, 1):
-            home_pts, away_pts = pts_win_easy, pts_loss_easy
-        elif home_sets == 3 and away_sets == 2:
-            home_pts, away_pts = pts_win_hard, pts_loss_close
-        elif away_sets == 3 and home_sets in (0, 1):
-            home_pts, away_pts = pts_loss_easy, pts_win_easy
-        elif away_sets == 3 and home_sets == 2:
-            home_pts, away_pts = pts_loss_close, pts_win_hard
+        # Determina pontos do jogo por resultado (usa sets_to_win dinâmico)
+        if home_sets == sets_to_win:
+            if away_sets == max_close:
+                home_pts, away_pts = pts_win_hard, pts_loss_close
+            else:
+                home_pts, away_pts = pts_win_easy, pts_loss_easy
+        elif away_sets == sets_to_win:
+            if home_sets == max_close:
+                home_pts, away_pts = pts_loss_close, pts_win_hard
+            else:
+                home_pts, away_pts = pts_loss_easy, pts_win_easy
         else:
             home_pts, away_pts = 0, 0
 

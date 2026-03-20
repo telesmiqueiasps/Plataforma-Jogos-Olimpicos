@@ -261,7 +261,11 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-result')">Cancelar</button>
+        <!-- Futsal: botão único -->
         <button class="btn btn-primary" id="result-save-btn">Salvar Resultado</button>
+        <!-- Vôlei: dois botões separados (ocultos por padrão) -->
+        <button class="btn btn-secondary" id="result-save-sets-btn" style="display:none;">Salvar Sets</button>
+        <button class="btn btn-primary" id="result-finalize-btn" style="display:none;" disabled>Encerrar Partida</button>
       </div>
     </div>
   </div>
@@ -555,7 +559,7 @@
               </div>
               <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
                 <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openResultModal(${g.id})">📝 Resultado</button>
-                <button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openEventModal(${g.id})">⚡ Evento</button>
+                ${!isVball ? `<button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openEventModal(${g.id})">⚡ Evento</button>` : ''}
                 <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openEditGameModal(${g.id})">✏️ Editar</button>
                 <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="event.stopPropagation(); deleteGame(${g.id})">🗑️</button>
               </div>
@@ -779,7 +783,8 @@
     }
 
     function addVballSet() {
-      if (vballSets.length >= 5) { showToast('Máximo de 5 sets.', 'warning'); return; }
+      const bestOf = currentChamp?.rules_config?.best_of || 5;
+      if (vballSets.length >= bestOf) { showToast(`Máximo de ${bestOf} sets (melhor de ${bestOf}).`, 'warning'); return; }
       vballSets.push({ home: '', away: '' });
       renderVballSets();
     }
@@ -793,6 +798,10 @@
     function updateVballSummary() {
       const summary = document.getElementById('vball-summary');
       if (!summary) return;
+      const bestOf = currentChamp?.rules_config?.best_of || 5;
+      const setsToWin = bestOf === 3 ? 2 : 3;
+      const maxClose  = setsToWin - 1;  // sets do perdedor numa vitória apertada
+
       const filled = vballSets.filter(s => s.home !== '' && s.away !== '');
       let homeSets = 0, awaySets = 0;
       for (const s of filled) {
@@ -804,18 +813,24 @@
       const homeName = currentGameForModal?.home_team?.name || 'Mandante';
       const awayName = currentGameForModal?.away_team?.name || 'Visitante';
       const setsStr = filled.map(s => `${s.home}-${s.away}`).join(', ');
+
+      const hasWinner = homeSets === setsToWin || awaySets === setsToWin;
       let pts = '';
-      if (homeSets === 3 || awaySets === 3) {
-        const winner = homeSets === 3 ? homeName : awayName;
-        const loser  = homeSets === 3 ? awaySets : homeSets;
-        const winPts = loser === 2 ? 2 : 3;
-        const losPts = loser === 2 ? 1 : 0;
+      if (hasWinner) {
+        const winner = homeSets === setsToWin ? homeName : awayName;
+        const loser  = homeSets === setsToWin ? awaySets : homeSets;
+        const winPts = loser === maxClose ? 2 : 3;
+        const losPts = loser === maxClose ? 1 : 0;
         pts = `<div style="margin-top:6px; font-size:11px; color:var(--accent-teal);">🏆 ${winner} vence · Pontos na tabela: venc. +${winPts}, perd. +${losPts}</div>`;
       }
       summary.innerHTML = `
         <div style="font-weight:700;">${homeName} <span style="color:var(--accent-purple);">${homeSets}</span> × <span style="color:var(--accent-purple);">${awaySets}</span> ${awayName}</div>
         <div style="color:var(--text-secondary); margin-top:3px; font-size:12px;">${setsStr || '—'}</div>
         ${pts}`;
+
+      // Habilita/desabilita botão Encerrar Partida
+      const finalizeBtn = document.getElementById('result-finalize-btn');
+      if (finalizeBtn) finalizeBtn.disabled = !hasWinner;
     }
 
     function openResultModal(gameId) {
@@ -831,13 +846,18 @@
       const isVball = currentChamp?.sport?.slug === 'volleyball';
       document.getElementById('result-futsal-section').style.display    = isVball ? 'none' : '';
       document.getElementById('result-volleyball-section').style.display = isVball ? '' : 'none';
+      document.getElementById('result-save-btn').style.display           = isVball ? 'none' : '';
+      document.getElementById('result-save-sets-btn').style.display      = isVball ? '' : 'none';
+      document.getElementById('result-finalize-btn').style.display       = isVball ? '' : 'none';
 
       if (isVball) {
         // Pré-preenche sets se já existem
         const existing = game.extra_data?.volleyball?.sets;
+        const bestOf = currentChamp?.rules_config?.best_of || 5;
+        const defaultSets = bestOf === 3 ? 2 : 3;  // inicia com o mínimo de sets necessários
         vballSets = existing
           ? existing.map(s => ({ home: String(s.home_points), away: String(s.away_points) }))
-          : [{ home: '', away: '' }, { home: '', away: '' }, { home: '', away: '' }];
+          : Array.from({ length: defaultSets }, () => ({ home: '', away: '' }));
         renderVballSets();
       } else {
         document.getElementById('result-home-score').value = game.result?.home_score ?? '';
@@ -846,46 +866,22 @@
       openModal('modal-result');
     }
 
+    // Futsal: salvar resultado direto
     document.getElementById('result-save-btn').addEventListener('click', async () => {
       if (!currentGameForModal) return;
       const btn = document.getElementById('result-save-btn');
       const alertEl = document.getElementById('result-alert');
       alertEl.style.display = 'none';
-
-      const isVball = currentChamp?.sport?.slug === 'volleyball';
-      let payload;
-
-      if (isVball) {
-        const filled = vballSets.filter(s => s.home !== '' && s.away !== '');
-        if (!filled.length) {
-          alertEl.textContent = 'Informe ao menos um set completo.';
-          alertEl.style.display = 'flex';
-          return;
-        }
-        const homeSets = filled.filter(s => parseInt(s.home) > parseInt(s.away)).length;
-        const awaySets = filled.filter(s => parseInt(s.away) > parseInt(s.home)).length;
-        if (homeSets < 3 && awaySets < 3) {
-          alertEl.textContent = 'Nenhuma equipe atingiu 3 sets vencidos. Complete o resultado.';
-          alertEl.style.display = 'flex';
-          return;
-        }
-        payload = {
-          sets: filled.map(s => ({ home_points: parseInt(s.home) || 0, away_points: parseInt(s.away) || 0 })),
-        };
-      } else {
-        const home_score = document.getElementById('result-home-score').value;
-        const away_score = document.getElementById('result-away-score').value;
-        if (home_score === '' || away_score === '') {
-          alertEl.textContent = 'Informe o placar dos dois times.';
-          alertEl.style.display = 'flex';
-          return;
-        }
-        payload = { home_score: Number(home_score), away_score: Number(away_score) };
+      const home_score = document.getElementById('result-home-score').value;
+      const away_score = document.getElementById('result-away-score').value;
+      if (home_score === '' || away_score === '') {
+        alertEl.textContent = 'Informe o placar dos dois times.';
+        alertEl.style.display = 'flex';
+        return;
       }
-
       btnLoading(btn, true, 'Salvando...');
       try {
-        await GamesAPI.setResult(currentGameForModal.id, payload);
+        await GamesAPI.setResult(currentGameForModal.id, { home_score: Number(home_score), away_score: Number(away_score) });
         closeModal('modal-result');
         showToast('Resultado registrado!', 'success');
         loadGames(currentChamp.id);
@@ -896,6 +892,56 @@
         btnLoading(btn, false);
       }
     });
+
+    // Vôlei: salvar sets sem encerrar
+    document.getElementById('result-save-sets-btn').addEventListener('click', () => saveVballResult(false));
+
+    // Vôlei: encerrar partida
+    document.getElementById('result-finalize-btn').addEventListener('click', () => saveVballResult(true));
+
+    async function saveVballResult(finalize) {
+      if (!currentGameForModal) return;
+      const btn = finalize
+        ? document.getElementById('result-finalize-btn')
+        : document.getElementById('result-save-sets-btn');
+      const alertEl = document.getElementById('result-alert');
+      alertEl.style.display = 'none';
+
+      const bestOf = currentChamp?.rules_config?.best_of || 5;
+      const setsToWin = bestOf === 3 ? 2 : 3;
+
+      const filled = vballSets.filter(s => s.home !== '' && s.away !== '');
+      if (!filled.length) {
+        alertEl.textContent = 'Informe ao menos um set completo.';
+        alertEl.style.display = 'flex';
+        return;
+      }
+      if (finalize) {
+        const homeSets = filled.filter(s => parseInt(s.home) > parseInt(s.away)).length;
+        const awaySets = filled.filter(s => parseInt(s.away) > parseInt(s.home)).length;
+        if (homeSets < setsToWin && awaySets < setsToWin) {
+          alertEl.textContent = `Nenhuma equipe atingiu ${setsToWin} sets vencidos. Complete o resultado.`;
+          alertEl.style.display = 'flex';
+          return;
+        }
+      }
+      const payload = {
+        sets: filled.map(s => ({ home_points: parseInt(s.home) || 0, away_points: parseInt(s.away) || 0 })),
+        finalize,
+      };
+      btnLoading(btn, true, 'Salvando...');
+      try {
+        await GamesAPI.setResult(currentGameForModal.id, payload);
+        closeModal('modal-result');
+        showToast(finalize ? 'Partida encerrada!' : 'Sets salvos! Continue o jogo.', 'success');
+        loadGames(currentChamp.id);
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
 
     // ---- Event modal ----
     async function openEventModal(gameId) {

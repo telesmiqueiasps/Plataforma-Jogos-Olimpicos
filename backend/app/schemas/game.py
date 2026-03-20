@@ -53,11 +53,15 @@ class VolleyballResultUpdate(BaseModel):
 
 
 class GameResultBody(BaseModel):
-    """Body flexível — aceita futsal (home_score/away_score) e vôlei (sets)."""
+    """Body flexível — aceita futsal (home_score/away_score) e vôlei (sets).
+    Para vôlei, finalize=False salva os sets sem encerrar a partida (status fica 'live').
+    finalize=True (padrão) encerra a partida e muda status para 'finished'.
+    """
     home_score: Optional[int] = None
     away_score: Optional[int] = None
     notes: Optional[str] = None
     sets: Optional[List[VolleyballSet]] = None
+    finalize: Optional[bool] = True
 
 
 class GameResultOut(BaseModel):

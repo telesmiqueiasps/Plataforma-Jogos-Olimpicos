@@ -1029,15 +1029,20 @@
       try {
         const [enrolled, allTeams] = await Promise.all([
           ChampAPI.teams(currentChamp.id),
-          TeamsAPI.list(),
+          TeamsAPI.list({ sport_id: currentChamp.sport_id }),
         ]);
         const enrolledIds = new Set(enrolled.map(t => t.id));
         const available = allTeams.filter(t => !enrolledIds.has(t.id));
 
         // Popula select de adicionar
         const sel = document.getElementById('team-add-select');
-        sel.innerHTML = '<option value="">Selecione uma equipe...</option>' +
-          available.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        const sportName = currentChamp.sport?.name || 'esta modalidade';
+        if (!available.length) {
+          sel.innerHTML = `<option value="">Nenhuma equipe de ${sportName} disponível — cadastre equipes primeiro</option>`;
+        } else {
+          sel.innerHTML = '<option value="">Selecione uma equipe...</option>' +
+            available.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        }
 
         if (!enrolled.length) {
           container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhuma equipe inscrita. Use o campo acima para adicionar.</p></div>';
