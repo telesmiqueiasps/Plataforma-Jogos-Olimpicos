@@ -2381,18 +2381,6 @@
       if (target) target.style.display = 'block';
     }
 
-    // Helper: fetch autenticado para uso nas funções de corrida
-    async function apiFetch(path, options = {}) {
-      const token = localStorage.getItem('sp_token');
-      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetch((window.API_BASE || '') + path, { ...options, headers });
-      if (res.status === 204) return null;
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `Erro ${res.status}`);
-      return data;
-    }
-
     // ================================================================
     // INIT
     // ================================================================
