@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_organizer
 from sqlalchemy import func, update as sa_update
 
-from app.db.models import Athlete, Sport, Suspension, Team, User
+from app.db.models import Athlete, Sport, Suspension, Team, TeamSport, User
 from app.db.session import get_db
 from app.schemas.athlete import AthleteCreate, AthleteOut, AthleteUpdate
 from app.schemas.team import TeamCreate, TeamDetail, TeamOut, TeamUpdate
@@ -54,7 +54,14 @@ def list_teams(
 ):
     q = db.query(Team)
     if sport_id is not None:
-        q = q.filter(Team.sport_id == sport_id)
+        # Retorna equipes com sport_id principal OU com vínculo N:N para o sport_id
+        from sqlalchemy import exists
+        q = q.filter(
+            (Team.sport_id == sport_id) |
+            exists().where(
+                (TeamSport.team_id == Team.id) & (TeamSport.sport_id == sport_id)
+            )
+        )
     teams = q.order_by(Team.name).all()
     if teams:
         counts = {
@@ -80,8 +87,17 @@ def create_team(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Modalidade não encontrada")
 
     athlete_ids = data.athlete_ids or []
-    team = Team(**data.model_dump(exclude={"athlete_ids"}), created_by=current_user.id)
+    extra_sport_ids = list(data.sport_ids or [])
+
+    team = Team(**data.model_dump(exclude={"athlete_ids", "sport_ids"}), created_by=current_user.id)
     db.add(team)
+    db.flush()  # obter team.id antes de criar sport_links
+
+    # Cria vínculos N:N: sempre inclui o sport_id principal
+    all_sport_ids = list(dict.fromkeys([data.sport_id] + extra_sport_ids))  # deduplicado, principal primeiro
+    for sid in all_sport_ids:
+        db.add(TeamSport(team_id=team.id, sport_id=sid))
+
     db.commit()
     db.refresh(team)
 
@@ -112,8 +128,18 @@ def update_team(
         sport = db.query(Sport).filter(Sport.id == data.sport_id).first()
         if not sport:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Modalidade não encontrada")
-    for field, value in data.model_dump(exclude_none=True).items():
+
+    for field, value in data.model_dump(exclude_none=True, exclude={"sport_ids"}).items():
         setattr(team, field, value)
+
+    if data.sport_ids is not None:
+        # Substitui todos os vínculos N:N, mantendo sempre o sport_id principal no conjunto
+        principal_id = data.sport_id if data.sport_id is not None else team.sport_id
+        new_ids = list(dict.fromkeys([principal_id] + list(data.sport_ids)))
+        db.query(TeamSport).filter(TeamSport.team_id == team_id).delete()
+        for sid in new_ids:
+            db.add(TeamSport(team_id=team_id, sport_id=sid))
+
     db.commit()
     db.refresh(team)
     return team

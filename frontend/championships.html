@@ -1176,13 +1176,20 @@
           container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhuma equipe inscrita. Use o campo acima para adicionar.</p></div>';
           return;
         }
+        function sportBadges(team) {
+          const sports = team.sports && team.sports.length > 0 ? team.sports : (team.sport ? [team.sport] : []);
+          return sports.map(s =>
+            `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;padding:1px 7px;font-size:11px;">${sportIcon(s.slug, 12)} ${s.name}</span>`
+          ).join(' ');
+        }
         container.innerHTML = `
           <table class="table">
-            <thead><tr><th>Equipe</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Equipe</th><th>Modalidades</th><th>Ações</th></tr></thead>
             <tbody>
               ${enrolled.map(t => `
                 <tr>
                   <td style="font-weight:500;">${t.name}</td>
+                  <td>${sportBadges(t)}</td>
                   <td>
                     <button class="btn btn-sm btn-ghost" style="color:var(--error);"
                       onclick="removeTeamFromChamp(${t.id}, '${t.name.replace(/'/g, "\\'")}')">

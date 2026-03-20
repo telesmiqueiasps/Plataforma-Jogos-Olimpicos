@@ -99,6 +99,7 @@ class Sport(Base):
     # relationships
     teams         = relationship("Team",         back_populates="sport")
     championships = relationship("Championship", back_populates="sport")
+    team_links    = relationship("TeamSport",    back_populates="sport")
 
 
 # ---------------------------------------------------------------------------
@@ -121,10 +122,35 @@ class Team(Base):
     athletes = relationship("Athlete", back_populates="team", cascade="save-update, merge")
 
     championship_links = relationship("ChampionshipTeam", back_populates="team")
+    sport_links        = relationship("TeamSport", back_populates="team", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_teams_sport_id", "sport_id"),
         Index("ix_teams_created_by", "created_by"),
+    )
+
+    @property
+    def sports(self) -> list:
+        """Todas as modalidades da equipe (via team_sports N:N)."""
+        return [link.sport for link in self.sport_links if link.sport]
+
+
+# ---------------------------------------------------------------------------
+# TeamSport (N:N entre Team e Sport)
+# ---------------------------------------------------------------------------
+
+class TeamSport(Base):
+    __tablename__ = "team_sports"
+
+    id       = Column(Integer, primary_key=True)
+    team_id  = Column(Integer, ForeignKey("teams.id",  ondelete="CASCADE"), nullable=False, index=True)
+    sport_id = Column(Integer, ForeignKey("sports.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    team  = relationship("Team",  back_populates="sport_links")
+    sport = relationship("Sport", back_populates="team_links")
+
+    __table_args__ = (
+        Index("uq_team_sport", "team_id", "sport_id", unique=True),
     )
 
 

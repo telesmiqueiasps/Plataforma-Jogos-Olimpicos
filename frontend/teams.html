@@ -131,10 +131,10 @@
             <input type="text" id="team-name" class="form-control" placeholder="Ex: Leões F.C." required>
           </div>
           <div class="form-group">
-            <label for="team-sport">Modalidade *</label>
-            <select id="team-sport" class="form-control" required>
-              <option value="">Selecione a modalidade...</option>
-            </select>
+            <label>Modalidades * <small style="color:var(--text-secondary);font-weight:400;">(selecione pelo menos uma — a primeira é a principal)</small></label>
+            <div id="team-sports-checkboxes" style="max-height:180px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--bg-tertiary);">
+              <span style="color:var(--text-secondary);font-size:13px;">Carregando modalidades...</span>
+            </div>
           </div>
           <div class="form-group">
             <label for="team-logo">URL do Logo (opcional)</label>
@@ -194,7 +194,8 @@
       const sportId = getSportFilter();
       return allTeams.filter(t => {
         const matchSearch = !search || t.name.toLowerCase().includes(search);
-        const matchSport = !sportId || (t.sport?.id == sportId || t.sport_id == sportId);
+        const matchSport = !sportId || t.sport_id == sportId ||
+          (Array.isArray(t.sports) && t.sports.some(s => s.id == sportId));
         return matchSearch && matchSport;
       });
     }
@@ -246,7 +247,13 @@
                       </div>
                     </div>
                   </td>
-                  <td><span style="display:inline-flex;align-items:center;">${sportIcon(t.sport?.slug, 18)}${t.sport?.name || t.sport_name || '—'}</span></td>
+                  <td>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+                      ${(t.sports && t.sports.length > 0 ? t.sports : (t.sport ? [t.sport] : [])).map(s =>
+                        `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:12px;">${sportIcon(s.slug, 14)}<span>${s.name}</span></span>`
+                      ).join('')}
+                    </div>
+                  </td>
                   <td>${t.city || '—'}</td>
                   <td>
                     ${(t.athlete_count > 0)
@@ -292,15 +299,24 @@
       }
     }
 
+    function renderSportCheckboxes(checkedIds = []) {
+      const box = document.getElementById('team-sports-checkboxes');
+      if (!allSports.length) { box.innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">Nenhuma modalidade cadastrada.</span>'; return; }
+      box.innerHTML = allSports.map(s => `
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:13px;">
+          <input type="checkbox" class="sport-check" value="${s.id}" ${checkedIds.includes(s.id) ? 'checked' : ''} style="width:auto;">
+          <span>${sportIcon(s.slug, 16)} ${s.name}</span>
+        </label>`).join('');
+    }
+
     async function loadSports() {
       try {
         allSports = await SportsAPI.list();
         const filterSel = document.getElementById('sport-filter');
-        const teamSportSel = document.getElementById('team-sport');
         allSports.forEach(s => {
-          filterSel.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.icon || ''} ${s.name}</option>`);
-          teamSportSel.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.icon || ''} ${s.name}</option>`);
+          filterSel.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.name}</option>`);
         });
+        renderSportCheckboxes();
       } catch {}
     }
 
@@ -322,6 +338,7 @@
       document.getElementById('free-athletes-list').innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">Carregando...</span>';
       document.querySelector('#modal-team .modal-title').textContent = 'Nova Equipe';
       document.getElementById('team-save-btn').textContent = 'Criar Equipe';
+      renderSportCheckboxes([]);
       openModal('modal-team');
       try {
         const freeAthletes = await AthletesAPI.list({ free: true });
@@ -352,8 +369,11 @@
       document.getElementById('team-alert').style.display = 'none';
       document.getElementById('free-athletes-section').style.display = 'none';
       document.getElementById('team-name').value = team.name || '';
-      document.getElementById('team-sport').value = team.sport_id || (team.sport?.id || '');
       document.getElementById('team-logo').value = team.logo_url || '';
+      const checkedIds = (team.sports && team.sports.length > 0)
+        ? team.sports.map(s => s.id)
+        : [team.sport_id || team.sport?.id].filter(Boolean);
+      renderSportCheckboxes(checkedIds);
       document.querySelector('#modal-team .modal-title').textContent = 'Editar Equipe';
       document.getElementById('team-save-btn').textContent = 'Salvar Alterações';
       openModal('modal-team');
@@ -377,18 +397,21 @@
       alertEl.style.display = 'none';
 
       const name = document.getElementById('team-name').value.trim();
-      const sport_id = document.getElementById('team-sport').value;
       const logo_url = document.getElementById('team-logo').value.trim();
+      const checkedSportIds = [...document.querySelectorAll('.sport-check:checked')].map(el => Number(el.value));
 
-      if (!name || !sport_id) {
-        alertEl.textContent = 'Por favor, preencha o nome e a modalidade da equipe.';
+      if (!name || !checkedSportIds.length) {
+        alertEl.textContent = 'Por favor, preencha o nome e selecione pelo menos uma modalidade.';
         alertEl.style.display = 'flex';
         return;
       }
 
+      const sport_id = checkedSportIds[0];
+      const sport_ids = checkedSportIds.slice(1);
+
       if (editTeamId) {
         // Edit mode
-        const data = { name, sport_id: Number(sport_id) };
+        const data = { name, sport_id, sport_ids };
         if (logo_url) data.logo_url = logo_url;
         btnLoading(btn, true, 'Salvando...');
         try {
@@ -406,7 +429,7 @@
       } else {
         // Create mode
         const athlete_ids = [...document.querySelectorAll('.athlete-check:checked')].map(el => Number(el.value));
-        const data = { name, sport_id: Number(sport_id), athlete_ids };
+        const data = { name, sport_id, sport_ids, athlete_ids };
         if (logo_url) data.logo_url = logo_url;
         btnLoading(btn, true, 'Criando...');
         try {
