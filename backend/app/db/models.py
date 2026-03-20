@@ -210,9 +210,10 @@ class Championship(Base):
     sport   = relationship("Sport", back_populates="championships")
     creator = relationship("User",  back_populates="championships_created", foreign_keys=[created_by])
 
-    team_links  = relationship("ChampionshipTeam", back_populates="championship", cascade="all, delete-orphan")
-    games       = relationship("Game",             back_populates="championship", cascade="all, delete-orphan")
-    suspensions = relationship("Suspension",       back_populates="championship", cascade="all, delete-orphan")
+    team_links   = relationship("ChampionshipTeam", back_populates="championship", cascade="all, delete-orphan")
+    games        = relationship("Game",             back_populates="championship", cascade="all, delete-orphan")
+    suspensions  = relationship("Suspension",       back_populates="championship", cascade="all, delete-orphan")
+    race_results = relationship("RaceResult",       back_populates="championship", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_championships_sport_id",   "sport_id"),
@@ -360,3 +361,45 @@ class Suspension(Base):
         Index("ix_suspensions_athlete_id",      "athlete_id"),
         Index("ix_suspensions_championship_id", "championship_id"),
     )
+
+
+# ---------------------------------------------------------------------------
+# RaceResult  (resultado individual de corrida de rua)
+# ---------------------------------------------------------------------------
+
+class RaceResult(Base):
+    __tablename__ = "race_results"
+
+    id              = Column(Integer, primary_key=True)
+    championship_id = Column(Integer, ForeignKey("championships.id", ondelete="CASCADE"), nullable=False, index=True)
+    athlete_id      = Column(Integer, ForeignKey("athletes.id",      ondelete="CASCADE"), nullable=False, index=True)
+    position        = Column(Integer, nullable=True,   comment="Posição de chegada")
+    finish_time     = Column(String(20), nullable=True, comment="Tempo de chegada ex: 00:45:23")
+    category        = Column(String(50), nullable=True, comment="Ex: Masculino, Feminino, Master")
+    bib_number      = Column(Integer, nullable=True,   comment="Número de peito")
+    notes           = Column(String(300), nullable=True)
+    status          = Column(String(20), nullable=False, default="registered",
+                             comment="registered, finished, dnf, dsq")
+    created_by      = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    # relationships
+    championship = relationship("Championship", back_populates="race_results")
+    athlete      = relationship("Athlete")
+    creator      = relationship("User", foreign_keys=[created_by])
+
+    __table_args__ = (
+        Index("uq_race_athlete", "championship_id", "athlete_id", unique=True),
+        Index("ix_race_results_championship_id", "championship_id"),
+    )
+
+    @property
+    def athlete_name(self):
+        return self.athlete.name if self.athlete else None
+
+    @property
+    def athlete_photo_url(self):
+        return self.athlete.photo_url if self.athlete else None
+
+    @property
+    def created_by_name(self):
+        return self.creator.name if self.creator else None

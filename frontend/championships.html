@@ -175,6 +175,9 @@
             <button class="tab-btn" data-tab="games">Jogos</button>
             <button class="tab-btn" data-tab="knockout">Mata-mata</button>
             <button class="tab-btn" data-tab="stats">Estatísticas</button>
+            <button class="tab-btn" data-tab="participants" style="display:none;">🏃 Participantes</button>
+            <button class="tab-btn" data-tab="race-results" style="display:none;">📋 Resultados</button>
+            <button class="tab-btn" data-tab="ranking" style="display:none;">🏆 Ranking</button>
           </div>
 
           <!-- ---- ABA: Visão Geral ---- -->
@@ -266,6 +269,31 @@
                       <input type="number" id="cfg-vball-pts-loss-easy" class="form-control" value="0" min="0">
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- === Configurações específicas de CORRIDA === -->
+            <div id="cfg-running-section" style="display:none;">
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:16px; font-size:15px;">🏃 Configurações de Corrida</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Distância</label>
+                      <input type="text" id="cfg-running-distance" class="form-control" placeholder="Ex: 10km">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Categorias (separadas por vírgula)</label>
+                      <input type="text" id="cfg-running-categories" class="form-control" placeholder="Ex: Masculino, Feminino">
+                    </div>
+                  </div>
+                  <div style="font-size:11px; color:var(--text-secondary); margin-top:8px;">Corrida de rua individual — sem grupos, mata-mata ou tabela de pontos.</div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-body" style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                  <button class="btn btn-primary" id="btn-save-config-running" style="flex-shrink:0;">Salvar Configurações</button>
                 </div>
               </div>
             </div>
@@ -429,6 +457,69 @@
             </div>
           </div>
 
+          <!-- ---- ABA: Participantes (Corrida) ---- -->
+          <div id="tab-participants" style="display:none;">
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-body">
+                <h3 style="margin-bottom:12px; font-size:15px;">Inscrever Atleta</h3>
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                  <div class="form-group" style="margin:0; flex:2; min-width:180px;">
+                    <label style="font-size:12px;">Atleta</label>
+                    <select id="race-athlete-select" class="form-control">
+                      <option value="">Selecione um atleta...</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0; flex:1; min-width:120px;">
+                    <label style="font-size:12px;">Categoria</label>
+                    <input type="text" id="race-enroll-category" class="form-control" placeholder="Ex: Masculino">
+                  </div>
+                  <div class="form-group" style="margin:0; width:90px;">
+                    <label style="font-size:12px;">Nº Peito</label>
+                    <input type="number" id="race-enroll-bib" class="form-control" placeholder="1">
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="raceEnrollAthlete()">+ Inscrever</button>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body" style="padding:0;">
+                <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                  <span style="font-weight:600; font-size:14px;">Participantes Inscritos</span>
+                  <select id="race-cat-filter" class="form-control" style="width:auto; min-width:160px;" onchange="loadParticipants()">
+                    <option value="">Todas as categorias</option>
+                  </select>
+                </div>
+                <div id="race-participants-content">
+                  <div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---- ABA: Resultados (Corrida) ---- -->
+          <div id="tab-race-results" style="display:none;">
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-body" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <span style="font-size:13px; color:var(--text-secondary);">Preencha posição e tempo de cada atleta. Clique em Salvar na linha ou use Calcular Posições para ordenar por tempo automaticamente.</span>
+                <button class="btn btn-teal btn-sm" onclick="raceFinalize()">⚡ Calcular Posições por Tempo</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body" style="padding:0;">
+                <div id="race-results-content">
+                  <div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---- ABA: Ranking (Corrida) ---- -->
+          <div id="tab-ranking" style="display:none;">
+            <div id="ranking-content">
+              <div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>
+            </div>
+          </div>
+
         </div><!-- /view-management -->
 
       </main>
@@ -527,6 +618,34 @@
             </div>
           </div>
 
+          <!-- Config extra para Corrida -->
+          <div id="running-champ-config" style="display:none; margin-bottom:4px;">
+            <div style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); border-radius:8px; padding:12px 14px; margin-bottom:12px;">
+              <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:#16a34a;">🏃 Configurações de Corrida</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div class="form-group" style="margin:0;">
+                  <label style="font-size:12px;">Distância</label>
+                  <select id="running-distance-select" class="form-control" onchange="document.getElementById('running-distance-custom').style.display=this.value==='custom'?'':'none'">
+                    <option value="5km">5 km</option>
+                    <option value="10km" selected>10 km</option>
+                    <option value="21km">21 km (Meia)</option>
+                    <option value="42km">42 km (Maratona)</option>
+                    <option value="custom">Personalizado</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label style="font-size:12px;">Distância personalizada</label>
+                  <input type="text" id="running-distance-custom" class="form-control" placeholder="Ex: 7km" style="display:none;">
+                </div>
+              </div>
+              <div class="form-group" style="margin-top:8px; margin-bottom:0;">
+                <label style="font-size:12px;">Categorias (separadas por vírgula)</label>
+                <input type="text" id="running-categories" class="form-control" placeholder="Ex: Masculino Geral, Feminino Geral, Master M">
+                <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">Deixe em branco para ranking geral único.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="form-group" id="champ-teams-section" style="display:none;">
             <label>Equipes Inscritas (opcional)</label>
             <div id="champ-teams-list" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--bg-tertiary);">
@@ -584,6 +703,10 @@
 
     function isBasketball() {
       return currentChamp?.sport?.slug === 'basketball';
+    }
+
+    function isRunning() {
+      return currentChamp?.sport?.slug === 'running';
     }
 
     // ================================================================
@@ -762,10 +885,13 @@
       sportSel.onchange = () => {
         const sportId = sportSel.value;
         const sport = allSports.find(s => s.id === Number(sportId));
-        const isVball  = sport?.slug === 'volleyball';
-        const isBball  = sport?.slug === 'basketball';
-        document.getElementById('vball-champ-config').style.display  = isVball  ? '' : 'none';
-        document.getElementById('bball-champ-config').style.display  = isBball  ? '' : 'none';
+        const isVball   = sport?.slug === 'volleyball';
+        const isBball   = sport?.slug === 'basketball';
+        const isRunning_ = sport?.slug === 'running';
+        document.getElementById('vball-champ-config').style.display    = isVball   ? '' : 'none';
+        document.getElementById('bball-champ-config').style.display    = isBball   ? '' : 'none';
+        document.getElementById('running-champ-config').style.display  = isRunning_ ? '' : 'none';
+        document.getElementById('champ-teams-section').style.display   = isRunning_ ? 'none' : 'block';
         renderModalTeamsList(sportId);
         _updateSportIcon();
       };
@@ -859,6 +985,15 @@
           pts_win: 2, pts_loss: 1, pts_wo: 0,
           tiebreaker_order: ['table_points', 'wins', 'point_difference', 'points_scored', 'pontos_sofridos', 'confronto_direto'],
         };
+      } else if (selSport?.slug === 'running') {
+        const distSel    = document.getElementById('running-distance-select')?.value || '10km';
+        const distCustom = document.getElementById('running-distance-custom')?.value.trim();
+        const distance   = distSel === 'custom' ? (distCustom || '10km') : distSel;
+        const catsRaw    = document.getElementById('running-categories')?.value.trim() || '';
+        data.rules_config = {
+          distance: distance,
+          categories: catsRaw ? catsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+        };
       }
 
       if (editChampId) {
@@ -906,6 +1041,19 @@
         `${sportIcon(currentChamp.sport?.slug, 16)}${currentChamp.sport?.name || ''} &bull; ${formatName(currentChamp.format)}`;
       document.getElementById('detail-champ-status').innerHTML = champStatusBadge(currentChamp.status);
 
+      // Controla visibilidade das abas por modalidade
+      const running = currentChamp.sport?.slug === 'running';
+      const runningTabs = ['participants', 'race-results', 'ranking'];
+      const normalTabs  = ['teams', 'groups', 'games', 'knockout', 'stats'];
+      runningTabs.forEach(t => {
+        const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
+        if (btn) btn.style.display = running ? '' : 'none';
+      });
+      normalTabs.forEach(t => {
+        const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
+        if (btn) btn.style.display = running ? 'none' : '';
+      });
+
       switchTab('overview');
     }
 
@@ -923,22 +1071,27 @@
     });
 
     function switchTab(tabName) {
-      ['overview', 'config', 'teams', 'groups', 'games', 'knockout', 'stats'].forEach(t => {
-        document.getElementById(`tab-${t}`).style.display = 'none';
+      ['overview', 'config', 'teams', 'groups', 'games', 'knockout', 'stats', 'participants', 'race-results', 'ranking'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        if (el) el.style.display = 'none';
       });
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(`tab-${tabName}`).style.display = 'block';
+      const tabEl = document.getElementById(`tab-${tabName}`);
+      if (tabEl) tabEl.style.display = 'block';
       document.querySelectorAll(`.tab-btn[data-tab="${tabName}"]`).forEach(b => b.classList.add('active'));
       currentTab = tabName;
 
       switch (tabName) {
-        case 'overview':  loadOverview();        break;
-        case 'config':    loadConfig();          break;
-        case 'teams':     loadDetailTeams();     break;
-        case 'groups':    loadDetailGroups();    break;
-        case 'games':     loadDetailGames();     break;
-        case 'knockout':  loadKnockout();        break;
-        case 'stats':     loadStats();           break;
+        case 'overview':      loadOverview();        break;
+        case 'config':        loadConfig();          break;
+        case 'teams':         loadDetailTeams();     break;
+        case 'groups':        loadDetailGroups();    break;
+        case 'games':         loadDetailGames();     break;
+        case 'knockout':      loadKnockout();        break;
+        case 'stats':         loadStats();           break;
+        case 'participants':  loadParticipants();    break;
+        case 'race-results':  loadRaceResults();     break;
+        case 'ranking':       loadRanking();         break;
       }
     }
 
@@ -1023,11 +1176,22 @@
         const vball = isVolleyball();
         const bball = isBasketball();
 
+        const running = isRunning();
         // Mostra/oculta seções dependentes de modalidade
-        document.getElementById('cfg-volleyball-section').style.display  = vball  ? '' : 'none';
-        document.getElementById('cfg-basketball-section').style.display  = bball  ? '' : 'none';
-        document.getElementById('cfg-futsal-pts').style.display          = (vball || bball) ? 'none' : '';
-        document.getElementById('cfg-cards-section').style.display       = (vball || bball) ? 'none' : 'grid';
+        document.getElementById('cfg-volleyball-section').style.display  = vball   ? '' : 'none';
+        document.getElementById('cfg-basketball-section').style.display  = bball   ? '' : 'none';
+        document.getElementById('cfg-running-section').style.display     = running ? '' : 'none';
+        document.getElementById('cfg-futsal-pts').style.display          = (vball || bball || running) ? 'none' : '';
+        document.getElementById('cfg-cards-section').style.display       = (vball || bball || running) ? 'none' : 'grid';
+        document.getElementById('tiebreaker-list').parentElement.parentElement.style.display = running ? 'none' : '';
+        document.getElementById('cfg-classifieds').parentElement.parentElement.style.display = running ? 'none' : '';
+        document.getElementById('btn-save-config').style.display         = running ? 'none' : '';
+
+        if (running) {
+          document.getElementById('cfg-running-distance').value   = cfg.distance   || '';
+          document.getElementById('cfg-running-categories').value = (cfg.categories || []).join(', ');
+          return;
+        }
 
         if (vball) {
           // Vôlei
@@ -1088,6 +1252,26 @@
       [tiebreakerOrder[idx], tiebreakerOrder[newIdx]] = [tiebreakerOrder[newIdx], tiebreakerOrder[idx]];
       renderTiebreakerList();
     }
+
+    document.getElementById('btn-save-config-running').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-save-config-running');
+      btnLoading(btn, true, 'Salvando...');
+      try {
+        const distRaw = document.getElementById('cfg-running-distance').value.trim();
+        const catsRaw = document.getElementById('cfg-running-categories').value.trim();
+        const data = {
+          distance: distRaw || null,
+          categories: catsRaw ? catsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+        };
+        await ChampAPI.updateConfig(currentChamp.id, data);
+        currentChamp.rules_config = { ...currentChamp.rules_config, ...data };
+        showToast('Configurações salvas!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
 
     document.getElementById('btn-save-config').addEventListener('click', async () => {
       const btn = document.getElementById('btn-save-config');
@@ -1919,6 +2103,10 @@
         const vball = isVolleyball();
         const bball = isBasketball();
         // Vôlei e Basquete não mostram cartões; Basquete mostra cestinhas; Futsal mostra artilharia e cartões
+        if (isRunning()) {
+          container.innerHTML = `<div class="info-banner" style="margin:16px 0;">🏃 Corrida de rua: gerencie participantes e resultados nas abas <strong>Participantes</strong>, <strong>Resultados</strong> e <strong>Ranking</strong>.</div>`;
+          return;
+        }
         container.innerHTML = standingsHtml + (vball ? '' : scorersHtml) + (vball || bball ? '' : cardsHtml) + suspHtml;
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
@@ -1947,6 +2135,262 @@
       navigator.clipboard.writeText(url).then(() => showToast('Link copiado!', 'success')).catch(() => {
         prompt('Copie o link:', url);
       });
+    }
+
+    // ================================================================
+    // CORRIDA — funções de participantes, resultados e ranking
+    // ================================================================
+
+    let _allAthletesForRace = [];
+    let _raceCategories = [];
+
+    async function loadParticipants() {
+      const container = document.getElementById('race-participants-content');
+      container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
+      try {
+        // Carrega atletas disponíveis para o select de inscrição
+        if (!_allAthletesForRace.length) {
+          _allAthletesForRace = await apiFetch('/api/athletes/');
+        }
+        const selAthletes = document.getElementById('race-athlete-select');
+        selAthletes.innerHTML = '<option value="">Selecione um atleta...</option>' +
+          _allAthletesForRace.map(a => `<option value="${a.id}">${a.name}${a.number ? ' #' + a.number : ''}</option>`).join('');
+
+        const catFilter = document.getElementById('race-cat-filter').value;
+        const params = catFilter ? `?category=${encodeURIComponent(catFilter)}` : '';
+        const results = await apiFetch(`/api/championships/${currentChamp.id}/race/participants${params}`);
+
+        // Atualiza opções de filtro de categoria
+        const allCats = [...new Set(results.map(r => r.category).filter(Boolean))].sort();
+        _raceCategories = allCats;
+        const catSel = document.getElementById('race-cat-filter');
+        const curCat = catSel.value;
+        catSel.innerHTML = '<option value="">Todas as categorias</option>' +
+          allCats.map(c => `<option value="${c}" ${c === curCat ? 'selected' : ''}>${c}</option>`).join('');
+
+        if (!results.length) {
+          container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhum atleta inscrito. Use o formulário acima para inscrever.</p></div>';
+          return;
+        }
+
+        const statusLabel = { registered: 'Inscrito', finished: 'Finalizado', dnf: 'DNF', dsq: 'Desclassificado' };
+        const statusColor = { registered: 'var(--text-secondary)', finished: 'var(--accent-teal)', dnf: '#f87171', dsq: '#f87171' };
+        container.innerHTML = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:50px;">Nº</th>
+                <th style="width:40px;"></th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${results.map(r => `
+                <tr>
+                  <td style="color:var(--text-secondary);">${r.bib_number ?? '—'}</td>
+                  <td>${athleteAvatar({id: r.athlete_id, name: r.athlete_name, photo_url: r.athlete_photo_url}, 32)}</td>
+                  <td style="font-weight:500;">${r.athlete_name || '—'}</td>
+                  <td>${r.category || '—'}</td>
+                  <td><span style="font-size:12px; font-weight:600; color:${statusColor[r.status] || 'var(--text-secondary)'};">${statusLabel[r.status] || r.status}</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="raceRemoveParticipant(${r.id}, '${(r.athlete_name || '').replace(/'/g, "\'")}')">Remover</button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error" style="margin:16px;">${err.message}</div>`;
+      }
+    }
+
+    async function raceEnrollAthlete() {
+      const athleteId = Number(document.getElementById('race-athlete-select').value);
+      if (!athleteId) { showToast('Selecione um atleta.', 'error'); return; }
+      const category  = document.getElementById('race-enroll-category').value.trim() || null;
+      const bibNumber = Number(document.getElementById('race-enroll-bib').value) || null;
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/race/participants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ athlete_id: athleteId, category, bib_number: bibNumber }),
+        });
+        showToast('Atleta inscrito!', 'success');
+        _allAthletesForRace = [];
+        loadParticipants();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function raceRemoveParticipant(resultId, athleteName) {
+      if (!confirm(`Remover "${athleteName}" da corrida?`)) return;
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/race/participants/${resultId}`, { method: 'DELETE' });
+        showToast('Atleta removido.', 'success');
+        loadParticipants();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function loadRaceResults() {
+      const container = document.getElementById('race-results-content');
+      container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
+      try {
+        const results = await apiFetch(`/api/championships/${currentChamp.id}/race/participants`);
+        if (!results.length) {
+          container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhum atleta inscrito.</p></div>';
+          return;
+        }
+        container.innerHTML = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:40px;"></th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th style="width:80px;">Posição</th>
+                <th style="width:130px;">Tempo (HH:MM:SS)</th>
+                <th style="width:140px;">Status</th>
+                <th style="width:80px;"></th>
+              </tr>
+            </thead>
+            <tbody id="race-results-tbody">
+              ${results.map(r => `
+                <tr id="race-row-${r.id}">
+                  <td>${athleteAvatar({id: r.athlete_id, name: r.athlete_name, photo_url: r.athlete_photo_url}, 32)}</td>
+                  <td style="font-weight:500;">${r.athlete_name || '—'}</td>
+                  <td style="color:var(--text-secondary);">${r.category || '—'}</td>
+                  <td><input type="number" class="form-control" style="width:68px; padding:4px 8px; font-size:13px;" value="${r.position ?? ''}" placeholder="—" id="rpos-${r.id}"></td>
+                  <td><input type="text" class="form-control" style="width:118px; padding:4px 8px; font-size:13px;" value="${r.finish_time ?? ''}" placeholder="00:45:00" id="rtime-${r.id}"></td>
+                  <td>
+                    <select class="form-control" style="padding:4px 8px; font-size:13px;" id="rstatus-${r.id}">
+                      <option value="registered" ${r.status === 'registered' ? 'selected' : ''}>Em prova</option>
+                      <option value="finished"   ${r.status === 'finished'   ? 'selected' : ''}>Concluído</option>
+                      <option value="dnf"        ${r.status === 'dnf'        ? 'selected' : ''}>DNF</option>
+                      <option value="dsq"        ${r.status === 'dsq'        ? 'selected' : ''}>Desclassificado</option>
+                    </select>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-primary" onclick="raceSaveResult(${r.id})">Salvar</button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error" style="margin:16px;">${err.message}</div>`;
+      }
+    }
+
+    async function raceSaveResult(resultId) {
+      const pos    = document.getElementById(`rpos-${resultId}`).value;
+      const time   = document.getElementById(`rtime-${resultId}`).value.trim();
+      const stat   = document.getElementById(`rstatus-${resultId}`).value;
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/race/participants/${resultId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            position:    pos    ? Number(pos) : null,
+            finish_time: time   || null,
+            status:      stat,
+          }),
+        });
+        showToast('Resultado salvo!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function raceFinalize() {
+      if (!confirm('Calcular posições automaticamente por tempo? As posições existentes serão substituídas.')) return;
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/race/finalize`, { method: 'POST' });
+        showToast('Posições calculadas!', 'success');
+        loadRaceResults();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function loadRanking() {
+      const container = document.getElementById('ranking-content');
+      container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
+      try {
+        const ranking = await apiFetch(`/api/championships/${currentChamp.id}/race/ranking`);
+        const categories = Object.keys(ranking).filter(k => k !== 'overall');
+        const isPartial = ranking.overall.some(r => !r.position);
+
+        const tabs = ['overall', ...categories];
+        const tabsHtml = `
+          <div class="tab-nav" style="margin-bottom:16px;">
+            ${tabs.map((cat, i) => `<button class="tab-btn ${i===0?'active':''}" onclick="showRankingTab('${cat}', this)">${cat === 'overall' ? 'Geral' : cat}</button>`).join('')}
+          </div>`;
+
+        function renderRankingTable(rows) {
+          const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+          if (!rows.length) return '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Sem resultados registrados.</div>';
+          return `
+            <table class="stat-table">
+              <thead><tr><th style="width:48px;">Pos</th><th style="width:40px;"></th><th>Atleta</th><th>Tempo</th><th>Status</th></tr></thead>
+              <tbody>
+                ${rows.map(r => `
+                  <tr style="${r.position <= 3 ? 'background:rgba(255,215,0,0.05);' : ''}">
+                    <td style="font-weight:800; font-size:18px; text-align:center;">${r.position ? (medalMap[r.position] || r.position) : '—'}</td>
+                    <td>${athleteAvatar({id: r.athlete_id, name: r.athlete_name, photo_url: r.athlete_photo_url}, 36)}</td>
+                    <td style="font-weight:600;">${r.athlete_name || '—'}</td>
+                    <td style="font-weight:700; color:var(--accent-teal);">${r.finish_time || '—'}</td>
+                    <td><span style="font-size:12px; color:var(--accent-teal);">${r.status === 'finished' ? '✓ Concluído' : r.status}</span></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>`;
+        }
+
+        let tabContents = '';
+        tabs.forEach((cat, i) => {
+          const rows = ranking[cat] || [];
+          tabContents += `<div id="ranking-tab-${cat}" style="display:${i===0?'block':'none'};">${renderRankingTable(rows)}</div>`;
+        });
+
+        container.innerHTML = `
+          ${isPartial ? '<div class="info-banner" style="margin-bottom:16px;">⚠️ Resultados parciais — corrida ainda não finalizada.</div>' : ''}
+          <div class="card">
+            <div class="card-body" style="padding:0;">
+              <div style="padding:12px 16px; border-bottom:1px solid var(--border);">
+                ${tabsHtml}
+              </div>
+              <div id="ranking-tabs-content" style="padding:0;">
+                ${tabContents}
+              </div>
+            </div>
+          </div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    function showRankingTab(cat, btn) {
+      document.querySelectorAll('#ranking-content .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const allTabs = document.querySelectorAll('[id^="ranking-tab-"]');
+      allTabs.forEach(el => el.style.display = 'none');
+      const target = document.getElementById(`ranking-tab-${cat}`);
+      if (target) target.style.display = 'block';
+    }
+
+    // Helper: fetch autenticado para uso nas funções de corrida
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('sp_token');
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch((window.API_BASE || '') + path, { ...options, headers });
+      if (res.status === 204) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Erro ${res.status}`);
+      return data;
     }
 
     // ================================================================

@@ -190,8 +190,29 @@
       document.getElementById('btn-back').style.display = 'flex';
       document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;
 
-      const isVball = c.sport?.slug === 'volleyball';
-      const isBball = c.sport?.slug === 'basketball';
+      const isVball   = c.sport?.slug === 'volleyball';
+      const isBball   = c.sport?.slug === 'basketball';
+      const isRunning = c.sport?.slug === 'running';
+
+      if (isRunning) {
+        // Corrida: apenas aba de Ranking
+        content.innerHTML = `
+          <div class="tab-nav">
+            <button class="tab-btn active" data-pub-tab="race-ranking">🏆 Ranking</button>
+          </div>
+          <div id="pub-tab-race-ranking"></div>
+        `;
+        document.querySelectorAll('[data-pub-tab]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-pub-tab]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadPubTab(btn.dataset.pubTab);
+          });
+        });
+        loadPubTab('race-ranking');
+        return;
+      }
+
       // Build tabs — oculta artilharia e cartões para vôlei; basquete mostra Cestinhas mas não Cartões
       const extraTabs = isVball ? '' : isBball
         ? `<button class="tab-btn" data-pub-tab="scorers">🏀 Cestinhas</button>`
@@ -236,10 +257,11 @@
     const el = document.getElementById(`pub-tab-${tab}`);
     el.innerHTML = '<div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando...</span></div>';
     try {
-      if (tab === 'standings') await renderStandings(el);
-      else if (tab === 'scorers') await renderScorers(el);
-      else if (tab === 'cards') await renderCards(el);
-      else if (tab === 'games') await renderGames(el);
+      if (tab === 'standings')      await renderStandings(el);
+      else if (tab === 'scorers')   await renderScorers(el);
+      else if (tab === 'cards')     await renderCards(el);
+      else if (tab === 'games')     await renderGames(el);
+      else if (tab === 'race-ranking') await renderPubRaceRanking(el);
     } catch (err) {
       el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
     }
@@ -466,6 +488,65 @@
         </div>`;
     }
     el.innerHTML = html;
+  }
+
+  // ================================================================
+  // ABA: RANKING DE CORRIDA (pública)
+  // ================================================================
+  async function renderPubRaceRanking(el) {
+    el.innerHTML = '<div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando...</span></div>';
+    const ranking = await pubFetch(`/api/championships/${currentChamp.id}/race/ranking`);
+    const categories = Object.keys(ranking).filter(k => k !== 'overall');
+    const tabs = ['overall', ...categories];
+    const isPartial = ranking.overall.some(r => !r.position);
+
+    const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+    function rankTable(rows) {
+      if (!rows.length) return `<div style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum resultado registrado ainda.</div>`;
+      return `
+        <table class="stat-table">
+          <thead><tr><th style="width:50px; text-align:center;">Pos</th><th>Atleta</th><th>Tempo</th></tr></thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr style="${r.position && r.position <= 3 ? 'background:rgba(255,215,0,0.06);' : ''}">
+                <td style="text-align:center; font-weight:800; font-size:20px;">${r.position ? (medalMap[r.position] || r.position) : '—'}</td>
+                <td style="font-weight:600;">${r.athlete_name || '—'}</td>
+                <td style="font-weight:700; color:var(--accent-teal);">${r.finish_time || '—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    const catTabsHtml = tabs.length > 1
+      ? `<div class="tab-nav" style="padding:0 16px; margin-bottom:0;">
+          ${tabs.map((cat, i) => `<button class="tab-btn ${i===0?'active':''}" onclick="pubRankTab('${cat}', this)">${cat === 'overall' ? 'Geral' : cat}</button>`).join('')}
+        </div>`
+      : '';
+
+    let tabDivs = tabs.map((cat, i) =>
+      `<div id="pub-rank-${cat}" style="display:${i===0?'block':'none'};">${rankTable(ranking[cat] || [])}</div>`
+    ).join('');
+
+    el.innerHTML = `
+      ${isPartial ? `<div style="padding:12px 16px; margin-bottom:12px; background:rgba(234,179,8,0.08); border:1px solid rgba(234,179,8,0.2); border-radius:8px; font-size:13px; color:#fbbf24;">⚠️ Resultados parciais — corrida ainda não finalizada.</div>` : ''}
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <div style="padding:12px 16px; font-weight:700; font-size:14px; color:var(--accent-purple); border-bottom:1px solid var(--border);">
+            🏃 Ranking${currentChamp.rules_config?.distance ? ` — ${currentChamp.rules_config.distance}` : ''}
+          </div>
+          ${catTabsHtml}
+          <div style="padding:0;">${tabDivs}</div>
+        </div>
+      </div>`;
+  }
+
+  function pubRankTab(cat, btn) {
+    document.querySelectorAll('#pub-tab-race-ranking .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('[id^="pub-rank-"]').forEach(el => el.style.display = 'none');
+    const target = document.getElementById(`pub-rank-${cat}`);
+    if (target) target.style.display = 'block';
   }
 
   function renderGameRow(g) {

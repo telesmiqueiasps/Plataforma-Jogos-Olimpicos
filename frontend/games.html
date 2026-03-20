@@ -528,6 +528,23 @@
         `${sportIcon(champ.sport?.slug, 16)}${champ.sport?.name || champ.sport_name || '—'}`;
       document.getElementById('champ-info-format').textContent = formatName(champ.format);
       document.getElementById('champ-info-status').innerHTML = champStatusBadge(champ.status);
+
+      // Corrida de rua não utiliza jogos — exibe mensagem informativa
+      if (champ.sport?.slug === 'running') {
+        document.getElementById('btn-new-game').style.display = 'none';
+        document.getElementById('btn-new-game-top').style.display = 'none';
+        document.getElementById('games-area').style.display = 'block';
+        document.getElementById('games-card-title').textContent = `Jogos — ${champ.name}`;
+        document.getElementById('games-list').innerHTML = `
+          <div class="empty-state" style="padding:48px 24px; text-align:center;">
+            <span style="font-size:48px; display:block; margin-bottom:16px;">🏃</span>
+            <h3 style="margin-bottom:8px;">Corrida de rua</h3>
+            <p style="color:var(--text-secondary); margin-bottom:16px;">Corrida não utiliza jogos. Gerencie os resultados diretamente no campeonato.</p>
+            <a href="championships.html" class="btn btn-primary btn-sm">Gerenciar Campeonato →</a>
+          </div>`;
+        return;
+      }
+
       document.getElementById('btn-new-game').style.display = 'inline-flex';
       document.getElementById('btn-new-game-top').style.display = 'inline-flex';
       document.getElementById('games-area').style.display = 'block';
