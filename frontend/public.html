@@ -191,10 +191,12 @@
       document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;
 
       const isVball = c.sport?.slug === 'volleyball';
-      // Build tabs — oculta artilharia e cartões para vôlei
-      const extraTabs = isVball ? '' : `
-        <button class="tab-btn" data-pub-tab="scorers">Artilharia</button>
-        <button class="tab-btn" data-pub-tab="cards">Cartões</button>`;
+      const isBball = c.sport?.slug === 'basketball';
+      // Build tabs — oculta artilharia e cartões para vôlei; basquete mostra Cestinhas mas não Cartões
+      const extraTabs = isVball ? '' : isBball
+        ? `<button class="tab-btn" data-pub-tab="scorers">🏀 Cestinhas</button>`
+        : `<button class="tab-btn" data-pub-tab="scorers">Artilharia</button>
+           <button class="tab-btn" data-pub-tab="cards">Cartões</button>`;
       content.innerHTML = `
         <div class="tab-nav">
           <button class="tab-btn active" data-pub-tab="standings">Classificação</button>
@@ -291,6 +293,7 @@
   function standingsTable(rows, classifiedPerGroup) {
     if (!rows.length) return `<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>`;
     const isVball = currentChamp?.sport?.slug === 'volleyball';
+    const isBball = currentChamp?.sport?.slug === 'basketball';
     return `
       <table class="standings-table">
         <thead>
@@ -299,7 +302,9 @@
             <th>Equipe</th>
             ${isVball
               ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Saldo</th><th>S.Avg</th><th class="pts">Pts</th>'
-              : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
+              : isBball
+                ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
+                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
           </tr>
         </thead>
         <tbody>
@@ -316,10 +321,15 @@
                    <td>${(s.set_difference ?? 0) >= 0 ? '+' : ''}${s.set_difference ?? 0}</td>
                    <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
                    <td class="pts">${s.points}</td>`
-                : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
-                   <td>${s.goals_for}</td><td>${s.goals_against}</td>
-                   <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                   <td class="pts">${s.points}</td>`}
+                : isBball
+                  ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
+                     <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                     <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                     <td class="pts">${s.points}</td>`
+                  : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+                     <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                     <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                     <td class="pts">${s.points}</td>`}
             </tr>`).join('')}
         </tbody>
       </table>`;
@@ -331,29 +341,61 @@
   async function renderScorers(el) {
     const stats = await pubFetch(`/api/championships/${currentChamp.id}/stats`);
     const scorers = (stats.scorers || []).slice(0, 10);
+    const isBball = stats.sport === 'basketball' || currentChamp?.sport?.slug === 'basketball';
     if (!scorers.length) {
-      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum gol registrado.</div>`;
+      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">${isBball ? 'Nenhum ponto registrado.' : 'Nenhum gol registrado.'}</div>`;
       return;
     }
-    el.innerHTML = `
-      <div class="card">
-        <div class="card-body" style="padding:0;">
-          <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">⚽ Artilharia — Top ${scorers.length}</div>
-          <table class="stat-table">
-            <thead><tr><th style="width:36px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
-            <tbody>
-              ${scorers.map((s, i) => `
-                <tr>
-                  <td style="color:var(--text-secondary); font-weight:600;">${i + 1}</td>
-                  <td>${athleteAvatar({name: s.name, id: s.athlete_id, photo_url: s.photo_url}, 32)}</td>
-                  <td style="font-weight:600;">${s.name}</td>
-                  <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
-                  <td style="text-align:center; font-weight:800; color:var(--accent-teal); font-size:16px;">${s.goals}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+    if (isBball) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">🏀 Cestinhas — Top ${scorers.length}</div>
+            <table class="stat-table">
+              <thead><tr>
+                <th style="width:36px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th>
+                <th style="text-align:center;" title="Arremessos 1pt">1pt</th>
+                <th style="text-align:center;" title="Arremessos 2pts">2pts</th>
+                <th style="text-align:center;" title="Lances Livres">LL</th>
+                <th style="text-align:center;">Total</th>
+              </tr></thead>
+              <tbody>
+                ${scorers.map((s, i) => `
+                  <tr>
+                    <td style="color:var(--text-secondary); font-weight:600;">${i + 1}</td>
+                    <td>${athleteAvatar({name: s.name, id: s.athlete_id, photo_url: s.photo_url}, 32)}</td>
+                    <td style="font-weight:600;">${s.name}</td>
+                    <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
+                    <td style="text-align:center;">${s.point_1 ?? 0}</td>
+                    <td style="text-align:center;">${s.point_2 ?? 0}</td>
+                    <td style="text-align:center;">${s.free_throw ?? 0}</td>
+                    <td style="text-align:center; font-weight:800; color:var(--accent-teal); font-size:16px;">${s.goals}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    } else {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">⚽ Artilharia — Top ${scorers.length}</div>
+            <table class="stat-table">
+              <thead><tr><th style="width:36px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
+              <tbody>
+                ${scorers.map((s, i) => `
+                  <tr>
+                    <td style="color:var(--text-secondary); font-weight:600;">${i + 1}</td>
+                    <td>${athleteAvatar({name: s.name, id: s.athlete_id, photo_url: s.photo_url}, 32)}</td>
+                    <td style="font-weight:600;">${s.name}</td>
+                    <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
+                    <td style="text-align:center; font-weight:800; color:var(--accent-teal); font-size:16px;">${s.goals}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
   }
 
   // ================================================================
@@ -436,10 +478,14 @@
     const awayWin = hasScore && as_ > hs;
     const groupLabel = g.extra_data?.group ? ` · Grupo ${g.extra_data.group}` : '';
     const isVball = currentChamp?.sport?.slug === 'volleyball';
+    const isBball = currentChamp?.sport?.slug === 'basketball';
     const vballSets = isVball && g.extra_data?.volleyball?.sets;
+    const bballData = isBball && g.extra_data?.basketball;
     const setsDetail = vballSets
       ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${vballSets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
-      : '';
+      : bballData?.quarters
+        ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
+        : '';
     return `
       <div style="border-bottom:1px solid rgba(255,255,255,0.04);">
         <div class="game-row-pub">

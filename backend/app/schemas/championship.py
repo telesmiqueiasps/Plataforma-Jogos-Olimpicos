@@ -49,6 +49,7 @@ class ChampionshipUpdate(BaseModel):
 
 
 class ChampionshipConfigUpdate(BaseModel):
+    # Futsal / geral
     points_win: Optional[int] = None
     points_draw: Optional[int] = None
     points_loss: Optional[int] = None
@@ -58,6 +59,20 @@ class ChampionshipConfigUpdate(BaseModel):
     red_card_suspension_games: Optional[int] = None
     red_card_expulsion: Optional[bool] = None
     classifieds_per_group: Optional[int] = None
+    # Vôlei
+    best_of: Optional[int] = None
+    pts_win_easy: Optional[int] = None
+    pts_win_hard: Optional[int] = None
+    pts_loss_close: Optional[int] = None
+    pts_loss_easy: Optional[int] = None
+    # Basquete
+    quarter_duration: Optional[int] = None
+    quarter_count: Optional[int] = None
+    sudden_death_points: Optional[int] = None
+    overtime_win_points: Optional[int] = None
+    pts_win: Optional[int] = None
+    pts_loss: Optional[int] = None
+    pts_wo: Optional[int] = None
 
 
 class ChampionshipOut(BaseModel):

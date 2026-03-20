@@ -52,15 +52,22 @@ class VolleyballResultUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class BasketballQuarter(BaseModel):
+    home_points: int
+    away_points: int
+
+
 class GameResultBody(BaseModel):
-    """Body flexível — aceita futsal (home_score/away_score) e vôlei (sets).
-    Para vôlei, finalize=False salva os sets sem encerrar a partida (status fica 'live').
+    """Body flexível — aceita futsal (home_score/away_score), vôlei (sets) e basquete (quarters).
+    Para vôlei/basquete, finalize=False salva sem encerrar (status fica 'live').
     finalize=True (padrão) encerra a partida e muda status para 'finished'.
     """
     home_score: Optional[int] = None
     away_score: Optional[int] = None
     notes: Optional[str] = None
     sets: Optional[List[VolleyballSet]] = None
+    quarters: Optional[List[BasketballQuarter]] = None
+    overtime: Optional[BasketballQuarter] = None
     finalize: Optional[bool] = True
 
 

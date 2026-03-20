@@ -258,14 +258,26 @@
           </div>
           <div id="vball-summary" style="margin-top:12px; padding:10px 14px; background:var(--bg-tertiary); border-radius:8px; font-size:13px;"></div>
         </div>
+        <!-- Basquete: quartos -->
+        <div id="result-basketball-section" style="display:none;">
+          <div style="margin-bottom:10px; font-weight:600; font-size:14px;">Placar por Quarto</div>
+          <div id="bball-quarters-list"></div>
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-secondary" id="bball-add-overtime-btn" style="display:none;" onclick="toggleBballOvertime()">+ Adicionar Prorrogação</button>
+          </div>
+          <div id="bball-summary" style="margin-top:12px; padding:10px 14px; background:var(--bg-tertiary); border-radius:8px; font-size:13px;"></div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-result')">Cancelar</button>
         <!-- Futsal: botão único -->
         <button class="btn btn-primary" id="result-save-btn">Salvar Resultado</button>
         <!-- Vôlei: dois botões separados (ocultos por padrão) -->
-        <button class="btn btn-secondary" id="result-save-sets-btn" style="display:none;">Salvar Sets</button>
-        <button class="btn btn-primary" id="result-finalize-btn" style="display:none;" disabled>Encerrar Partida</button>
+        <button class="btn btn-secondary" id="result-save-sets-btn" style="display:none;">💾 Salvar Sets</button>
+        <button class="btn btn-primary" id="result-finalize-btn" style="display:none;" disabled>✅ Encerrar Partida</button>
+        <!-- Basquete: dois botões separados (ocultos por padrão) -->
+        <button class="btn btn-secondary" id="result-save-bball-btn" style="display:none;">💾 Salvar Quartos</button>
+        <button class="btn btn-primary" id="result-finalize-bball-btn" style="display:none;">✅ Encerrar Partida</button>
       </div>
     </div>
   </div>
@@ -321,6 +333,45 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-event')">Cancelar</button>
         <button class="btn btn-primary" id="event-save-btn">Registrar Evento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Registrar Ponto Basquete -->
+  <div class="modal-overlay" id="modal-bball-point">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <span class="modal-title">🏀 Registrar Ponto</span>
+        <button class="modal-close" onclick="closeModal('modal-bball-point')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="bball-point-alert" class="alert alert-error" style="display:none;"></div>
+        <div id="bball-point-score" style="text-align:center; font-size:20px; font-weight:800; color:var(--accent-purple); margin-bottom:16px;"></div>
+        <div class="form-group">
+          <label for="bball-point-team">Time</label>
+          <select id="bball-point-team" class="form-control" onchange="loadBballPointAthletes()">
+            <option value="home">Mandante</option>
+            <option value="away">Visitante</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="bball-point-type">Tipo de Arremesso</label>
+          <select id="bball-point-type" class="form-control">
+            <option value="point_1">🟠 1 Ponto (arco interno)</option>
+            <option value="point_2">🟣 2 Pontos (fora do arco)</option>
+            <option value="free_throw">⚪ Lance Livre (1 ponto)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="bball-point-athlete">Atleta</label>
+          <select id="bball-point-athlete" class="form-control">
+            <option value="">— Sem atleta específico —</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-bball-point')">Cancelar</button>
+        <button class="btn btn-primary" id="bball-point-save-btn">Registrar</button>
       </div>
     </div>
   </div>
@@ -524,10 +575,15 @@
       const homeName = g.home_team?.name || g.home_team_name || `Time #${g.home_team_id || '?'}`;
       const awayName = g.away_team?.name || g.away_team_name || `Time #${g.away_team_id || '?'}`;
 
-      const isVball = currentChamp?.sport?.slug === 'volleyball';
+      const isVball  = currentChamp?.sport?.slug === 'volleyball';
+      const isBball  = currentChamp?.sport?.slug === 'basketball';
       const vballSetsData = isVball && g.extra_data?.volleyball?.sets;
       const vballSetsStr = vballSetsData
         ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;">(${vballSetsData.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
+        : '';
+      const bballData = isBball && g.extra_data?.basketball;
+      const bballQuartersStr = bballData?.quarters
+        ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
         : '';
       return `
         <div style="border-bottom:1px solid var(--border);">
@@ -537,6 +593,7 @@
               ${hasScore
                 ? `<span style="font-size:18px; font-weight:800; color:var(--accent-purple);">${homeScore} × ${awayScore}</span>
                    ${vballSetsStr}
+                   ${bballQuartersStr}
                    ${(() => {
                      const r = g.result;
                      if (!r) return '';
@@ -561,7 +618,8 @@
               </div>
               <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
                 <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openResultModal(${g.id})">📝 Resultado</button>
-                ${!isVball ? `<button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openEventModal(${g.id})">⚡ Evento</button>` : ''}
+                ${isBball ? `<button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openBballPointModal(${g.id})">🏀 Registrar Ponto</button>` : ''}
+                ${!isVball && !isBball ? `<button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openEventModal(${g.id})">⚡ Evento</button>` : ''}
                 <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openEditGameModal(${g.id})">✏️ Editar</button>
                 <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="event.stopPropagation(); deleteGame(${g.id})">🗑️</button>
               </div>
@@ -762,6 +820,103 @@
     }
 
     // ---- Result modal ----
+    // ---- Basquete: gerenciamento de quartos ----
+    let bballQuarters = [];
+    let bballOvertime = null;  // null = sem prorrogação
+
+    function renderBballQuarters() {
+      const container = document.getElementById('bball-quarters-list');
+      if (!container) return;
+      const homeName = currentGameForModal?.home_team?.name || 'Mandante';
+      const awayName = currentGameForModal?.away_team?.name || 'Visitante';
+      const rules = currentChamp?.rules_config || {};
+      const suddenDeath = parseInt(rules.sudden_death_points || 21);
+
+      let html = bballQuarters.map((q, i) => `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="font-size:12px; color:var(--text-secondary); min-width:58px; flex-shrink:0;">${i + 1}º Quarto</span>
+          <input type="number" min="0" placeholder="${homeName}" value="${q.home}"
+            class="form-control" style="flex:1; text-align:center;"
+            oninput="bballQuarters[${i}].home=this.value; updateBballSummary()">
+          <span style="color:var(--text-secondary);">–</span>
+          <input type="number" min="0" placeholder="${awayName}" value="${q.away}"
+            class="form-control" style="flex:1; text-align:center;"
+            oninput="bballQuarters[${i}].away=this.value; updateBballSummary()">
+        </div>`).join('');
+
+      if (bballOvertime !== null) {
+        html += `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; padding-top:8px; border-top:1px dashed var(--border);">
+          <span style="font-size:12px; color:var(--accent-teal); min-width:58px; flex-shrink:0; font-weight:600;">Prórr.</span>
+          <input type="number" min="0" placeholder="${homeName}" value="${bballOvertime.home}"
+            class="form-control" style="flex:1; text-align:center;"
+            oninput="bballOvertime.home=this.value; updateBballSummary()">
+          <span style="color:var(--text-secondary);">–</span>
+          <input type="number" min="0" placeholder="${awayName}" value="${bballOvertime.away}"
+            class="form-control" style="flex:1; text-align:center;"
+            oninput="bballOvertime.away=this.value; updateBballSummary()">
+          <button type="button" class="btn btn-sm btn-ghost" style="color:var(--error); padding:4px 8px;" onclick="removeBballOvertime()">✕</button>
+        </div>`;
+      }
+
+      container.innerHTML = html;
+
+      // Mostra botão de prorrogação após quartos preenchidos
+      const overtimeBtn = document.getElementById('bball-add-overtime-btn');
+      if (overtimeBtn) overtimeBtn.style.display = bballOvertime === null ? '' : 'none';
+
+      updateBballSummary();
+    }
+
+    function toggleBballOvertime() {
+      if (bballOvertime === null) {
+        bballOvertime = { home: '', away: '' };
+      }
+      renderBballQuarters();
+    }
+
+    function removeBballOvertime() {
+      bballOvertime = null;
+      renderBballQuarters();
+    }
+
+    function updateBballSummary() {
+      const summary = document.getElementById('bball-summary');
+      if (!summary) return;
+      const rules = currentChamp?.rules_config || {};
+      const suddenDeath = parseInt(rules.sudden_death_points || 21);
+      const homeName = currentGameForModal?.home_team?.name || 'Mandante';
+      const awayName = currentGameForModal?.away_team?.name || 'Visitante';
+
+      let homeTotal = 0, awayTotal = 0;
+      for (const q of bballQuarters) {
+        homeTotal += parseInt(q.home) || 0;
+        awayTotal += parseInt(q.away) || 0;
+      }
+
+      // Pontos do tempo normal (sem prorrogação) para morte súbita
+      const homeNormal = homeTotal;
+      const awayNormal = awayTotal;
+
+      if (bballOvertime) {
+        homeTotal += parseInt(bballOvertime.home) || 0;
+        awayTotal += parseInt(bballOvertime.away) || 0;
+      }
+
+      const isSuddenDeath = homeNormal >= suddenDeath || awayNormal >= suddenDeath;
+      const suddenDeathBadge = isSuddenDeath
+        ? `<div style="margin-top:6px;"><span style="background:#ea580c; color:#fff; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:700;">⚡ Morte Súbita Ativada!</span></div>`
+        : '';
+
+      let winner = '';
+      if (homeTotal > awayTotal) winner = `<div style="margin-top:6px; font-size:11px; color:var(--accent-teal);">🏆 ${homeName} vence (+2 Tab.Pts, ${awayName} +1)</div>`;
+      else if (awayTotal > homeTotal) winner = `<div style="margin-top:6px; font-size:11px; color:var(--accent-teal);">🏆 ${awayName} vence (+2 Tab.Pts, ${homeName} +1)</div>`;
+
+      summary.innerHTML = `
+        <div style="font-weight:700;">${homeName} <span style="color:var(--accent-purple);">${homeTotal}</span> × <span style="color:var(--accent-purple);">${awayTotal}</span> ${awayName}</div>
+        ${suddenDeathBadge}${winner}`;
+    }
+
     // ---- Vôlei: gerenciamento de sets ----
     let vballSets = [];
 
@@ -845,22 +1000,37 @@
       document.getElementById('result-away-name').textContent = awayName;
       document.getElementById('result-alert').style.display = 'none';
 
-      const isVball = currentChamp?.sport?.slug === 'volleyball';
-      document.getElementById('result-futsal-section').style.display    = isVball ? 'none' : '';
-      document.getElementById('result-volleyball-section').style.display = isVball ? '' : 'none';
-      document.getElementById('result-save-btn').style.display           = isVball ? 'none' : '';
-      document.getElementById('result-save-sets-btn').style.display      = isVball ? '' : 'none';
-      document.getElementById('result-finalize-btn').style.display       = isVball ? '' : 'none';
+      const isVball  = currentChamp?.sport?.slug === 'volleyball';
+      const isBball  = currentChamp?.sport?.slug === 'basketball';
+      document.getElementById('result-futsal-section').style.display      = (!isVball && !isBball) ? '' : 'none';
+      document.getElementById('result-volleyball-section').style.display  = isVball  ? '' : 'none';
+      document.getElementById('result-basketball-section').style.display  = isBball  ? '' : 'none';
+      document.getElementById('result-save-btn').style.display            = (!isVball && !isBball) ? '' : 'none';
+      document.getElementById('result-save-sets-btn').style.display       = isVball  ? '' : 'none';
+      document.getElementById('result-finalize-btn').style.display        = isVball  ? '' : 'none';
+      document.getElementById('result-save-bball-btn').style.display      = isBball  ? '' : 'none';
+      document.getElementById('result-finalize-bball-btn').style.display  = isBball  ? '' : 'none';
 
       if (isVball) {
         // Pré-preenche sets se já existem
         const existing = game.extra_data?.volleyball?.sets;
         const bestOf = currentChamp?.rules_config?.best_of || 5;
-        const defaultSets = bestOf === 3 ? 2 : 3;  // inicia com o mínimo de sets necessários
+        const defaultSets = bestOf === 3 ? 2 : 3;
         vballSets = existing
           ? existing.map(s => ({ home: String(s.home_points), away: String(s.away_points) }))
           : Array.from({ length: defaultSets }, () => ({ home: '', away: '' }));
         renderVballSets();
+      } else if (isBball) {
+        // Pré-preenche quartos se já existem
+        const existingBball = game.extra_data?.basketball;
+        const quarterCount = currentChamp?.rules_config?.quarter_count || 4;
+        bballQuarters = existingBball?.quarters
+          ? existingBball.quarters.map(q => ({ home: String(q.home_points), away: String(q.away_points) }))
+          : Array.from({ length: quarterCount }, () => ({ home: '', away: '' }));
+        bballOvertime = existingBball?.overtime
+          ? { home: String(existingBball.overtime.home_points), away: String(existingBball.overtime.away_points) }
+          : null;
+        renderBballQuarters();
       } else {
         document.getElementById('result-home-score').value = game.result?.home_score ?? '';
         document.getElementById('result-away-score').value = game.result?.away_score ?? '';
@@ -900,6 +1070,52 @@
 
     // Vôlei: encerrar partida
     document.getElementById('result-finalize-btn').addEventListener('click', () => saveVballResult(true));
+
+    // Basquete: salvar quartos sem encerrar
+    document.getElementById('result-save-bball-btn').addEventListener('click', () => saveBballResult(false));
+
+    // Basquete: encerrar partida
+    document.getElementById('result-finalize-bball-btn').addEventListener('click', () => saveBballResult(true));
+
+    async function saveBballResult(finalize) {
+      if (!currentGameForModal) return;
+      const btn = finalize
+        ? document.getElementById('result-finalize-bball-btn')
+        : document.getElementById('result-save-bball-btn');
+      const alertEl = document.getElementById('result-alert');
+      alertEl.style.display = 'none';
+
+      const filled = bballQuarters.filter(q => q.home !== '' && q.away !== '');
+      if (!filled.length) {
+        alertEl.textContent = 'Informe ao menos um quarto completo.';
+        alertEl.style.display = 'flex';
+        return;
+      }
+
+      const payload = {
+        quarters: filled.map(q => ({ home_points: parseInt(q.home) || 0, away_points: parseInt(q.away) || 0 })),
+        finalize,
+      };
+      if (bballOvertime && (bballOvertime.home !== '' || bballOvertime.away !== '')) {
+        payload.overtime = {
+          home_points: parseInt(bballOvertime.home) || 0,
+          away_points: parseInt(bballOvertime.away) || 0,
+        };
+      }
+
+      btnLoading(btn, true, 'Salvando...');
+      try {
+        await GamesAPI.setResult(currentGameForModal.id, payload);
+        closeModal('modal-result');
+        showToast(finalize ? 'Partida encerrada!' : 'Quartos salvos! Continue o jogo.', 'success');
+        loadGames(currentChamp.id);
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
 
     async function saveVballResult(finalize) {
       if (!currentGameForModal) return;
@@ -944,6 +1160,93 @@
         btnLoading(btn, false);
       }
     }
+
+    // ---- Basketball Point modal ----
+    let bballPointGameAthletes = { home: [], away: [] };
+
+    async function openBballPointModal(gameId) {
+      const game = gamesById[gameId];
+      if (!game) return;
+      currentGameForModal = game;
+      const homeName = game.home_team?.name || 'Mandante';
+      const awayName = game.away_team?.name || 'Visitante';
+
+      // Atualiza opções de time
+      const teamSel = document.getElementById('bball-point-team');
+      teamSel.options[0].text = `Mandante — ${homeName}`;
+      teamSel.options[1].text = `Visitante — ${awayName}`;
+      teamSel.value = 'home';
+
+      // Atualiza placar atual
+      updateBballPointScore(game);
+
+      // Carrega atletas de ambos os times
+      try {
+        const homeId = game.home_team_id;
+        const awayId = game.away_team_id;
+        const [homeAthletes, awayAthletes] = await Promise.all([
+          homeId ? TeamsAPI.athletes(homeId).catch(() => []) : Promise.resolve([]),
+          awayId ? TeamsAPI.athletes(awayId).catch(() => []) : Promise.resolve([]),
+        ]);
+        bballPointGameAthletes = { home: homeAthletes, away: awayAthletes };
+      } catch {
+        bballPointGameAthletes = { home: [], away: [] };
+      }
+
+      loadBballPointAthletes();
+      document.getElementById('bball-point-alert').style.display = 'none';
+      openModal('modal-bball-point');
+    }
+
+    function updateBballPointScore(game) {
+      const el = document.getElementById('bball-point-score');
+      if (!el || !game) return;
+      const homeName = game.home_team?.name || 'Mandante';
+      const awayName = game.away_team?.name || 'Visitante';
+      const hs = game.result?.home_score ?? 0;
+      const as_ = game.result?.away_score ?? 0;
+      el.textContent = `${homeName} ${hs} × ${as_} ${awayName}`;
+    }
+
+    function loadBballPointAthletes() {
+      const side = document.getElementById('bball-point-team').value;
+      const athletes = bballPointGameAthletes[side] || [];
+      const sel = document.getElementById('bball-point-athlete');
+      sel.innerHTML = '<option value="">— Sem atleta específico —</option>' +
+        athletes.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    }
+
+    document.getElementById('bball-point-save-btn').addEventListener('click', async () => {
+      if (!currentGameForModal) return;
+      const btn = document.getElementById('bball-point-save-btn');
+      const alertEl = document.getElementById('bball-point-alert');
+      alertEl.style.display = 'none';
+
+      const side = document.getElementById('bball-point-team').value;
+      const eventType = document.getElementById('bball-point-type').value;
+      const athleteId = document.getElementById('bball-point-athlete').value;
+      const teamId = side === 'home' ? currentGameForModal.home_team_id : currentGameForModal.away_team_id;
+
+      const payload = {
+        event_type: eventType,
+        team_id: teamId,
+        athlete_id: athleteId ? Number(athleteId) : null,
+      };
+
+      btnLoading(btn, true, 'Registrando...');
+      try {
+        await GamesAPI.addEvent(currentGameForModal.id, payload);
+        showToast('Ponto registrado!', 'success');
+        // Recarrega o jogo para atualizar o placar
+        loadGames(currentChamp.id);
+        closeModal('modal-bball-point');
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = 'flex';
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
 
     // ---- Event modal ----
     async function openEventModal(gameId) {

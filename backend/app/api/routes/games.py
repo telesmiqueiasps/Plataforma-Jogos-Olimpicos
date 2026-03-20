@@ -90,8 +90,10 @@ def set_result(
     """Registra ou atualiza o resultado de um jogo e marca status como 'finished'.
     - Futsal: enviar home_score e away_score
     - Vôlei: enviar sets = [{home_points, away_points}, ...]
+    - Basquete: enviar quarters = [{home_points, away_points}, ...] + overtime (opcional)
     """
     from app.services.volleyball_service import calculate_match_points
+    from app.services.basketball_service import calculate_match_points_table as bball_table_pts
 
     game = _get_game_or_404(game_id, db)
 
@@ -101,7 +103,63 @@ def set_result(
         else None
     )
 
-    if sport_slug == "volleyball":
+    if sport_slug == "basketball":
+        if not data.quarters:
+            raise HTTPException(status_code=400, detail="Para basquete, envie 'quarters' no body")
+
+        finalize = data.finalize if data.finalize is not None else True
+
+        # Soma quartos + prorrogação
+        all_periods = list(data.quarters)
+        if data.overtime:
+            all_periods.append(data.overtime)
+
+        home_score = sum(q.home_points for q in all_periods)
+        away_score = sum(q.away_points for q in all_periods)
+        home_table_pts, away_table_pts = bball_table_pts(home_score, away_score)
+        notes = data.notes
+
+        extra = dict(game.extra_data or {})
+        extra["basketball"] = {
+            "quarters": [
+                {"home_points": q.home_points, "away_points": q.away_points}
+                for q in data.quarters
+            ],
+            "overtime": (
+                {"home_points": data.overtime.home_points, "away_points": data.overtime.away_points}
+                if data.overtime else None
+            ),
+            "sport": "basketball",
+            "table_points": {"home": home_table_pts, "away": away_table_pts},
+        }
+        game.extra_data = extra
+
+        if game.result:
+            game.result.home_score = home_score
+            game.result.away_score = away_score
+            game.result.notes = notes
+            game.result.updated_by = current_user.id
+        else:
+            result = GameResult(
+                game_id=game_id,
+                home_score=home_score,
+                away_score=away_score,
+                notes=notes,
+                created_by=current_user.id,
+            )
+            db.add(result)
+            game.result = result
+
+        if finalize:
+            game.status = "finished"
+        elif game.status == "scheduled":
+            game.status = "live"
+
+        db.commit()
+        db.refresh(game)
+        return game.result
+
+    elif sport_slug == "volleyball":
         if not data.sets:
             raise HTTPException(status_code=400, detail="Para vôlei, envie 'sets' no body")
 
@@ -208,7 +266,14 @@ def add_event(
     db.refresh(event)
 
     susp_info = None
-    if data.event_type in ("yellow_card", "red_card") and data.athlete_id:
+    # Basquete: não processa suspensões por cartão por padrão
+    sport_slug_ev = (
+        game.championship.sport.slug
+        if game.championship and game.championship.sport
+        else None
+    )
+    is_basketball = sport_slug_ev == "basketball"
+    if data.event_type in ("yellow_card", "red_card") and data.athlete_id and not is_basketball:
         champ = game.championship
         rules = champ.rules_config or {}
         result = suspension_service.process_card_event(

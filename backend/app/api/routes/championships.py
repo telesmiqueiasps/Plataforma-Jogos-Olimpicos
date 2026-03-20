@@ -754,9 +754,10 @@ def _resolve_slot(slot: Optional[str], champ: Championship, db: Session, groups_
 def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
     """
     Retorna:
-    - scorers: artilheiros (top 10 por gols)
-    - cards: tabela de cartões por atleta
+    - scorers: artilheiros (top 10 por gols) ou cestinhas para basquete
+    - cards: tabela de cartões por atleta (vazio para basquete)
     - suspensions: suspensões ativas (games_remaining > 0)
+    - sport: slug da modalidade
     """
     champ = _get_championship_or_404(championship_id, db)
 
@@ -764,8 +765,10 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
         row[0] for row in db.query(Game.id).filter(Game.championship_id == championship_id).all()
     ]
 
+    sport_slug_stats = champ.sport.slug if champ.sport else None
+
     if not all_game_ids:
-        return {"scorers": [], "cards": [], "suspensions": []}
+        return {"scorers": [], "cards": [], "suspensions": [], "sport": sport_slug_stats}
 
     finished_game_ids = [
         row[0] for row in db.query(Game.id).filter(
@@ -774,40 +777,60 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
         ).all()
     ]
 
-    # --- Gols ---
+    # --- Gols (futsal) ou Cestinhas (basquete) ---
     goal_counts: dict = {}
-    if finished_game_ids:
+    bball_scorer_counts: dict = {}
+
+    if sport_slug_stats == "basketball":
+        # Basquete: contabiliza pontos por atleta via eventos
         for ev in db.query(GameEvent).filter(
-            GameEvent.game_id.in_(finished_game_ids),
-            GameEvent.event_type == "goal",
+            GameEvent.game_id.in_(all_game_ids),
+            GameEvent.event_type.in_(["point_1", "point_2", "free_throw"]),
             GameEvent.athlete_id.isnot(None),
         ).all():
-            if ev.athlete_id not in goal_counts:
-                goal_counts[ev.athlete_id] = {"count": 0, "team_id": ev.team_id}
-            goal_counts[ev.athlete_id]["count"] += 1
+            pts_value = 2 if ev.event_type == "point_2" else 1
+            if ev.athlete_id not in bball_scorer_counts:
+                bball_scorer_counts[ev.athlete_id] = {
+                    "point_1": 0, "point_2": 0, "free_throw": 0,
+                    "total": 0, "team_id": ev.team_id,
+                }
+            bball_scorer_counts[ev.athlete_id][ev.event_type] += 1
+            bball_scorer_counts[ev.athlete_id]["total"] += pts_value
+    else:
+        # Futsal e demais: contabiliza gols
+        if finished_game_ids:
+            for ev in db.query(GameEvent).filter(
+                GameEvent.game_id.in_(finished_game_ids),
+                GameEvent.event_type == "goal",
+                GameEvent.athlete_id.isnot(None),
+            ).all():
+                if ev.athlete_id not in goal_counts:
+                    goal_counts[ev.athlete_id] = {"count": 0, "team_id": ev.team_id}
+                goal_counts[ev.athlete_id]["count"] += 1
 
-    # --- Cartões ---
+    # --- Cartões (não para basquete) ---
     card_counts: dict = {}
-    for ev in db.query(GameEvent).filter(
-        GameEvent.game_id.in_(all_game_ids),
-        GameEvent.event_type.in_(["yellow_card", "red_card"]),
-        GameEvent.athlete_id.isnot(None),
-    ).all():
-        if ev.athlete_id not in card_counts:
-            card_counts[ev.athlete_id] = {"yellow": 0, "red": 0, "team_id": ev.team_id}
-        if ev.event_type == "yellow_card":
-            card_counts[ev.athlete_id]["yellow"] += 1
-        else:
-            card_counts[ev.athlete_id]["red"] += 1
+    if sport_slug_stats != "basketball":
+        for ev in db.query(GameEvent).filter(
+            GameEvent.game_id.in_(all_game_ids),
+            GameEvent.event_type.in_(["yellow_card", "red_card"]),
+            GameEvent.athlete_id.isnot(None),
+        ).all():
+            if ev.athlete_id not in card_counts:
+                card_counts[ev.athlete_id] = {"yellow": 0, "red": 0, "team_id": ev.team_id}
+            if ev.event_type == "yellow_card":
+                card_counts[ev.athlete_id]["yellow"] += 1
+            else:
+                card_counts[ev.athlete_id]["red"] += 1
 
     # --- Carrega atletas e times ---
-    all_athlete_ids = set(goal_counts.keys()) | set(card_counts.keys())
+    all_athlete_ids = set(goal_counts.keys()) | set(card_counts.keys()) | set(bball_scorer_counts.keys())
     athletes: dict = {}
     if all_athlete_ids:
         athletes = {a.id: a for a in db.query(Athlete).filter(Athlete.id.in_(all_athlete_ids)).all()}
 
     all_team_ids = set()
-    for d in list(goal_counts.values()) + list(card_counts.values()):
+    for d in list(goal_counts.values()) + list(card_counts.values()) + list(bball_scorer_counts.values()):
         if d.get("team_id"):
             all_team_ids.add(d["team_id"])
     teams_map: dict = {}
@@ -822,21 +845,41 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
         t = teams_map.get(team_id)
         return t.logo_url if t else None
 
-    scorers = sorted(
-        [
-            {
-                "athlete_id": aid,
-                "name": athletes[aid].name if aid in athletes else "—",
-                "photo_url": athletes[aid].photo_url if aid in athletes else None,
-                "goals": d["count"],
-                "team_id": d["team_id"],
-                "team_name": _team_name(d["team_id"]) if d["team_id"] else "—",
-                "team_logo_url": _team_logo(d["team_id"]) if d["team_id"] else None,
-            }
-            for aid, d in goal_counts.items()
-        ],
-        key=lambda x: -x["goals"],
-    )[:10]
+    if sport_slug_stats == "basketball":
+        scorers = sorted(
+            [
+                {
+                    "athlete_id": aid,
+                    "name": athletes[aid].name if aid in athletes else "—",
+                    "photo_url": athletes[aid].photo_url if aid in athletes else None,
+                    "goals": d["total"],
+                    "point_1": d["point_1"],
+                    "point_2": d["point_2"],
+                    "free_throw": d["free_throw"],
+                    "team_id": d["team_id"],
+                    "team_name": _team_name(d["team_id"]) if d["team_id"] else "—",
+                    "team_logo_url": _team_logo(d["team_id"]) if d["team_id"] else None,
+                }
+                for aid, d in bball_scorer_counts.items()
+            ],
+            key=lambda x: -x["goals"],
+        )[:10]
+    else:
+        scorers = sorted(
+            [
+                {
+                    "athlete_id": aid,
+                    "name": athletes[aid].name if aid in athletes else "—",
+                    "photo_url": athletes[aid].photo_url if aid in athletes else None,
+                    "goals": d["count"],
+                    "team_id": d["team_id"],
+                    "team_name": _team_name(d["team_id"]) if d["team_id"] else "—",
+                    "team_logo_url": _team_logo(d["team_id"]) if d["team_id"] else None,
+                }
+                for aid, d in goal_counts.items()
+            ],
+            key=lambda x: -x["goals"],
+        )[:10]
 
     cards_list = sorted(
         [
@@ -881,7 +924,7 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
             "expulsion": s.games_remaining >= 999,
         })
 
-    return {"scorers": scorers, "cards": cards_list, "suspensions": susp_list}
+    return {"scorers": scorers, "cards": cards_list, "suspensions": susp_list, "sport": sport_slug_stats}
 
 
 # ---------------------------------------------------------------------------
@@ -946,16 +989,71 @@ def _build_volleyball_standings(
     ]
 
 
+def _build_basketball_standings(
+    champ: Championship,
+    db: Session,
+    group: Optional[str] = None,
+    phase: Optional[str] = None,
+) -> list[StandingEntry]:
+    """Calcula standings para campeonatos de basquete usando basketball_service."""
+    from app.services import basketball_service
+
+    team_names: dict[int, str] = {
+        link.team_id: link.team.name for link in champ.team_links
+    }
+
+    group_upper = group.upper() if group else None
+    if group_upper:
+        groups_data = (champ.extra_data or {}).get("groups", [])
+        group_data = next((g for g in groups_data if g["group"] == group_upper), None)
+        if group_data:
+            group_ids = {t["id"] for t in group_data["teams"]}
+            team_names = {tid: name for tid, name in team_names.items() if tid in group_ids}
+
+    q = db.query(Game).filter(Game.championship_id == champ.id, Game.status == "finished")
+    effective_phase = (phase or "groups") if group_upper else phase
+    if effective_phase:
+        q = q.filter(Game.phase == effective_phase)
+
+    finished_games = q.all()
+    if group_upper:
+        finished_games = [g for g in finished_games if (g.extra_data or {}).get("group") == group_upper]
+
+    rules = champ.rules_config or {}
+    entries = basketball_service.calculate_basketball_standings(finished_games, rules, team_names)
+
+    return [
+        StandingEntry(
+            position=e["position"],
+            team_id=e["team_id"],
+            team_name=e["team_name"],
+            games_played=e["games_played"],
+            wins=e["wins"],
+            draws=e["draws"],
+            losses=e["losses"],
+            goals_for=e["goals_for"],
+            goals_against=e["goals_against"],
+            goal_diff=e["goal_diff"],
+            points=e["points"],
+            points_scored=e["points_scored"],
+            points_against=e["points_against"],
+        )
+        for e in entries
+    ]
+
+
 def _build_standings(
     champ: Championship,
     db: Session,
     group: Optional[str] = None,
     phase: Optional[str] = None,
 ) -> list[StandingEntry]:
-    # Detecta modalidade — vôlei usa lógica própria
+    # Detecta modalidade — vôlei e basquete usam lógica própria
     sport_slug = champ.sport.slug if champ.sport else None
     if sport_slug == "volleyball":
         return _build_volleyball_standings(champ, db, group, phase)
+    if sport_slug == "basketball":
+        return _build_basketball_standings(champ, db, group, phase)
 
     rules        = champ.rules_config or {}
     pts_win      = rules.get("points_win",  3)

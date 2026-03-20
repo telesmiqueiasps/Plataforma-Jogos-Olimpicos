@@ -185,6 +185,52 @@
           <!-- ---- ABA: Configurações ---- -->
           <div id="tab-config" style="display:none;">
 
+            <!-- === Configurações específicas de BASQUETE === -->
+            <div id="cfg-basketball-section" style="display:none;">
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:16px; font-size:15px;">🏀 Configurações de Basquete</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Nº de Quartos</label>
+                      <input type="number" id="cfg-bball-quarter-count" class="form-control" value="4" min="1" max="8">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Duração do Quarto (min)</label>
+                      <input type="number" id="cfg-bball-quarter-duration" class="form-control" value="10" min="1">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Morte Súbita (pontos)</label>
+                      <input type="number" id="cfg-bball-sudden-death" class="form-control" value="21" min="1">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Prorrogação — vence com (pts)</label>
+                      <input type="number" id="cfg-bball-overtime-pts" class="form-control" value="2" min="1">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:16px; font-size:15px;">Pontuação na Tabela (Basquete)</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Vitória</label>
+                      <input type="number" id="cfg-bball-pts-win" class="form-control" value="2" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Derrota</label>
+                      <input type="number" id="cfg-bball-pts-loss" class="form-control" value="1" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>WO / Desistência</label>
+                      <input type="number" id="cfg-bball-pts-wo" class="form-control" value="0" min="0">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- === Configurações específicas de VÔLEI === -->
             <div id="cfg-volleyball-section" style="display:none;">
               <div class="card" style="margin-bottom:16px;">
@@ -455,6 +501,31 @@
               <div style="font-size:11px; color:var(--text-secondary);">Pontuação automática: 3-0/3-1 = 3pts · 3-2 = 2pts · 2-3 = 1pt · 0-3/1-3 = 0pts</div>
             </div>
           </div>
+          <!-- Config extra para Basquete -->
+          <div id="bball-champ-config" style="display:none; margin-bottom:4px;">
+            <div style="background:rgba(234,88,12,0.08); border:1px solid rgba(234,88,12,0.2); border-radius:8px; padding:12px 14px; margin-bottom:12px;">
+              <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:#ea580c;">🏀 Configurações de Basquete</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div class="form-group" style="margin:0;">
+                  <label style="font-size:12px;">Nº de Quartos</label>
+                  <input type="number" id="bball-quarter-count" class="form-control" value="4" min="1" max="8">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label style="font-size:12px;">Duração (min)</label>
+                  <input type="number" id="bball-quarter-duration" class="form-control" value="10" min="1">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label style="font-size:12px;">Morte súbita (pts)</label>
+                  <input type="number" id="bball-sudden-death" class="form-control" value="21" min="1">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label style="font-size:12px;">Prorrog. vence com (pts)</label>
+                  <input type="number" id="bball-overtime-pts" class="form-control" value="2" min="1">
+                </div>
+              </div>
+              <div style="font-size:11px; color:var(--text-secondary); margin-top:8px;">Pontuação na tabela: Vitória = 2pts · Derrota = 1pt · WO = 0pts</div>
+            </div>
+          </div>
 
           <div class="form-group" id="champ-teams-section" style="display:none;">
             <label>Equipes Inscritas (opcional)</label>
@@ -501,10 +572,18 @@
       goal_difference: 'Saldo de Gols', goals_scored: 'Gols Pró', head_to_head: 'Confronto Direto',
       set_difference: 'Saldo de Sets', set_average: 'Índice de Sets',
       points_average: 'Índice de Pontos (sets)', points_scored: 'Pontos Feitos',
+      // Basquete
+      table_points: 'Pontos na Tabela', point_difference: 'Saldo de Pontos',
+      confronto_direto: 'Confronto Direto', saldo_pontos: 'Saldo de Pontos',
+      pontos_convertidos: 'Pontos Convertidos', pontos_sofridos: 'Pontos Sofridos',
     };
 
     function isVolleyball() {
       return currentChamp?.sport?.slug === 'volleyball';
+    }
+
+    function isBasketball() {
+      return currentChamp?.sport?.slug === 'basketball';
     }
 
     // ================================================================
@@ -683,8 +762,10 @@
       sportSel.onchange = () => {
         const sportId = sportSel.value;
         const sport = allSports.find(s => s.id === Number(sportId));
-        const isVball = sport?.slug === 'volleyball';
-        document.getElementById('vball-champ-config').style.display = isVball ? '' : 'none';
+        const isVball  = sport?.slug === 'volleyball';
+        const isBball  = sport?.slug === 'basketball';
+        document.getElementById('vball-champ-config').style.display  = isVball  ? '' : 'none';
+        document.getElementById('bball-champ-config').style.display  = isBball  ? '' : 'none';
         renderModalTeamsList(sportId);
         _updateSportIcon();
       };
@@ -757,7 +838,7 @@
       if (start_date) data.start_date = start_date;
       if (end_date) data.end_date = end_date;
 
-      // Adiciona config de vôlei se selecionado
+      // Adiciona config de vôlei ou basquete se selecionado
       const sportSel = document.getElementById('champ-sport');
       const selSport = allSports.find(s => s.id === Number(sportSel.value));
       if (selSport?.slug === 'volleyball') {
@@ -769,6 +850,15 @@
           tiebreaker_order: ['points', 'wins', 'set_difference', 'set_average', 'points_average'],
         };
         data.extra_data = { best_of: bestOf };
+      } else if (selSport?.slug === 'basketball') {
+        data.rules_config = {
+          quarter_count:        Number(document.getElementById('bball-quarter-count')?.value    || 4),
+          quarter_duration:     Number(document.getElementById('bball-quarter-duration')?.value || 10),
+          sudden_death_points:  Number(document.getElementById('bball-sudden-death')?.value     || 21),
+          overtime_win_points:  Number(document.getElementById('bball-overtime-pts')?.value     || 2),
+          pts_win: 2, pts_loss: 1, pts_wo: 0,
+          tiebreaker_order: ['table_points', 'wins', 'point_difference', 'points_scored', 'pontos_sofridos', 'confronto_direto'],
+        };
       }
 
       if (editChampId) {
@@ -931,11 +1021,13 @@
       try {
         const cfg = await ChampAPI.config(currentChamp.id);
         const vball = isVolleyball();
+        const bball = isBasketball();
 
         // Mostra/oculta seções dependentes de modalidade
-        document.getElementById('cfg-volleyball-section').style.display = vball ? '' : 'none';
-        document.getElementById('cfg-futsal-pts').style.display         = vball ? 'none' : '';
-        document.getElementById('cfg-cards-section').style.display      = vball ? 'none' : 'grid';
+        document.getElementById('cfg-volleyball-section').style.display  = vball  ? '' : 'none';
+        document.getElementById('cfg-basketball-section').style.display  = bball  ? '' : 'none';
+        document.getElementById('cfg-futsal-pts').style.display          = (vball || bball) ? 'none' : '';
+        document.getElementById('cfg-cards-section').style.display       = (vball || bball) ? 'none' : 'grid';
 
         if (vball) {
           // Vôlei
@@ -947,6 +1039,18 @@
           tiebreakerOrder = cfg.tiebreaker_order?.length
             ? cfg.tiebreaker_order
             : ['points', 'wins', 'set_difference', 'set_average', 'points_average'];
+        } else if (bball) {
+          // Basquete
+          document.getElementById('cfg-bball-quarter-count').value    = cfg.quarter_count       ?? 4;
+          document.getElementById('cfg-bball-quarter-duration').value = cfg.quarter_duration    ?? 10;
+          document.getElementById('cfg-bball-sudden-death').value     = cfg.sudden_death_points ?? 21;
+          document.getElementById('cfg-bball-overtime-pts').value     = cfg.overtime_win_points ?? 2;
+          document.getElementById('cfg-bball-pts-win').value          = cfg.pts_win             ?? 2;
+          document.getElementById('cfg-bball-pts-loss').value         = cfg.pts_loss            ?? 1;
+          document.getElementById('cfg-bball-pts-wo').value           = cfg.pts_wo              ?? 0;
+          tiebreakerOrder = cfg.tiebreaker_order?.length
+            ? cfg.tiebreaker_order
+            : ['table_points', 'wins', 'point_difference', 'points_scored', 'pontos_sofridos', 'confronto_direto'];
         } else {
           // Futsal / demais
           document.getElementById('cfg-pts-win').value  = cfg.points_win  ?? 3;
@@ -991,6 +1095,7 @@
       alertEl.style.display = 'none';
 
       const vball = isVolleyball();
+      const bball = isBasketball();
       let data;
 
       if (vball) {
@@ -1002,6 +1107,18 @@
           pts_win_hard:     Number(document.getElementById('cfg-vball-pts-win-hard').value),
           pts_loss_close:   Number(document.getElementById('cfg-vball-pts-loss-close').value),
           pts_loss_easy:    Number(document.getElementById('cfg-vball-pts-loss-easy').value),
+        };
+      } else if (bball) {
+        data = {
+          tiebreaker_order:     tiebreakerOrder,
+          classifieds_per_group: Number(document.getElementById('cfg-classifieds').value),
+          quarter_count:        Number(document.getElementById('cfg-bball-quarter-count').value),
+          quarter_duration:     Number(document.getElementById('cfg-bball-quarter-duration').value),
+          sudden_death_points:  Number(document.getElementById('cfg-bball-sudden-death').value),
+          overtime_win_points:  Number(document.getElementById('cfg-bball-overtime-pts').value),
+          pts_win:              Number(document.getElementById('cfg-bball-pts-win').value),
+          pts_loss:             Number(document.getElementById('cfg-bball-pts-loss').value),
+          pts_wo:               Number(document.getElementById('cfg-bball-pts-wo').value),
         };
       } else {
         data = {
@@ -1146,13 +1263,16 @@
 
     function renderGroupCard(g, standings) {
       const vball = isVolleyball();
+      const bball = isBasketball();
       const standingsHtml = standings && standings.length
         ? `<table class="standings-table" style="margin-top:12px;">
             <thead><tr>
               <th class="pos">#</th><th>Equipe</th>
               ${vball
                 ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Saldo</th><th>S.Avg</th><th class="pts">Pts</th>'
-                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
+                : bball
+                  ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
+                  : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
             </tr></thead>
             <tbody>
               ${standings.map((s) => `
@@ -1165,11 +1285,16 @@
                        <td>${(s.set_difference ?? 0) >= 0 ? '+' : ''}${s.set_difference ?? 0}</td>
                        <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
                        <td class="pts">${s.points}</td>`
-                    : `<td>${s.games_played}</td><td>${s.wins}</td>
-                       <td>${s.draws}</td><td>${s.losses}</td>
-                       <td>${s.goals_for}</td><td>${s.goals_against}</td>
-                       <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                       <td class="pts">${s.points}</td>`}
+                    : bball
+                      ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
+                         <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                         <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                         <td class="pts">${s.points}</td>`
+                      : `<td>${s.games_played}</td><td>${s.wins}</td>
+                         <td>${s.draws}</td><td>${s.losses}</td>
+                         <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                         <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                         <td class="pts">${s.points}</td>`}
                 </tr>
               `).join('')}
             </tbody>
@@ -1632,28 +1757,37 @@
                 <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:16px;">
                   ${groups.map((g, idx) => {
                     const st = allSt[idx];
+                    const _vball = isVolleyball();
+                    const _bball = isBasketball();
                     return `<div>
                       <div style="font-weight:700; color:var(--accent-purple); margin-bottom:8px; font-size:14px;">Grupo ${g.group}</div>
                       ${st && st.length ? `
                         <table class="standings-table">
                           <thead><tr><th class="pos">#</th><th>Equipe</th>
-                            ${isVolleyball()
+                            ${_vball
                               ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Avg</th><th class="pts">Pts</th>'
-                              : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
+                              : _bball
+                                ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
+                                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
                           </tr></thead>
                           <tbody>
                             ${st.map(s => `<tr>
                               <td class="pos">${s.position}</td>
                               <td style="font-weight:500;">${s.team_name}</td>
-                              ${isVolleyball()
+                              ${_vball
                                 ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                                    <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
                                    <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
                                    <td class="pts">${s.points}</td>`
-                                : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
-                                   <td>${s.goals_for}</td><td>${s.goals_against}</td>
-                                   <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                                   <td class="pts">${s.points}</td>`}
+                                : _bball
+                                  ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
+                                     <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                                     <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                                     <td class="pts">${s.points}</td>`
+                                  : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+                                     <td>${s.goals_for}</td><td>${s.goals_against}</td>
+                                     <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
+                                     <td class="pts">${s.points}</td>`}
                             </tr>`).join('')}
                           </tbody>
                         </table>` : `<div style="color:var(--text-secondary);font-size:12px;">Sem jogos disputados.</div>`}
@@ -1664,28 +1798,57 @@
             </div>`;
         }
 
-        // Artilharia
-        const scorersHtml = `
-          <div class="card" style="margin-bottom:16px;">
-            <div class="card-body">
-              <h3 style="margin-bottom:16px; font-size:15px;">⚽ Artilharia</h3>
-              ${stats.scorers && stats.scorers.length
-                ? `<table class="stat-table">
-                    <thead><tr><th style="width:32px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
-                    <tbody>
-                      ${stats.scorers.map((s, i) => `
-                        <tr>
-                          <td style="color:var(--text-secondary);">${i + 1}</td>
-                          <td>${athleteAvatar({id: s.athlete_id, name: s.name, photo_url: s.photo_url}, 32)}</td>
-                          <td style="font-weight:500;">${s.name}</td>
-                          <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
-                          <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${s.goals}</td>
-                        </tr>`).join('')}
-                    </tbody>
-                  </table>`
-                : '<div style="color:var(--text-secondary);font-size:13px;">Nenhum gol registrado.</div>'}
-            </div>
-          </div>`;
+        // Artilharia / Cestinhas
+        const isBballStats = stats.sport === 'basketball' || isBasketball();
+        const scorersHtml = isBballStats
+          ? `<div class="card" style="margin-bottom:16px;">
+              <div class="card-body">
+                <h3 style="margin-bottom:16px; font-size:15px;">🏀 Cestinhas</h3>
+                ${stats.scorers && stats.scorers.length
+                  ? `<table class="stat-table">
+                      <thead><tr><th style="width:32px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th>
+                        <th style="text-align:center;" title="Arremessos de 1pt">1pt</th>
+                        <th style="text-align:center;" title="Arremessos de 2pts">2pts</th>
+                        <th style="text-align:center;" title="Lances Livres">LL</th>
+                        <th style="text-align:center;">Total</th>
+                      </tr></thead>
+                      <tbody>
+                        ${stats.scorers.map((s, i) => `
+                          <tr>
+                            <td style="color:var(--text-secondary);">${i + 1}</td>
+                            <td>${athleteAvatar({id: s.athlete_id, name: s.name, photo_url: s.photo_url}, 32)}</td>
+                            <td style="font-weight:500;">${s.name}</td>
+                            <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
+                            <td style="text-align:center;">${s.point_1 ?? 0}</td>
+                            <td style="text-align:center;">${s.point_2 ?? 0}</td>
+                            <td style="text-align:center;">${s.free_throw ?? 0}</td>
+                            <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${s.goals}</td>
+                          </tr>`).join('')}
+                      </tbody>
+                    </table>`
+                  : '<div style="color:var(--text-secondary);font-size:13px;">Nenhum ponto registrado.</div>'}
+              </div>
+            </div>`
+          : `<div class="card" style="margin-bottom:16px;">
+              <div class="card-body">
+                <h3 style="margin-bottom:16px; font-size:15px;">⚽ Artilharia</h3>
+                ${stats.scorers && stats.scorers.length
+                  ? `<table class="stat-table">
+                      <thead><tr><th style="width:32px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
+                      <tbody>
+                        ${stats.scorers.map((s, i) => `
+                          <tr>
+                            <td style="color:var(--text-secondary);">${i + 1}</td>
+                            <td>${athleteAvatar({id: s.athlete_id, name: s.name, photo_url: s.photo_url}, 32)}</td>
+                            <td style="font-weight:500;">${s.name}</td>
+                            <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
+                            <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${s.goals}</td>
+                          </tr>`).join('')}
+                      </tbody>
+                    </table>`
+                  : '<div style="color:var(--text-secondary);font-size:13px;">Nenhum gol registrado.</div>'}
+              </div>
+            </div>`;
 
         // Cartões
         const cardsHtml = `
@@ -1741,7 +1904,9 @@
           </div>`;
 
         const vball = isVolleyball();
-        container.innerHTML = standingsHtml + (vball ? '' : scorersHtml + cardsHtml) + suspHtml;
+        const bball = isBasketball();
+        // Vôlei e Basquete não mostram cartões; Basquete mostra cestinhas; Futsal mostra artilharia e cartões
+        container.innerHTML = standingsHtml + (vball ? '' : scorersHtml) + (vball || bball ? '' : cardsHtml) + suspHtml;
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
