@@ -406,9 +406,12 @@
           <div class="form-row">
             <div class="form-group">
               <label for="champ-sport">Modalidade *</label>
-              <select id="champ-sport" class="form-control" required>
-                <option value="">Carregando...</option>
-              </select>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <select id="champ-sport" class="form-control" required>
+                  <option value="">Carregando...</option>
+                </select>
+                <span id="champ-sport-icon" style="flex-shrink:0; width:28px; height:28px; display:flex; align-items:center; justify-content:center;"></span>
+              </div>
             </div>
             <div class="form-group">
               <label for="champ-format">Formato *</label>
@@ -573,7 +576,7 @@
               ${state.items.map(c => `
                 <tr>
                   <td><div style="font-weight:600;">${c.name}</div></td>
-                  <td>${c.sport?.name || '—'}</td>
+                  <td><span style="display:inline-flex;align-items:center;">${sportIcon(c.sport?.slug, 18)}${c.sport?.name || '—'}</span></td>
                   <td>${formatName(c.format)}</td>
                   <td>${champStatusBadge(c.status)}</td>
                   <td>${fmtDate(c.start_date)}</td>
@@ -673,12 +676,17 @@
 
       // Handler para filtrar equipes por modalidade e mostrar config vôlei
       const sportSel = document.getElementById('champ-sport');
+      const _updateSportIcon = () => {
+        const sport = allSports.find(s => s.id === Number(sportSel.value));
+        document.getElementById('champ-sport-icon').innerHTML = sport ? sportIcon(sport.slug, 24) : '';
+      };
       sportSel.onchange = () => {
         const sportId = sportSel.value;
         const sport = allSports.find(s => s.id === Number(sportId));
         const isVball = sport?.slug === 'volleyball';
         document.getElementById('vball-champ-config').style.display = isVball ? '' : 'none';
         renderModalTeamsList(sportId);
+        _updateSportIcon();
       };
 
       openModal('modal-champ');
@@ -696,6 +704,8 @@
       await loadSports();
       document.getElementById('champ-name').value = champ.name || '';
       document.getElementById('champ-sport').value = champ.sport_id || (champ.sport?.id || '');
+      // Atualiza ícone da modalidade no modal de edição
+      document.getElementById('champ-sport-icon').innerHTML = champ.sport ? sportIcon(champ.sport.slug, 24) : '';
       document.getElementById('champ-format').value = champ.format || '';
       document.getElementById('champ-start').value = champ.start_date ? champ.start_date.slice(0, 10) : '';
       document.getElementById('champ-end').value = champ.end_date ? champ.end_date.slice(0, 10) : '';
@@ -800,9 +810,10 @@
       document.getElementById('btn-new-champ').style.display = 'none';
       document.getElementById('topbar-title').textContent = currentChamp.name;
 
-      document.getElementById('detail-champ-name').textContent = currentChamp.name;
-      document.getElementById('detail-champ-meta').textContent =
-        `${currentChamp.sport?.name || ''} • ${formatName(currentChamp.format)}`;
+      document.getElementById('detail-champ-name').innerHTML =
+        `${sportIcon(currentChamp.sport?.slug, 28)}${currentChamp.name}`;
+      document.getElementById('detail-champ-meta').innerHTML =
+        `${sportIcon(currentChamp.sport?.slug, 16)}${currentChamp.sport?.name || ''} &bull; ${formatName(currentChamp.format)}`;
       document.getElementById('detail-champ-status').innerHTML = champStatusBadge(currentChamp.status);
 
       switchTab('overview');

@@ -246,7 +246,7 @@
                       </div>
                     </div>
                   </td>
-                  <td>${t.sport?.name || t.sport_name || '—'}</td>
+                  <td><span style="display:inline-flex;align-items:center;">${sportIcon(t.sport?.slug, 18)}${t.sport?.name || t.sport_name || '—'}</span></td>
                   <td>${t.city || '—'}</td>
                   <td>
                     ${(t.athlete_count > 0)

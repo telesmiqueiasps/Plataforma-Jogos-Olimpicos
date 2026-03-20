@@ -461,8 +461,10 @@
 
       document.getElementById('no-champ-msg').style.display = 'none';
       document.getElementById('champ-info-bar').style.display = 'block';
-      document.getElementById('champ-info-name').textContent = champ.name;
-      document.getElementById('champ-info-sport').textContent = champ.sport?.name || champ.sport_name || '—';
+      document.getElementById('champ-info-name').innerHTML =
+        `${sportIcon(champ.sport?.slug, 18)}${champ.name}`;
+      document.getElementById('champ-info-sport').innerHTML =
+        `${sportIcon(champ.sport?.slug, 16)}${champ.sport?.name || champ.sport_name || '—'}`;
       document.getElementById('champ-info-format').textContent = formatName(champ.format);
       document.getElementById('champ-info-status').innerHTML = champStatusBadge(champ.status);
       document.getElementById('btn-new-game').style.display = 'inline-flex';

@@ -175,6 +175,20 @@ function athleteAvatar(athlete, size = 36) {
   return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.35)}px;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>`;
 }
 
+// --- Sport icon ---
+function sportIcon(slug, size = 20) {
+  const map = {
+    'futsal':     'img/futsal.png',
+    'volleyball': 'img/volei.png',
+    'basketball': 'img/basquete.png',
+    'running':    'img/corrida.png',
+    'boardgame':  'img/tabuleiro.png',
+  };
+  const src = map[slug];
+  if (!src) return '';
+  return `<img src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;vertical-align:middle;margin-right:4px;" alt="${slug}">`;
+}
+
 // --- URL params ---
 function getParam(key) { return new URLSearchParams(window.location.search).get(key); }
 

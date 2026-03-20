@@ -152,11 +152,11 @@
           ${active.map(c => `
             <a href="public.html?championship=${c.id}" class="pub-champ-card">
               <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                <div style="font-size:17px; font-weight:700;">${c.name}</div>
+                <div style="font-size:17px; font-weight:700;">${sportIcon(c.sport?.slug, 20)}${c.name}</div>
                 ${pubStatusBadge(c.status)}
               </div>
-              <div style="font-size:13px; color:var(--text-secondary); margin-bottom:4px;">
-                ${c.sport?.name || '—'}
+              <div style="font-size:13px; color:var(--text-secondary); margin-bottom:4px; display:flex; align-items:center;">
+                ${sportIcon(c.sport?.slug, 14)}${c.sport?.name || '—'}
               </div>
               <div style="font-size:12px; color:var(--text-secondary);">
                 ${c.start_date ? fmtDate(c.start_date) : ''}${c.end_date ? ' – ' + fmtDate(c.end_date) : ''}
@@ -182,8 +182,10 @@
 
       // Update header
       document.getElementById('header-champ-info').style.display = 'block';
-      document.getElementById('header-champ-name').textContent = c.name;
-      document.getElementById('header-champ-sport').textContent = c.sport?.name || '';
+      document.getElementById('header-champ-name').innerHTML =
+        `${sportIcon(c.sport?.slug, 22)}${c.name}`;
+      document.getElementById('header-champ-sport').innerHTML =
+        `${sportIcon(c.sport?.slug, 14)}${c.sport?.name || ''}`;
       document.getElementById('header-champ-status').innerHTML = pubStatusBadge(c.status);
       document.getElementById('btn-back').style.display = 'flex';
       document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;

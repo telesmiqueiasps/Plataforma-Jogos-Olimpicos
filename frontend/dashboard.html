@@ -288,7 +288,7 @@
           <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--bg-tertiary); border-radius:8px; border:1px solid var(--border);">
             <div>
               <div style="font-weight:600; font-size:14px;">${c.name}</div>
-              <div style="font-size:12px; color:var(--text-secondary);">${c.sport?.name || '—'} &middot; ${formatName(c.format)}</div>
+              <div style="font-size:12px; color:var(--text-secondary); display:flex; align-items:center;">${sportIcon(c.sport?.slug, 14)}${c.sport?.name || '—'} &middot; ${formatName(c.format)}</div>
             </div>
             <span class="badge badge-active">Ativo</span>
           </div>
@@ -321,7 +321,7 @@
               ${recent.map(c => `
                 <tr>
                   <td><strong>${c.name}</strong></td>
-                  <td>${c.sport?.name || c.sport_name || '—'}</td>
+                  <td><span style="display:inline-flex;align-items:center;">${sportIcon(c.sport?.slug, 16)}${c.sport?.name || c.sport_name || '—'}</span></td>
                   <td>${formatName(c.format)}</td>
                   <td>${statusBadge(c.status)}</td>
                   <td>${fmtDate(c.start_date)}</td>
