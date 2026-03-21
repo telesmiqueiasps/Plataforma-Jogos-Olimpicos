@@ -10,11 +10,13 @@ function getUser() {
 function setAuth(token, user) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  if (user?.name) localStorage.setItem('sp_user_name', user.name);
 }
 
 function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem('sp_user_name');
 }
 
 function isAuthenticated() { return !!getToken(); }

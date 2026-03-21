@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
+  <title>Meu Perfil — Jogos Olímpicos Sinodal PB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="dashboard.html" class="sidebar-logo">
+          <img src="img/logo.png" alt="Logo" style="width:50px;height:50px;object-fit:contain;flex-shrink:0;">
+          <span>Jogos Olímpicos<br>Sinodal PB</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item">
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item">
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Jogos</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item">
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item">
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Atletas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Organizador</div>
+          </div>
+        </div>
+        <a href="register.html" class="btn btn-secondary btn-sm" style="width:100%; margin-top:12px; justify-content:center;">
+          Criar novo usuário
+        </a>
+        <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%; margin-top:8px; justify-content:center;">👤 Meu Perfil</a>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%; margin-top:8px; justify-content:center;">
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">Meu Perfil</span>
+        <div class="topbar-actions"></div>
+      </header>
+
+      <main class="main-content">
+        <div style="max-width:700px; margin:0 auto;">
+
+          <!-- Header do Perfil -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-body" style="display:flex; align-items:center; gap:24px; padding:28px;">
+              <div id="profile-avatar" style="width:80px;height:80px;border-radius:50%;background:var(--accent-purple);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:#fff;flex-shrink:0;">U</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:4px;" id="profile-name">—</div>
+                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:10px;" id="profile-email">—</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <span id="profile-role-badge"></span>
+                  <span style="font-size:12px; color:var(--text-secondary);" id="profile-since"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card: Dados Pessoais -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-body">
+              <h3 style="font-size:15px; font-weight:700; margin-bottom:20px;">Dados Pessoais</h3>
+              <div class="form-group">
+                <label class="form-label">Nome completo</label>
+                <input type="text" id="profile-input-name" class="form-control" placeholder="Seu nome">
+              </div>
+              <div class="form-group">
+                <label class="form-label">E-mail</label>
+                <input type="email" id="profile-input-email" class="form-control" placeholder="seu@email.com">
+              </div>
+              <div class="form-group" id="profile-confirm-password-group" style="display:none;">
+                <label class="form-label">Senha atual <span style="color:var(--error); font-size:11px;">(necessária para alterar o e-mail)</span></label>
+                <input type="password" id="profile-input-confirm-pwd" class="form-control" placeholder="Digite sua senha atual">
+              </div>
+              <button class="btn btn-primary" onclick="saveProfileData(this)">💾 Salvar Dados</button>
+            </div>
+          </div>
+
+          <!-- Card: Alterar Senha -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-body">
+              <h3 style="font-size:15px; font-weight:700; margin-bottom:20px;">Alterar Senha</h3>
+              <div class="form-group">
+                <label class="form-label">Senha atual</label>
+                <input type="password" id="pwd-current" class="form-control" placeholder="Senha atual">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nova senha <span style="font-size:11px; color:var(--text-secondary);">(mínimo 8 caracteres)</span></label>
+                <input type="password" id="pwd-new" class="form-control" placeholder="Nova senha">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirmar nova senha</label>
+                <input type="password" id="pwd-confirm" class="form-control" placeholder="Repita a nova senha">
+              </div>
+              <button class="btn btn-primary" onclick="savePassword(this)">🔐 Alterar Senha</button>
+            </div>
+          </div>
+
+          <!-- Card: Informações da Conta -->
+          <div class="card">
+            <div class="card-body">
+              <h3 style="font-size:15px; font-weight:700; margin-bottom:20px;">Informações da Conta</h3>
+              <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                <tr>
+                  <td style="color:var(--text-secondary); padding:8px 0; width:160px;">ID do usuário</td>
+                  <td style="font-weight:500; font-family:monospace;" id="info-id">—</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text-secondary); padding:8px 0;">Função (role)</td>
+                  <td id="info-role">—</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text-secondary); padding:8px 0;">Status</td>
+                  <td id="info-status">—</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text-secondary); padding:8px 0;">Membro desde</td>
+                  <td id="info-created">—</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!requireAuth()) { /* redirect handled */ }
+
+    let _currentUser = null;
+
+    const avatarColors = ['#6c63ff', '#00d4aa', '#ff6b6b', '#ffa500', '#4ecdc4', '#45b7d1'];
+    function userAvatarColor(id) { return avatarColors[(id || 0) % avatarColors.length]; }
+
+    function roleLabel(role) {
+      if (role === 'admin') return 'Admin';
+      if (role === 'organizer') return 'Organizador';
+      return role || 'Usuário';
+    }
+
+    function roleBadgeHtml(role) {
+      const color = role === 'admin' ? 'var(--accent-purple)' : 'var(--accent-teal)';
+      return `<span style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; background:${color}22; color:${color}; border:1px solid ${color}44;">${roleLabel(role)}</span>`;
+    }
+
+    async function loadProfile() {
+      try {
+        const user = await apiFetch('/api/users/me');
+        _currentUser = user;
+
+        // Atualiza localStorage
+        const stored = getUser() || {};
+        setAuth(localStorage.getItem('sp_token'), { ...stored, ...user });
+
+        // Avatar
+        const initials = (user.name || user.email || 'U').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        const color = userAvatarColor(user.id);
+        document.getElementById('profile-avatar').textContent = initials;
+        document.getElementById('profile-avatar').style.background = color;
+
+        // Header
+        document.getElementById('profile-name').textContent = user.name || '—';
+        document.getElementById('profile-email').textContent = user.email || '—';
+        document.getElementById('profile-role-badge').innerHTML = roleBadgeHtml(user.role);
+        if (user.created_at) {
+          const since = new Date(user.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+          document.getElementById('profile-since').textContent = `Membro desde ${since}`;
+        }
+
+        // Inputs
+        document.getElementById('profile-input-name').value = user.name || '';
+        document.getElementById('profile-input-email').value = user.email || '';
+
+        // Informações da conta
+        document.getElementById('info-id').textContent = `#${user.id}`;
+        document.getElementById('info-role').innerHTML = roleBadgeHtml(user.role);
+        document.getElementById('info-status').textContent = user.is_active ? 'Ativo' : 'Inativo';
+        document.getElementById('info-created').textContent = user.created_at
+          ? new Date(user.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          : '—';
+      } catch (err) {
+        showToast('Erro ao carregar perfil: ' + err.message, 'error');
+      }
+    }
+
+    // Mostrar/ocultar campo de senha ao detectar mudança de e-mail
+    document.getElementById('profile-input-email').addEventListener('input', function () {
+      const original = _currentUser?.email || '';
+      const changed = this.value.trim() !== original;
+      document.getElementById('profile-confirm-password-group').style.display = changed ? '' : 'none';
+    });
+
+    async function saveProfileData(btn) {
+      const name  = document.getElementById('profile-input-name').value.trim();
+      const email = document.getElementById('profile-input-email').value.trim();
+      const confirmPwd = document.getElementById('profile-input-confirm-pwd').value;
+
+      if (!name && !email) { showToast('Preencha ao menos um campo.', 'error'); return; }
+
+      const emailChanged = email && email !== (_currentUser?.email || '');
+      if (emailChanged && !confirmPwd) {
+        showToast('Digite sua senha atual para alterar o e-mail.', 'error');
+        document.getElementById('profile-input-confirm-pwd').focus();
+        return;
+      }
+
+      const body = {};
+      if (name)  body.name  = name;
+      if (email) body.email = email;
+      if (emailChanged && confirmPwd) body.current_password = confirmPwd;
+
+      btnLoading(btn, true, 'Salvando...');
+      try {
+        const user = await apiFetch('/api/users/me', {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        });
+        _currentUser = user;
+
+        // Atualiza localStorage e sidebar
+        const stored = getUser() || {};
+        setAuth(localStorage.getItem('sp_token'), { ...stored, ...user });
+        loadUserInfo();
+
+        // Atualiza header do perfil
+        document.getElementById('profile-name').textContent = user.name || '—';
+        document.getElementById('profile-email').textContent = user.email || '—';
+        document.getElementById('profile-confirm-password-group').style.display = 'none';
+        document.getElementById('profile-input-confirm-pwd').value = '';
+
+        showToast('Dados salvos com sucesso!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    async function savePassword(btn) {
+      const current = document.getElementById('pwd-current').value;
+      const newPwd  = document.getElementById('pwd-new').value;
+      const confirm = document.getElementById('pwd-confirm').value;
+
+      if (!current) { showToast('Digite a senha atual.', 'error'); return; }
+      if (!newPwd)  { showToast('Digite a nova senha.', 'error'); return; }
+      if (newPwd.length < 8) { showToast('A nova senha deve ter pelo menos 8 caracteres.', 'error'); return; }
+      if (newPwd !== confirm) { showToast('As senhas não coincidem.', 'error'); return; }
+
+      btnLoading(btn, true, 'Alterando...');
+      try {
+        await apiFetch('/api/users/me', {
+          method: 'PUT',
+          body: JSON.stringify({ current_password: current, new_password: newPwd }),
+        });
+        document.getElementById('pwd-current').value = '';
+        document.getElementById('pwd-new').value = '';
+        document.getElementById('pwd-confirm').value = '';
+        showToast('Senha alterada com sucesso!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>
