@@ -1157,11 +1157,13 @@
         const chArea = document.getElementById('champion-area');
         if (chArea && champData?.champion) {
           const ch = champData.champion;
+          const champName = ch.team_name || ch.athlete_name || '—';
+          const champEmoji = isRunning() ? '🏃' : '🏆';
           chArea.innerHTML = `
             <div class="champion-card">
-              <div class="trophy">🏆</div>
+              <div class="trophy">${champEmoji}</div>
               <div class="champion-label">Campeão</div>
-              <div class="champion-name">${ch.team_name}</div>
+              <div class="champion-name">${champName}</div>
             </div>`;
         }
       } catch {}
@@ -2148,17 +2150,20 @@
       const container = document.getElementById('race-participants-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
       try {
-        // Carrega atletas disponíveis para o select de inscrição
+        // Carrega atletas disponíveis e inscritos em paralelo
         if (!_allAthletesForRace.length) {
           _allAthletesForRace = await apiFetch('/api/athletes/');
         }
-        const selAthletes = document.getElementById('race-athlete-select');
-        selAthletes.innerHTML = '<option value="">Selecione um atleta...</option>' +
-          _allAthletesForRace.map(a => `<option value="${a.id}">${a.name}${a.number ? ' #' + a.number : ''}</option>`).join('');
-
         const catFilter = document.getElementById('race-cat-filter').value;
         const params = catFilter ? `?category=${encodeURIComponent(catFilter)}` : '';
         const results = await apiFetch(`/api/championships/${currentChamp.id}/race/participants${params}`);
+
+        // Filtra da lista de seleção os atletas já inscritos
+        const enrolledIds = new Set(results.map(r => r.athlete_id));
+        const available = _allAthletesForRace.filter(a => !enrolledIds.has(a.id));
+        const selAthletes = document.getElementById('race-athlete-select');
+        selAthletes.innerHTML = '<option value="">Selecione um atleta...</option>' +
+          available.map(a => `<option value="${a.id}">${a.name}${a.number ? ' #' + a.number : ''}</option>`).join('');
 
         // Atualiza opções de filtro de categoria
         const allCats = [...new Set(results.map(r => r.category).filter(Boolean))].sort();
@@ -2245,44 +2250,150 @@
           container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhum atleta inscrito.</p></div>';
           return;
         }
+
+        const pending   = results.filter(r => !r.position || r.status !== 'finished');
+        const completed = results.filter(r =>  r.position && r.status === 'finished');
+
+        function resultRow(r) {
+          return `
+            <tr id="race-row-${r.id}" data-athlete-name="${(r.athlete_name || '').toLowerCase()}">
+              <td>${athleteAvatar({id: r.athlete_id, name: r.athlete_name, photo_url: r.athlete_photo_url}, 32)}</td>
+              <td style="font-weight:500;">${r.athlete_name || '—'}</td>
+              <td style="color:var(--text-secondary);">${r.category || '—'}</td>
+              <td><input type="number" class="form-control" style="width:68px; padding:4px 8px; font-size:13px;" value="${r.position ?? ''}" placeholder="—" id="rpos-${r.id}"></td>
+              <td><input type="text" class="form-control" style="width:118px; padding:4px 8px; font-size:13px;" value="${r.finish_time ?? ''}" placeholder="00:45:00" id="rtime-${r.id}"></td>
+              <td>
+                <select class="form-control" style="padding:4px 8px; font-size:13px;" id="rstatus-${r.id}">
+                  <option value="registered" ${r.status === 'registered' ? 'selected' : ''}>Em prova</option>
+                  <option value="finished"   ${r.status === 'finished'   ? 'selected' : ''}>Concluído</option>
+                  <option value="dnf"        ${r.status === 'dnf'        ? 'selected' : ''}>DNF</option>
+                  <option value="dsq"        ${r.status === 'dsq'        ? 'selected' : ''}>Desclassificado</option>
+                </select>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-primary" onclick="raceSaveResult(${r.id})">Salvar</button>
+              </td>
+            </tr>`;
+        }
+
+        function completedRow(r) {
+          return `
+            <tr id="race-done-${r.id}">
+              <td>${athleteAvatar({id: r.athlete_id, name: r.athlete_name, photo_url: r.athlete_photo_url}, 32)}</td>
+              <td style="font-weight:500;">${r.athlete_name || '—'}</td>
+              <td style="color:var(--text-secondary);">${r.category || '—'}</td>
+              <td style="font-weight:700; color:var(--accent-teal);">#${r.position}</td>
+              <td style="color:var(--text-secondary);">${r.finish_time || '—'}</td>
+              <td colspan="2">
+                <button class="btn btn-sm btn-ghost" onclick="raceEditResult(${r.id})" style="font-size:12px;">✏️ Editar</button>
+              </td>
+            </tr>`;
+        }
+
+        const tableHead = `
+          <thead>
+            <tr>
+              <th style="width:40px;"></th>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th style="width:80px;">Posição</th>
+              <th style="width:130px;">Tempo (HH:MM:SS)</th>
+              <th style="width:140px;">Status</th>
+              <th style="width:80px;"></th>
+            </tr>
+          </thead>`;
+
+        const completedSection = completed.length ? `
+          <div style="margin-top:20px;">
+            <button class="btn btn-ghost btn-sm" style="font-size:13px; font-weight:600; width:100%; text-align:left; padding:10px 8px;" onclick="raceToggleDone(this)">
+              ✅ Concluídos (${completed.length}) <span style="float:right; font-size:11px; color:var(--text-secondary);">▼ expandir</span>
+            </button>
+            <div id="race-done-section" style="display:none;">
+              <table class="table" style="margin-top:4px;">
+                ${tableHead}
+                <tbody>${completed.map(completedRow).join('')}</tbody>
+              </table>
+            </div>
+          </div>` : '';
+
         container.innerHTML = `
-          <table class="table">
-            <thead>
-              <tr>
-                <th style="width:40px;"></th>
-                <th>Nome</th>
-                <th>Categoria</th>
-                <th style="width:80px;">Posição</th>
-                <th style="width:130px;">Tempo (HH:MM:SS)</th>
-                <th style="width:140px;">Status</th>
-                <th style="width:80px;"></th>
-              </tr>
-            </thead>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="position:relative; flex:1;">
+              <input type="text" id="race-results-search" class="form-control" placeholder="🔍 Buscar atleta pelo nome..." oninput="raceFilterResults(this.value)" style="padding-right:32px;">
+              <button onclick="document.getElementById('race-results-search').value=''; raceFilterResults('');" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-secondary); font-size:16px;" title="Limpar">✕</button>
+            </div>
+            <div id="race-results-counter" style="font-size:12px; color:var(--text-secondary); white-space:nowrap;">Mostrando ${pending.length} de ${pending.length} atletas</div>
+          </div>
+          <table class="table" id="race-results-table">
+            ${tableHead}
             <tbody id="race-results-tbody">
-              ${results.map(r => `
-                <tr id="race-row-${r.id}">
-                  <td>${athleteAvatar({id: r.athlete_id, name: r.athlete_name, photo_url: r.athlete_photo_url}, 32)}</td>
-                  <td style="font-weight:500;">${r.athlete_name || '—'}</td>
-                  <td style="color:var(--text-secondary);">${r.category || '—'}</td>
-                  <td><input type="number" class="form-control" style="width:68px; padding:4px 8px; font-size:13px;" value="${r.position ?? ''}" placeholder="—" id="rpos-${r.id}"></td>
-                  <td><input type="text" class="form-control" style="width:118px; padding:4px 8px; font-size:13px;" value="${r.finish_time ?? ''}" placeholder="00:45:00" id="rtime-${r.id}"></td>
-                  <td>
-                    <select class="form-control" style="padding:4px 8px; font-size:13px;" id="rstatus-${r.id}">
-                      <option value="registered" ${r.status === 'registered' ? 'selected' : ''}>Em prova</option>
-                      <option value="finished"   ${r.status === 'finished'   ? 'selected' : ''}>Concluído</option>
-                      <option value="dnf"        ${r.status === 'dnf'        ? 'selected' : ''}>DNF</option>
-                      <option value="dsq"        ${r.status === 'dsq'        ? 'selected' : ''}>Desclassificado</option>
-                    </select>
-                  </td>
-                  <td>
-                    <button class="btn btn-sm btn-primary" onclick="raceSaveResult(${r.id})">Salvar</button>
-                  </td>
-                </tr>`).join('')}
+              ${pending.map(resultRow).join('')}
             </tbody>
-          </table>`;
+          </table>
+          ${!pending.length ? '<div class="empty-state" style="padding:20px;"><p>Todos os atletas já foram finalizados.</p></div>' : ''}
+          ${completedSection}`;
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error" style="margin:16px;">${err.message}</div>`;
       }
+    }
+
+    function raceFilterResults(query) {
+      const q = query.toLowerCase();
+      const rows = document.querySelectorAll('#race-results-tbody tr[data-athlete-name]');
+      let visible = 0;
+      rows.forEach(row => {
+        const name = row.dataset.athleteName || '';
+        const show = !q || name.includes(q);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      const counter = document.getElementById('race-results-counter');
+      if (counter) counter.textContent = `Mostrando ${visible} de ${rows.length} atletas`;
+    }
+
+    function raceToggleDone(btn) {
+      const section = document.getElementById('race-done-section');
+      const isHidden = section.style.display === 'none';
+      section.style.display = isHidden ? '' : 'none';
+      const span = btn.querySelector('span');
+      if (span) span.textContent = isHidden ? '▲ recolher' : '▼ expandir';
+    }
+
+    function raceEditResult(resultId) {
+      const doneRow = document.getElementById(`race-done-${resultId}`);
+      if (!doneRow) return;
+      // Move o atleta de volta para a tabela principal
+      const tbody = document.getElementById('race-results-tbody');
+      if (!tbody) return;
+
+      // Recupera valores atuais do DOM da seção concluída
+      const cells = doneRow.querySelectorAll('td');
+      const athleteHtml = cells[0]?.innerHTML || '';
+      const athleteName  = cells[1]?.textContent?.trim() || '—';
+      const category     = cells[2]?.textContent?.trim() || '—';
+      const position     = cells[3]?.textContent?.replace('#', '').trim() || '';
+      const time         = cells[4]?.textContent?.trim() || '';
+
+      const newRow = document.createElement('tr');
+      newRow.id = `race-row-${resultId}`;
+      newRow.dataset.athleteName = athleteName.toLowerCase();
+      newRow.innerHTML = `
+        <td>${athleteHtml}</td>
+        <td style="font-weight:500;">${athleteName}</td>
+        <td style="color:var(--text-secondary);">${category !== '—' ? category : ''}</td>
+        <td><input type="number" class="form-control" style="width:68px; padding:4px 8px; font-size:13px;" value="${position}" placeholder="—" id="rpos-${resultId}"></td>
+        <td><input type="text" class="form-control" style="width:118px; padding:4px 8px; font-size:13px;" value="${time !== '—' ? time : ''}" placeholder="00:45:00" id="rtime-${resultId}"></td>
+        <td>
+          <select class="form-control" style="padding:4px 8px; font-size:13px;" id="rstatus-${resultId}">
+            <option value="registered">Em prova</option>
+            <option value="finished" selected>Concluído</option>
+            <option value="dnf">DNF</option>
+            <option value="dsq">Desclassificado</option>
+          </select>
+        </td>
+        <td><button class="btn btn-sm btn-primary" onclick="raceSaveResult(${resultId})">Salvar</button></td>`;
+      tbody.appendChild(newRow);
+      doneRow.remove();
     }
 
     async function raceSaveResult(resultId) {
@@ -2300,6 +2411,69 @@
           }),
         });
         showToast('Resultado salvo!', 'success');
+
+        // Se posição foi definida e status é "finished", mover para seção Concluídos
+        if (pos && stat === 'finished') {
+          const row = document.getElementById(`race-row-${resultId}`);
+          if (row) {
+            const athleteHtml = row.querySelector('td:nth-child(1)')?.innerHTML || '';
+            const athleteName = row.querySelector('td:nth-child(2)')?.textContent?.trim() || '—';
+            const category    = row.querySelector('td:nth-child(3)')?.textContent?.trim() || '—';
+
+            row.remove();
+
+            // Atualiza contador
+            const allRows = document.querySelectorAll('#race-results-tbody tr[data-athlete-name]');
+            const visibleRows = [...allRows].filter(r => r.style.display !== 'none');
+            const counter = document.getElementById('race-results-counter');
+            if (counter) counter.textContent = `Mostrando ${visibleRows.length} de ${allRows.length} atletas`;
+
+            // Adiciona à seção Concluídos
+            let doneSection = document.getElementById('race-done-section');
+            if (!doneSection) {
+              // Cria a seção se não existir
+              const container = document.getElementById('race-results-content');
+              const wrapper = document.createElement('div');
+              wrapper.style.marginTop = '20px';
+              wrapper.innerHTML = `
+                <button class="btn btn-ghost btn-sm" style="font-size:13px; font-weight:600; width:100%; text-align:left; padding:10px 8px;" onclick="raceToggleDone(this)">
+                  ✅ Concluídos (0) <span style="float:right; font-size:11px; color:var(--text-secondary);">▼ expandir</span>
+                </button>
+                <div id="race-done-section" style="display:none;">
+                  <table class="table" style="margin-top:4px;">
+                    <thead><tr>
+                      <th style="width:40px;"></th><th>Nome</th><th>Categoria</th>
+                      <th style="width:80px;">Posição</th><th style="width:130px;">Tempo</th><th colspan="2"></th>
+                    </tr></thead>
+                    <tbody id="race-done-tbody"></tbody>
+                  </table>
+                </div>`;
+              container.appendChild(wrapper);
+              doneSection = document.getElementById('race-done-section');
+            }
+
+            const doneTbody = document.getElementById('race-done-tbody') || doneSection.querySelector('tbody');
+            if (doneTbody) {
+              const doneRow = document.createElement('tr');
+              doneRow.id = `race-done-${resultId}`;
+              doneRow.innerHTML = `
+                <td>${athleteHtml}</td>
+                <td style="font-weight:500;">${athleteName}</td>
+                <td style="color:var(--text-secondary);">${category}</td>
+                <td style="font-weight:700; color:var(--accent-teal);">#${pos}</td>
+                <td style="color:var(--text-secondary);">${time || '—'}</td>
+                <td colspan="2"><button class="btn btn-sm btn-ghost" onclick="raceEditResult(${resultId})" style="font-size:12px;">✏️ Editar</button></td>`;
+              doneTbody.appendChild(doneRow);
+            }
+
+            // Atualiza contador do botão Concluídos
+            const doneBtn = doneSection?.previousElementSibling;
+            if (doneBtn) {
+              const count = document.querySelectorAll('[id^="race-done-"]').length;
+              doneBtn.childNodes[0].textContent = `✅ Concluídos (${count}) `;
+            }
+          }
+        }
       } catch (err) {
         showToast(err.message, 'error');
       }

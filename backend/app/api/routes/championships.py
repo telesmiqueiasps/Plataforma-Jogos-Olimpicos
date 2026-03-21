@@ -21,6 +21,7 @@ from app.db.models import (
     ChampionshipTeam,
     Game,
     GameEvent,
+    RaceResult,
     Sport,
     Suspension,
     Team,
@@ -652,10 +653,29 @@ def advance_knockout(
 @router.get("/{championship_id}/champion")
 def get_champion(championship_id: int, db: Session = Depends(get_db)):
     """
-    Retorna o campeão do campeonato (vencedor do último jogo do mata-mata com 1 único confronto)
-    ou null se o campeonato ainda não terminou.
+    Retorna o campeão do campeonato.
+    - Corrida: atleta com position=1 em RaceResult
+    - Outras modalidades: vencedor da final do mata-mata
     """
-    _get_championship_or_404(championship_id, db)
+    champ = _get_championship_or_404(championship_id, db)
+
+    # Suporte à modalidade corrida
+    sport_slug = champ.sport.slug if champ.sport else None
+    if sport_slug == "running":
+        winner = (
+            db.query(RaceResult)
+            .filter(RaceResult.championship_id == championship_id, RaceResult.position == 1)
+            .first()
+        )
+        if not winner:
+            return {"champion": None}
+        return {
+            "champion": {
+                "athlete_id": winner.athlete_id,
+                "athlete_name": winner.athlete_name,
+                "photo_url": winner.athlete_photo_url,
+            }
+        }
 
     ko_games = (
         db.query(Game)

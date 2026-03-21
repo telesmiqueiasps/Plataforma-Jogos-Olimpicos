@@ -528,7 +528,18 @@
       `<div id="pub-rank-${cat}" style="display:${i===0?'block':'none'};">${rankTable(ranking[cat] || [])}</div>`
     ).join('');
 
+    // Card de campeão: position=1 no geral
+    const champion = ranking.overall.find(r => r.position === 1);
+    const championCard = champion ? `
+      <div style="margin-bottom:16px; padding:20px 24px; background:linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04)); border:1px solid rgba(255,215,0,0.25); border-radius:12px; text-align:center;">
+        <div style="font-size:36px; margin-bottom:4px;">🏆</div>
+        <div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Campeão</div>
+        <div style="font-size:20px; font-weight:800; color:var(--text-primary);">🏃 ${champion.athlete_name || '—'}</div>
+        ${champion.finish_time ? `<div style="font-size:13px; color:var(--accent-teal); margin-top:4px;">${champion.finish_time}</div>` : ''}
+      </div>` : '';
+
     el.innerHTML = `
+      ${championCard}
       ${isPartial ? `<div style="padding:12px 16px; margin-bottom:12px; background:rgba(234,179,8,0.08); border:1px solid rgba(234,179,8,0.2); border-radius:8px; font-size:13px; color:#fbbf24;">⚠️ Resultados parciais — corrida ainda não finalizada.</div>` : ''}
       <div class="card">
         <div class="card-body" style="padding:0;">
