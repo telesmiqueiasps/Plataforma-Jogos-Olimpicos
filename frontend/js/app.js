@@ -182,7 +182,9 @@ function sportIcon(slug, size = 20) {
     'volleyball': 'img/volei.png',
     'basketball': 'img/basquete.png',
     'running':    'img/corrida.png',
-    'boardgame':  'img/tabuleiro.png',
+    'domino':     'img/domino.png',
+    'dama':       'img/dama.png',
+    'xadrez':     'img/xadrez.png',
   };
   const src = map[slug];
   if (!src) return '';

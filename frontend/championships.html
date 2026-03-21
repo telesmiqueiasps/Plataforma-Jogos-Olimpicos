@@ -315,6 +315,11 @@
                       <input type="number" id="cfg-domino-pts-passe-geral" class="form-control" value="2" min="0">
                     </div>
                   </div>
+                  <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Critérios de Desempate</div>
+                    <p style="color:var(--text-secondary); font-size:11px; margin-bottom:8px;">Use ↑ ↓ para reordenar. O critério mais alto tem prioridade.</p>
+                    <div id="bg-tb-list-domino"></div>
+                  </div>
                 </div>
               </div>
               <!-- Dama -->
@@ -339,6 +344,11 @@
                       <input type="number" id="cfg-dama-classifieds" class="form-control" value="2" min="1">
                     </div>
                   </div>
+                  <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Critérios de Desempate</div>
+                    <p style="color:var(--text-secondary); font-size:11px; margin-bottom:8px;">Use ↑ ↓ para reordenar.</p>
+                    <div id="bg-tb-list-dama"></div>
+                  </div>
                 </div>
               </div>
               <!-- Xadrez -->
@@ -347,15 +357,15 @@
                   <h3 style="margin-bottom:14px; font-size:15px;">♚ Configurações de Xadrez</h3>
                   <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
                     <div class="form-group" style="margin:0;">
-                      <label>Pts vitória</label>
-                      <input type="number" id="cfg-xadrez-pts-win" class="form-control" value="10" min="0" title="Armazenado ×10: 1.0pt = 10">
+                      <label>Pts vitória (×10)</label>
+                      <input type="number" id="cfg-xadrez-pts-win" class="form-control" value="10" min="0" title="Armazenado x10: 1.0pt = 10">
                     </div>
                     <div class="form-group" style="margin:0;">
-                      <label>Pts empate</label>
-                      <input type="number" id="cfg-xadrez-pts-draw" class="form-control" value="5" min="0" title="Armazenado ×10: 0.5pt = 5">
+                      <label>Pts empate (×10)</label>
+                      <input type="number" id="cfg-xadrez-pts-draw" class="form-control" value="5" min="0" title="Armazenado x10: 0.5pt = 5">
                     </div>
                     <div class="form-group" style="margin:0;">
-                      <label>Pts derrota</label>
+                      <label>Pts derrota (×10)</label>
                       <input type="number" id="cfg-xadrez-pts-loss" class="form-control" value="0" min="0">
                     </div>
                     <div class="form-group" style="margin:0;">
@@ -363,7 +373,11 @@
                       <input type="number" id="cfg-xadrez-classifieds" class="form-control" value="2" min="1">
                     </div>
                   </div>
-                  <div style="font-size:11px; color:var(--text-secondary); margin-top:8px;">Desempate: confronto direto → <span title="Soma dos pontos de todos os adversários enfrentados" style="text-decoration:underline dotted; cursor:help;">Buchholz</span> → vitórias → sorteio</div>
+                  <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Critérios de Desempate</div>
+                    <p style="color:var(--text-secondary); font-size:11px; margin-bottom:8px;">Use ↑ ↓ para reordenar.</p>
+                    <div id="bg-tb-list-xadrez"></div>
+                  </div>
                 </div>
               </div>
               <div class="card" style="margin-bottom:16px;">
@@ -868,86 +882,6 @@
             </div>
           </div>
 
-          <!-- Config extra para Jogos de Tabuleiro -->
-          <div id="boardgame-champ-config" style="display:none; margin-bottom:4px;">
-            <div style="background:rgba(108,99,255,0.08); border:1px solid rgba(108,99,255,0.2); border-radius:8px; padding:12px 14px; margin-bottom:12px;">
-              <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--accent-purple);">♟ Configurações de Jogos de Tabuleiro</div>
-              <div class="form-group" style="margin-bottom:8px;">
-                <label style="font-size:12px;">Tipo de jogo *</label>
-                <select id="boardgame-type-select" class="form-control" onchange="updateBoardgameConfig(this.value)">
-                  <option value="">Selecione...</option>
-                  <option value="domino">Dominó</option>
-                  <option value="dama">Dama</option>
-                  <option value="xadrez">Xadrez</option>
-                  <option value="outro">Outro</option>
-                </select>
-              </div>
-              <!-- Config Dominó -->
-              <div id="boardgame-domino-config" style="display:none;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Melhor de</label>
-                    <select id="domino-best-of" class="form-control">
-                      <option value="3">Melhor de 3</option>
-                      <option value="5">Melhor de 5</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts vitória na tabela</label>
-                    <input type="number" id="domino-pts-win" class="form-control" value="3" min="0">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts batida simples</label>
-                    <input type="number" id="domino-pts-simples" class="form-control" value="1" min="0">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts batida de carroça</label>
-                    <input type="number" id="domino-pts-caroca" class="form-control" value="2" min="0">
-                  </div>
-                </div>
-              </div>
-              <!-- Config Dama -->
-              <div id="boardgame-dama-config" style="display:none;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts/peça capturada</label>
-                    <input type="number" id="dama-pts-piece" class="form-control" value="1" min="0">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts/dama capturada</label>
-                    <input type="number" id="dama-pts-dama" class="form-control" value="3" min="0">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts vitória na tabela</label>
-                    <input type="number" id="dama-pts-win" class="form-control" value="3" min="0">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts empate na tabela</label>
-                    <input type="number" id="dama-pts-draw" class="form-control" value="1" min="0">
-                  </div>
-                </div>
-              </div>
-              <!-- Config Xadrez -->
-              <div id="boardgame-xadrez-config" style="display:none;">
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts vitória (×10)</label>
-                    <input type="number" id="xadrez-pts-win" class="form-control" value="10" min="0" title="1 ponto = 10">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts empate (×10)</label>
-                    <input type="number" id="xadrez-pts-draw" class="form-control" value="5" min="0" title="0.5 ponto = 5">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label style="font-size:12px;">Pts derrota (×10)</label>
-                    <input type="number" id="xadrez-pts-loss" class="form-control" value="0" min="0">
-                  </div>
-                </div>
-                <div style="font-size:11px; color:var(--text-secondary); margin-top:6px;">Desempate: confronto direto → Buchholz → vitórias</div>
-              </div>
-            </div>
-          </div>
-
           <div class="form-group" id="champ-teams-section" style="display:none;">
             <label>Equipes Inscritas (opcional)</label>
             <div id="champ-teams-list" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--bg-tertiary);">
@@ -988,6 +922,10 @@
     let knockoutMatches = [{ home: '', away: '' }];
 
     let tiebreakerOrder = ['points', 'wins', 'goal_difference', 'goals_scored', 'head_to_head'];
+    // Desempate por tipo de tabuleiro
+    let bgDominoTiebreakers = ['pontos', 'vitorias', 'confronto_direto', 'sorteio'];
+    let bgDamaTiebreakers   = ['pontos', 'vitorias', 'empates', 'confronto_direto', 'sorteio'];
+    let bgXadrezTiebreakers = ['confronto_direto', 'buchholz', 'vitorias', 'sorteio'];
     const TIEBREAKER_LABELS = {
       points: 'Pontos', wins: 'Vitórias', draws: 'Empates', losses: 'Derrotas',
       goal_difference: 'Saldo de Gols', goals_scored: 'Gols Pró', head_to_head: 'Confronto Direto',
@@ -997,6 +935,9 @@
       table_points: 'Pontos na Tabela', point_difference: 'Saldo de Pontos',
       confronto_direto: 'Confronto Direto', saldo_pontos: 'Saldo de Pontos',
       pontos_convertidos: 'Pontos Convertidos', pontos_sofridos: 'Pontos Sofridos',
+      // Tabuleiro
+      pontos: 'Pontos', vitorias: 'Vitórias', empates: 'Empates',
+      sorteio: 'Sorteio', buchholz: 'Buchholz',
     };
 
     function isVolleyball() {
@@ -1012,16 +953,16 @@
     }
 
     function isBoardgame() {
-      return currentChamp?.sport?.slug === 'boardgame';
+      return ['domino', 'dama', 'xadrez'].includes(currentChamp?.sport?.slug);
     }
 
     function getBgGameType() {
-      return currentChamp?.rules_config?.game_type || currentChamp?.game_type || '';
+      return currentChamp?.sport?.slug || '';
     }
 
-    function isDomino()  { return isBoardgame() && getBgGameType() === 'domino'; }
-    function isDama()    { return isBoardgame() && getBgGameType() === 'dama'; }
-    function isXadrez()  { return isBoardgame() && getBgGameType() === 'xadrez'; }
+    function isDomino()  { return currentChamp?.sport?.slug === 'domino'; }
+    function isDama()    { return currentChamp?.sport?.slug === 'dama'; }
+    function isXadrez()  { return currentChamp?.sport?.slug === 'xadrez'; }
 
     // ================================================================
     // UTILS
@@ -1202,13 +1143,12 @@
         const isVball_    = sport?.slug === 'volleyball';
         const isBball_    = sport?.slug === 'basketball';
         const isRunning_  = sport?.slug === 'running';
-        const isBoardgame_ = sport?.slug === 'boardgame';
-        document.getElementById('vball-champ-config').style.display       = isVball_    ? '' : 'none';
-        document.getElementById('bball-champ-config').style.display       = isBball_    ? '' : 'none';
-        document.getElementById('running-champ-config').style.display     = isRunning_  ? '' : 'none';
-        document.getElementById('boardgame-champ-config').style.display   = isBoardgame_ ? '' : 'none';
-        document.getElementById('champ-teams-section').style.display      = (isRunning_ || isBoardgame_) ? 'none' : 'block';
-        if (!isBoardgame_) renderModalTeamsList(sportId);
+        const isBgame_    = ['domino', 'dama', 'xadrez'].includes(sport?.slug);
+        document.getElementById('vball-champ-config').style.display   = isVball_   ? '' : 'none';
+        document.getElementById('bball-champ-config').style.display   = isBball_   ? '' : 'none';
+        document.getElementById('running-champ-config').style.display = isRunning_ ? '' : 'none';
+        document.getElementById('champ-teams-section').style.display  = (isRunning_ || isBgame_) ? 'none' : 'block';
+        if (!isBgame_) renderModalTeamsList(sportId);
         _updateSportIcon();
       };
 
@@ -1383,8 +1323,8 @@
       // Controla visibilidade das abas por modalidade
       const slug = currentChamp.sport?.slug;
       const running    = slug === 'running';
-      const boardgame_ = slug === 'boardgame';
-      const bgType     = currentChamp.rules_config?.game_type || currentChamp.game_type || '';
+      const boardgame_ = ['domino', 'dama', 'xadrez'].includes(slug);
+      const bgType     = slug;
 
       const runningTabs  = ['participants', 'race-results', 'ranking'];
       const normalTabs   = ['teams', 'groups', 'games', 'knockout', 'stats'];
@@ -1593,7 +1533,7 @@
         }
 
         if (bgame) {
-          const bgType_ = cfg.game_type || getBgGameType();
+          const bgType_ = getBgGameType();
           document.getElementById('cfg-boardgame-section').style.display = '';
           document.getElementById('cfg-bg-domino').style.display  = bgType_ === 'domino'  ? '' : 'none';
           document.getElementById('cfg-bg-dama').style.display    = bgType_ === 'dama'    ? '' : 'none';
@@ -1606,16 +1546,22 @@
             const eps = document.getElementById('cfg-domino-pts-passe-simples'); if (eps) eps.value = cfg.pts_passe_simples ?? 1;
             const epg = document.getElementById('cfg-domino-pts-passe-geral'); if (epg) epg.value = cfg.pts_passe_geral ?? 2;
             const ecl = document.getElementById('cfg-domino-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
+            bgDominoTiebreakers = cfg.tiebreaker_order?.length ? cfg.tiebreaker_order : ['pontos', 'vitorias', 'confronto_direto', 'sorteio'];
+            renderBgTiebreakerList('domino');
           } else if (bgType_ === 'dama') {
             const ep = document.getElementById('cfg-dama-pts-peca'); if (ep) ep.value = cfg.pts_peca_simples ?? cfg.pts_piece ?? 1;
             const ed_ = document.getElementById('cfg-dama-pts-dama'); if (ed_) ed_.value = cfg.pts_dama_capturada ?? cfg.pts_dama ?? 3;
             const ee = document.getElementById('cfg-dama-pts-empate'); if (ee) ee.value = cfg.pts_empate ?? 0.5;
             const ecl = document.getElementById('cfg-dama-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
+            bgDamaTiebreakers = cfg.tiebreaker_order?.length ? cfg.tiebreaker_order : ['pontos', 'vitorias', 'empates', 'confronto_direto', 'sorteio'];
+            renderBgTiebreakerList('dama');
           } else if (bgType_ === 'xadrez') {
             const ew = document.getElementById('cfg-xadrez-pts-win'); if (ew) ew.value = cfg.pts_win ?? 10;
             const ed_ = document.getElementById('cfg-xadrez-pts-draw'); if (ed_) ed_.value = cfg.pts_draw ?? 5;
             const el = document.getElementById('cfg-xadrez-pts-loss'); if (el) el.value = cfg.pts_loss ?? 0;
             const ecl = document.getElementById('cfg-xadrez-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
+            bgXadrezTiebreakers = cfg.tiebreaker_order?.length ? cfg.tiebreaker_order : ['confronto_direto', 'buchholz', 'vitorias', 'sorteio'];
+            renderBgTiebreakerList('xadrez');
           }
           return;
         }
@@ -3204,39 +3150,53 @@
 
       let registerBtn = '';
       if (bgType_ === 'domino') {
-        const matches = g.extra_data?.matches || [];
-        const mHtml = matches.map(m => `<span style="font-size:11px; background:var(--bg-secondary); border-radius:4px; padding:2px 6px; margin:2px;">${m.match_number}ª: ${m.winner === 'home' ? g.home_name : m.winner === 'away' ? g.away_name : 'Empate'} (${m.match_type?.replace('_', ' ')})</span>`).join('');
+        const events_ = g.extra_data?.events || [];
+        const eHtml = events_.map(e => {
+          if (e.event_type === 'batida') return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">🏆 ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')}) +${e.points}pts</span>`;
+          if (e.event_type === 'passe') return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">↪ ${e.quem_passou==='home'?g.home_name:g.away_name} passou → ${e.beneficiario==='home'?g.home_name:g.away_name} +${e.points}pts</span>`;
+          return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">${e.match_number||''}ª ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')})</span>`;
+        }).join('');
         registerBtn = `
           <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
-            ${mHtml ? `<div style="margin-bottom:8px;">${mHtml}</div>` : ''}
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-              <div class="form-group" style="margin:0; min-width:60px;">
-                <label style="font-size:11px;">Nº Partida</label>
-                <input type="number" id="dm-match-num-${g.id}" class="form-control" value="${matches.length + 1}" min="1" style="width:70px;">
-              </div>
+            ${eHtml ? `<div style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:4px;">${eHtml}</div>` : ''}
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px;">
               <div class="form-group" style="margin:0;">
                 <label style="font-size:11px;">Vencedor</label>
                 <select id="dm-winner-${g.id}" class="form-control" style="width:140px;">
                   <option value="home">${g.home_name}</option>
                   <option value="away">${g.away_name}</option>
-                  <option value="draw">Empate</option>
                 </select>
               </div>
               <div class="form-group" style="margin:0;">
                 <label style="font-size:11px;">Tipo</label>
-                <select id="dm-type-${g.id}" class="form-control" style="width:150px;"
-                  onchange="document.getElementById('dm-passes-area-${g.id}').style.display=(this.value==='passe_simples'?'block':'none')">
+                <select id="dm-type-${g.id}" class="form-control" style="width:160px;">
                   <option value="batida_simples">Batida Simples</option>
                   <option value="batida_caroca">Batida de Carroça</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="saveDominoBatida(${g.id})">+ Batida</button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+              <div class="form-group" style="margin:0;">
+                <label style="font-size:11px;">Quem passou</label>
+                <select id="dm-passou-${g.id}" class="form-control" style="width:140px;">
+                  <option value="home">${g.home_name}</option>
+                  <option value="away">${g.away_name}</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label style="font-size:11px;">Tipo Passe</label>
+                <select id="dm-passe-tipo-${g.id}" class="form-control" style="width:150px;"
+                  onchange="document.getElementById('dm-qtd-area-${g.id}').style.display=(this.value==='passe_simples'?'':'none')">
                   <option value="passe_simples">Passe Simples</option>
                   <option value="passe_geral">Passe Geral</option>
                 </select>
               </div>
-              <div id="dm-passes-area-${g.id}" class="form-group" style="margin:0; display:none; min-width:80px;">
+              <div id="dm-qtd-area-${g.id}" class="form-group" style="margin:0; min-width:80px;">
                 <label style="font-size:11px;">Qtd passes</label>
-                <input type="number" id="dm-passes-${g.id}" class="form-control" value="1" min="1" style="width:70px;">
+                <input type="number" id="dm-qtd-${g.id}" class="form-control" value="1" min="1" style="width:70px;">
               </div>
-              <button class="btn btn-primary btn-sm" onclick="saveDominoMatch(${g.id})">Registrar Partida</button>
+              <button class="btn btn-secondary btn-sm" onclick="saveDominoPasse(${g.id})">+ Passe</button>
             </div>
           </div>`;
       } else if (bgType_ === 'xadrez') {
@@ -3336,19 +3296,36 @@
       } catch (err) { showToast(err.message, 'error'); }
     }
 
-    async function saveDominoMatch(gameId) {
-      const matchNum = Number(document.getElementById(`dm-match-num-${gameId}`).value);
-      const winner   = document.getElementById(`dm-winner-${gameId}`).value;
-      const matchType = document.getElementById(`dm-type-${gameId}`).value;
-      const passesEl = document.getElementById(`dm-passes-${gameId}`);
-      const quantPasses = passesEl ? Number(passesEl.value || 1) : 1;
+    async function saveDominoBatida(gameId) {
+      const winner = document.getElementById(`dm-winner-${gameId}`).value;
+      const type   = document.getElementById(`dm-type-${gameId}`).value;
       try {
-        await apiFetch(`/api/championships/${currentChamp.id}/domino/games/${gameId}/match`, {
-          method: 'PUT',
-          body: JSON.stringify({ match_number: matchNum, winner, match_type: matchType, quantidade_passes: quantPasses }),
+        await apiFetch(`/api/championships/${currentChamp.id}/domino/games/${gameId}/batida`, {
+          method: 'POST',
+          body: JSON.stringify({ winner, type }),
         });
-        showToast('Partida registrada!', 'success');
-        loadBgGames();
+        showToast('Batida registrada!', 'success');
+        if (currentTab === 'bg-knockout') loadBgKnockout(); else loadBgGames();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // Mantido para compatibilidade com código legado
+    async function saveDominoMatch(gameId) {
+      return saveDominoBatida(gameId);
+    }
+
+    async function saveDominoPasse(gameId) {
+      const quem_passou = document.getElementById(`dm-passou-${gameId}`).value;
+      const type        = document.getElementById(`dm-passe-tipo-${gameId}`).value;
+      const qtdEl       = document.getElementById(`dm-qtd-${gameId}`);
+      const quantidade  = Number(qtdEl?.value || 1);
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/domino/games/${gameId}/passe`, {
+          method: 'POST',
+          body: JSON.stringify({ quem_passou, type, quantidade }),
+        });
+        showToast('Passe registrado!', 'success');
+        if (currentTab === 'bg-knockout') loadBgKnockout(); else loadBgGames();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
@@ -3364,7 +3341,7 @@
           body: JSON.stringify({ result, home_pieces_captured: hp, home_damas_captured: hd, away_pieces_captured: ap, away_damas_captured: ad }),
         });
         showToast('Resultado salvo!', 'success');
-        loadBgGames();
+        if (currentTab === 'bg-knockout') loadBgKnockout(); else loadBgGames();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
@@ -3376,7 +3353,7 @@
           body: JSON.stringify({ result }),
         });
         showToast('Resultado salvo!', 'success');
-        loadBgGames();
+        if (currentTab === 'bg-knockout') loadBgKnockout(); else loadBgGames();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
@@ -3466,8 +3443,8 @@
       const btn = document.getElementById('btn-save-config-boardgame');
       btnLoading(btn, true, 'Salvando...');
       try {
-        const bgType_ = currentChamp?.rules_config?.game_type || getBgGameType();
-        let data = { game_type: bgType_ };
+        const bgType_ = getBgGameType();
+        let data = {};
         if (bgType_ === 'domino') {
           data.best_of              = Number(document.getElementById('cfg-domino-best-of')?.value || 3);
           data.pts_batida_simples   = Number(document.getElementById('cfg-domino-pts-simples')?.value || 1);
@@ -3475,26 +3452,60 @@
           data.pts_passe_simples    = Number(document.getElementById('cfg-domino-pts-passe-simples')?.value || 1);
           data.pts_passe_geral      = Number(document.getElementById('cfg-domino-pts-passe-geral')?.value || 2);
           data.classifieds_per_group = Number(document.getElementById('cfg-domino-classifieds')?.value || 2);
+          data.tiebreaker_order     = bgDominoTiebreakers;
         } else if (bgType_ === 'dama') {
           data.pts_peca_simples     = Number(document.getElementById('cfg-dama-pts-peca')?.value || 1);
           data.pts_dama_capturada   = Number(document.getElementById('cfg-dama-pts-dama')?.value || 3);
           data.pts_empate           = Number(document.getElementById('cfg-dama-pts-empate')?.value || 0.5);
           data.classifieds_per_group = Number(document.getElementById('cfg-dama-classifieds')?.value || 2);
+          data.tiebreaker_order     = bgDamaTiebreakers;
         } else if (bgType_ === 'xadrez') {
           data.pts_win  = Number(document.getElementById('cfg-xadrez-pts-win')?.value || 10);
           data.pts_draw = Number(document.getElementById('cfg-xadrez-pts-draw')?.value || 5);
           data.pts_loss = Number(document.getElementById('cfg-xadrez-pts-loss')?.value || 0);
           data.classifieds_per_group = Number(document.getElementById('cfg-xadrez-classifieds')?.value || 2);
+          data.tiebreaker_order     = bgXadrezTiebreakers;
         }
         await ChampAPI.updateConfig(currentChamp.id, data);
         currentChamp.rules_config = { ...currentChamp.rules_config, ...data };
-        showToast('Configurações salvas!', 'success');
+        showToast('Configuracoes salvas!', 'success');
       } catch (err) {
         showToast(err.message, 'error');
       } finally {
         btnLoading(btn, false);
       }
     });
+
+    // ================================================================
+    // TABULEIRO — DESEMPATE (funcoes)
+    // ================================================================
+
+    function renderBgTiebreakerList(type) {
+      const map = { domino: bgDominoTiebreakers, dama: bgDamaTiebreakers, xadrez: bgXadrezTiebreakers };
+      const order = map[type] || [];
+      const container = document.getElementById('bg-tb-list-' + type);
+      if (!container) return;
+      container.innerHTML = order.map((tb, idx) => {
+        const label = TIEBREAKER_LABELS[tb] || tb;
+        const tip = tb === 'buchholz' ? ' <span title="Soma dos pontos de todos os adversarios enfrentados" style="text-decoration:underline dotted;cursor:help;font-size:11px;">(?)</span>' : '';
+        return '<div class="tiebreaker-item">' +
+          '<span class="tb-idx">' + (idx + 1) + '.</span>' +
+          '<span>' + label + tip + '</span>' +
+          '<button onclick="moveBgTiebreaker('' + type + '',' + idx + ',-1)" class="btn btn-sm btn-secondary" style="padding:2px 8px;"' + (idx === 0 ? ' disabled' : '') + '>↑</button>' +
+          '<button onclick="moveBgTiebreaker('' + type + '',' + idx + ',1)" class="btn btn-sm btn-secondary" style="padding:2px 8px;"' + (idx === order.length - 1 ? ' disabled' : '') + '>↓</button>' +
+          '</div>';
+      }).join('');
+    }
+
+    function moveBgTiebreaker(type, idx, dir) {
+      const map = { domino: bgDominoTiebreakers, dama: bgDamaTiebreakers, xadrez: bgXadrezTiebreakers };
+      const order = map[type];
+      if (!order) return;
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= order.length) return;
+      [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+      renderBgTiebreakerList(type);
+    }
 
     // ================================================================
     // TABULEIRO — GRUPOS
@@ -3587,6 +3598,14 @@
     // ================================================================
     let _bgKoMatches = [];
 
+    function bgKoPhaseName(count) {
+      if (count === 1) return 'Final';
+      if (count === 2) return 'Semifinal';
+      if (count === 4) return 'Quartas de Final';
+      if (count === 8) return 'Oitavas de Final';
+      return 'Rodada (' + count + ' jogos)';
+    }
+
     async function loadBgKnockout() {
       const container = document.getElementById('bg-knockout-games');
       const setupArea = document.getElementById('bg-knockout-setup-area');
@@ -3603,10 +3622,19 @@
         }
         const byRound = {};
         koGames.forEach(g => { const r = g.round_number || 1; (byRound[r] = byRound[r] || []).push(g); });
-        container.innerHTML = Object.entries(byRound).sort(([a],[b]) => a-b).map(([r, gs]) => `
+        const sortedRounds = Object.keys(byRound).map(Number).sort((a,b) => a-b);
+        const lastRound = sortedRounds[sortedRounds.length - 1];
+        const finalGames = byRound[lastRound] || [];
+        let championHtml = '';
+        if (finalGames.length === 1 && finalGames[0].status === 'finished' && finalGames[0].result) {
+          const fg = finalGames[0];
+          const champName = fg.result === 'home_win' ? fg.home_name : fg.away_name;
+          championHtml = `<div class="champion-card" style="margin-bottom:16px;"><div class="trophy">🏆</div><div class="champion-label">Campeão</div><div class="champion-name">${champName}</div></div>`;
+        }
+        container.innerHTML = championHtml + Object.entries(byRound).sort(([a],[b]) => a-b).map(([r, gs]) => `
           <div class="card" style="margin-bottom:16px;">
             <div class="card-body">
-              <h4 style="margin-bottom:12px; font-size:14px; color:var(--text-secondary);">Rodada ${r}</h4>
+              <h4 style="margin-bottom:12px; font-size:14px; color:var(--text-secondary);">${bgKoPhaseName(gs.length)}</h4>
               ${gs.map(g => renderBgGameCard(g, bgType_)).join('')}
             </div>
           </div>`).join('');

@@ -395,6 +395,164 @@ def register_domino_match(
 
 
 # ===========================================================================
+# DOMINÓ — Batida (nova partida com vencedor)
+# ===========================================================================
+
+@router.post("/{championship_id}/domino/games/{game_id}/batida", status_code=201)
+def register_domino_batida(
+    championship_id: int,
+    game_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    """Registra uma batida (define vencedor de uma partida). Incrementa placar."""
+    game = db.query(BoardgameGame).filter(
+        BoardgameGame.id == game_id,
+        BoardgameGame.championship_id == championship_id,
+        BoardgameGame.game_type == "domino",
+    ).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+
+    champ = _get_champ_or_404(championship_id, db)
+    rules = champ.rules_config or {}
+    best_of = int(rules.get("best_of", 3))
+
+    winner = body.get("winner")
+    if winner not in ("home", "away"):
+        raise HTTPException(status_code=400, detail="winner deve ser 'home' ou 'away'")
+
+    batida_type = body.get("type", "batida_simples")
+    if batida_type not in ("batida_simples", "batida_caroca"):
+        raise HTTPException(status_code=400, detail="type deve ser 'batida_simples' ou 'batida_caroca'")
+
+    pts = _calc_domino_match_points(batida_type, 1, rules)
+    ed = dict(game.extra_data or {"game_type": "domino", "events": [],
+                                   "home_table_points": 0, "away_table_points": 0})
+    events = list(ed.get("events", []))
+    events.append({
+        "event_num": len(events) + 1,
+        "event_type": "batida",
+        "match_type": batida_type,
+        "winner": winner,
+        "points": pts,
+    })
+    ed["events"] = events
+
+    home_wins = sum(1 for e in events if e.get("event_type") == "batida" and e.get("winner") == "home")
+    away_wins = sum(1 for e in events if e.get("event_type") == "batida" and e.get("winner") == "away")
+    home_tp = sum(e.get("points", 0) for e in events if e.get("winner") == "home")
+    away_tp = sum(e.get("points", 0) for e in events
+                  if e.get("winner") == "away" or e.get("beneficiario") == "away")
+    home_tp += sum(e.get("points", 0) for e in events if e.get("beneficiario") == "home")
+
+    ed["home_table_points"] = home_tp
+    ed["away_table_points"] = away_tp
+
+    needed = (best_of // 2) + 1
+    result = None
+    if home_wins >= needed:
+        result = "home_win"
+    elif away_wins >= needed:
+        result = "away_win"
+
+    game.extra_data = ed
+    game.home_score = home_wins
+    game.away_score = away_wins
+    game.result = result
+    if result:
+        game.status = "finished"
+
+    db.commit()
+    db.refresh(game)
+    names = _domino_names(championship_id, db)
+    return _boardgame_game_out(game, names)
+
+
+# ===========================================================================
+# DOMINÓ — Passe (acumula pontos sem definir vencedor de partida)
+# ===========================================================================
+
+@router.post("/{championship_id}/domino/games/{game_id}/passe", status_code=201)
+def register_domino_passe(
+    championship_id: int,
+    game_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    """Registra um passe. Pontos vão para quem NÃO passou. Não altera placar de partidas."""
+    game = db.query(BoardgameGame).filter(
+        BoardgameGame.id == game_id,
+        BoardgameGame.championship_id == championship_id,
+        BoardgameGame.game_type == "domino",
+    ).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+
+    champ = _get_champ_or_404(championship_id, db)
+    rules = champ.rules_config or {}
+
+    quem_passou = body.get("quem_passou")
+    if quem_passou not in ("home", "away"):
+        raise HTTPException(status_code=400, detail="quem_passou deve ser 'home' ou 'away'")
+
+    passe_type = body.get("type", "passe_simples")
+    if passe_type not in ("passe_simples", "passe_geral"):
+        raise HTTPException(status_code=400, detail="type deve ser 'passe_simples' ou 'passe_geral'")
+
+    quantidade = int(body.get("quantidade", 1) or 1)
+    pts = _calc_domino_match_points(passe_type, quantidade, rules)
+    beneficiario = "away" if quem_passou == "home" else "home"
+
+    ed = dict(game.extra_data or {"game_type": "domino", "events": [],
+                                   "home_table_points": 0, "away_table_points": 0})
+    events = list(ed.get("events", []))
+    events.append({
+        "event_num": len(events) + 1,
+        "event_type": "passe",
+        "passe_type": passe_type,
+        "quem_passou": quem_passou,
+        "beneficiario": beneficiario,
+        "quantidade": quantidade,
+        "points": pts,
+    })
+    ed["events"] = events
+
+    # Recalcula table_points de todos os eventos
+    home_tp = sum(e.get("points", 0) for e in events if e.get("winner") == "home" or e.get("beneficiario") == "home")
+    away_tp = sum(e.get("points", 0) for e in events if e.get("winner") == "away" or e.get("beneficiario") == "away")
+    ed["home_table_points"] = home_tp
+    ed["away_table_points"] = away_tp
+
+    game.extra_data = ed
+    db.commit()
+    db.refresh(game)
+    names = _domino_names(championship_id, db)
+    return _boardgame_game_out(game, names)
+
+
+@router.get("/{championship_id}/domino/games/{game_id}/events")
+def list_domino_game_events(
+    championship_id: int,
+    game_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retorna todos os eventos (batidas e passes) em ordem cronológica."""
+    game = db.query(BoardgameGame).filter(
+        BoardgameGame.id == game_id,
+        BoardgameGame.championship_id == championship_id,
+        BoardgameGame.game_type == "domino",
+    ).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+    events = (game.extra_data or {}).get("events", [])
+    return events
+
+
+# ===========================================================================
 # DOMINÓ — Grupos
 # ===========================================================================
 

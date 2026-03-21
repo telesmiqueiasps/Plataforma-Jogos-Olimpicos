@@ -26,7 +26,9 @@ SportSlug = Enum(
     "volleyball",
     "basketball",
     "running",
-    "boardgame",
+    "domino",
+    "dama",
+    "xadrez",
     name="sport_slug",
 )
 
