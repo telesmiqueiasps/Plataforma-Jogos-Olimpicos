@@ -687,32 +687,15 @@
 
           <!-- ---- ABA: Jogos (Tabuleiro) ---- -->
           <div id="tab-bg-games" style="display:none;">
-            <div class="card" style="margin-bottom:16px;">
-              <div class="card-body">
-                <h3 style="font-size:15px; font-weight:700; margin-bottom:16px;">🎮 Criar Jogo</h3>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-                  <div class="form-group" style="margin:0; flex:1; min-width:140px;">
-                    <label style="font-size:12px;" id="bg-game-home-label">Mandante</label>
-                    <select id="bg-game-home" class="form-control"><option value="">Carregando...</option></select>
-                  </div>
-                  <div class="form-group" style="margin:0; flex:1; min-width:140px;">
-                    <label style="font-size:12px;" id="bg-game-away-label">Visitante</label>
-                    <select id="bg-game-away" class="form-control"><option value="">Carregando...</option></select>
-                  </div>
-                  <div class="form-group" style="margin:0; min-width:120px;">
-                    <label style="font-size:12px;">Fase</label>
-                    <select id="bg-game-phase" class="form-control">
-                      <option value="groups">Grupos</option>
-                      <option value="knockout">Mata-mata</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin:0; min-width:80px;">
-                    <label style="font-size:12px;">Rodada</label>
-                    <input type="number" id="bg-game-round" class="form-control" value="1" min="1">
-                  </div>
-                  <button class="btn btn-primary btn-sm" onclick="createBgGame()">+ Criar</button>
-                </div>
-              </div>
+            <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+              <select id="bg-filter-phase" class="form-control" style="max-width:200px;" onchange="onBgPhaseFilterChange()">
+                <option value="">Todas as fases</option>
+                <option value="groups">Fase de Grupos</option>
+                <option value="knockout">Mata-mata</option>
+              </select>
+              <select id="bg-filter-round" class="form-control" style="max-width:160px;" onchange="renderFilteredBgGames()">
+                <option value="">Todas as rodadas</option>
+              </select>
             </div>
             <div id="bg-games-list"></div>
           </div>
@@ -1348,7 +1331,7 @@
         });
       } else if (boardgame_) {
         // Tabs comuns a todos os subtipos de tabuleiro
-        ['bg-games', 'bg-stats', 'bg-groups', 'bg-knockout'].forEach(t => {
+        ['bg-games', 'bg-groups', 'bg-knockout'].forEach(t => {
           const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
           if (btn) btn.style.display = '';
         });
@@ -3097,56 +3080,50 @@
       if (!container) return;
       container.innerHTML = '<div class="page-loading" style="padding:20px;"><div class="spinner"></div><span>Carregando...</span></div>';
 
+      // Reset filtros
+      const phaseSel = document.getElementById('bg-filter-phase');
+      const roundSel = document.getElementById('bg-filter-round');
+      if (phaseSel) phaseSel.value = '';
+      if (roundSel) { roundSel.innerHTML = '<option value="">Todas as rodadas</option>'; }
+
       const bgType_ = getBgGameType();
       try {
-        // Carrega opções para o seletor de criação de jogo
-        let options = [];
-        if (isDomino()) {
-          const pairs = await apiFetch(`/api/championships/${currentChamp.id}/domino/teams`);
-          options = pairs.map(p => ({ id: p.id, label: p.name }));
-          document.getElementById('bg-game-home-label').textContent = 'Dupla Mandante';
-          document.getElementById('bg-game-away-label').textContent = 'Dupla Visitante';
-        } else {
-          const parts = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/participants`);
-          options = parts.map(p => ({ id: p.athlete_id, label: p.athlete_name }));
-          document.getElementById('bg-game-home-label').textContent = 'Jogador Mandante';
-          document.getElementById('bg-game-away-label').textContent = 'Jogador Visitante';
-        }
-        const makeOpts = (selId) => {
-          const sel = document.getElementById(selId);
-          if (sel) sel.innerHTML = options.map(o => `<option value="${o.id}">${o.label}</option>`).join('');
-        };
-        makeOpts('bg-game-home');
-        makeOpts('bg-game-away');
-
         _bgGamesList = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/games`);
 
         if (!_bgGamesList.length) {
-          container.innerHTML = '<div class="card"><div class="card-body" style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum jogo cadastrado. Crie jogos usando o formulário acima.</div></div>';
+          container.innerHTML = '<div class="card"><div class="card-body" style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum jogo cadastrado ainda. Os jogos são gerados automaticamente ao configurar grupos ou mata-mata.</div></div>';
           return;
         }
-        container.innerHTML = _bgGamesList.map(g => renderBgGameCard(g, bgType_)).join('');
+        _populateBgRoundFilter(_bgGamesList);
+        renderFilteredBgGames();
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
     }
 
     function renderBgGameCard(g, bgType_) {
-      const resultLabel = g.result === 'home_win' ? `<span style="color:var(--accent-teal);">✓ ${g.home_name} venceu</span>`
-        : g.result === 'away_win' ? `<span style="color:var(--accent-teal);">✓ ${g.away_name} venceu</span>`
-        : g.result === 'draw'    ? `<span style="color:var(--text-secondary);">Empate</span>`
-        : '';
-
       let scoreDisplay = '';
       if (bgType_ === 'domino') {
-        scoreDisplay = g.home_score !== null ? `${g.home_score} x ${g.away_score}` : '— x —';
+        scoreDisplay = g.home_score !== null ? `${g.home_score} × ${g.away_score}` : '— × —';
       } else if (bgType_ === 'xadrez') {
         const hp = g.home_score !== null ? (g.home_score / 10).toFixed(1) : '—';
         const ap = g.away_score !== null ? (g.away_score / 10).toFixed(1) : '—';
-        scoreDisplay = `${hp} x ${ap}`;
+        scoreDisplay = `${hp} × ${ap}`;
       } else {
-        scoreDisplay = g.home_score !== null ? `${g.home_score/10}pt × ${g.away_score/10}pt peças` : '— x —';
+        scoreDisplay = g.home_score !== null ? `${g.home_score/10}pt × ${g.away_score/10}pt` : '— × —';
       }
+
+      const statusBadge = g.status === 'finished'
+        ? '<span class="badge badge-finished">Encerrado</span>'
+        : '<span class="badge badge-info">Agendado</span>';
+
+      const resultLabel = g.result === 'home_win'
+        ? `<div style="margin-bottom:8px; color:var(--accent-teal); font-size:13px;">✓ ${g.home_name} venceu</div>`
+        : g.result === 'away_win'
+        ? `<div style="margin-bottom:8px; color:var(--accent-teal); font-size:13px;">✓ ${g.away_name} venceu</div>`
+        : g.result === 'draw'
+        ? `<div style="margin-bottom:8px; color:var(--text-secondary); font-size:13px;">Empate</div>`
+        : '';
 
       let registerBtn = '';
       if (bgType_ === 'domino') {
@@ -3157,51 +3134,49 @@
           return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">${e.match_number||''}ª ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')})</span>`;
         }).join('');
         registerBtn = `
-          <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
-            ${eHtml ? `<div style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:4px;">${eHtml}</div>` : ''}
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px;">
-              <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Vencedor</label>
-                <select id="dm-winner-${g.id}" class="form-control" style="width:140px;">
-                  <option value="home">${g.home_name}</option>
-                  <option value="away">${g.away_name}</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Tipo</label>
-                <select id="dm-type-${g.id}" class="form-control" style="width:160px;">
-                  <option value="batida_simples">Batida Simples</option>
-                  <option value="batida_caroca">Batida de Carroça</option>
-                </select>
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="saveDominoBatida(${g.id})">+ Batida</button>
+          ${eHtml ? `<div style="margin-bottom:10px; display:flex; flex-wrap:wrap; gap:4px;">${eHtml}</div>` : ''}
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px;">
+            <div class="form-group" style="margin:0;">
+              <label style="font-size:11px;">Vencedor</label>
+              <select id="dm-winner-${g.id}" class="form-control" style="width:140px;">
+                <option value="home">${g.home_name}</option>
+                <option value="away">${g.away_name}</option>
+              </select>
             </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-              <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Quem passou</label>
-                <select id="dm-passou-${g.id}" class="form-control" style="width:140px;">
-                  <option value="home">${g.home_name}</option>
-                  <option value="away">${g.away_name}</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Tipo Passe</label>
-                <select id="dm-passe-tipo-${g.id}" class="form-control" style="width:150px;"
-                  onchange="document.getElementById('dm-qtd-area-${g.id}').style.display=(this.value==='passe_simples'?'':'none')">
-                  <option value="passe_simples">Passe Simples</option>
-                  <option value="passe_geral">Passe Geral</option>
-                </select>
-              </div>
-              <div id="dm-qtd-area-${g.id}" class="form-group" style="margin:0; min-width:80px;">
-                <label style="font-size:11px;">Qtd passes</label>
-                <input type="number" id="dm-qtd-${g.id}" class="form-control" value="1" min="1" style="width:70px;">
-              </div>
-              <button class="btn btn-secondary btn-sm" onclick="saveDominoPasse(${g.id})">+ Passe</button>
+            <div class="form-group" style="margin:0;">
+              <label style="font-size:11px;">Tipo</label>
+              <select id="dm-type-${g.id}" class="form-control" style="width:160px;">
+                <option value="batida_simples">Batida Simples</option>
+                <option value="batida_caroca">Batida de Carroça</option>
+              </select>
             </div>
+            <button class="btn btn-primary btn-sm" onclick="saveDominoBatida(${g.id})">+ Batida</button>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+            <div class="form-group" style="margin:0;">
+              <label style="font-size:11px;">Quem passou</label>
+              <select id="dm-passou-${g.id}" class="form-control" style="width:140px;">
+                <option value="home">${g.home_name}</option>
+                <option value="away">${g.away_name}</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label style="font-size:11px;">Tipo Passe</label>
+              <select id="dm-passe-tipo-${g.id}" class="form-control" style="width:150px;"
+                onchange="document.getElementById('dm-qtd-area-${g.id}').style.display=(this.value==='passe_simples'?'':'none')">
+                <option value="passe_simples">Passe Simples</option>
+                <option value="passe_geral">Passe Geral</option>
+              </select>
+            </div>
+            <div id="dm-qtd-area-${g.id}" class="form-group" style="margin:0; min-width:80px;">
+              <label style="font-size:11px;">Qtd passes</label>
+              <input type="number" id="dm-qtd-${g.id}" class="form-control" value="1" min="1" style="width:70px;">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="saveDominoPasse(${g.id})">+ Passe</button>
           </div>`;
       } else if (bgType_ === 'xadrez') {
         registerBtn = `
-          <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <span style="font-size:13px; color:var(--text-secondary);">Resultado:</span>
             <select id="xadrez-result-${g.id}" class="form-control" style="width:220px;">
               <option value="home_win">${g.home_name} vence (1-0)</option>
@@ -3212,60 +3187,139 @@
           </div>`;
       } else if (bgType_ === 'dama') {
         registerBtn = `
-          <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-              <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Resultado</label>
-                <select id="dama-result-${g.id}" class="form-control" style="width:210px;">
-                  <option value="home_win">${g.home_name} vence</option>
-                  <option value="draw">Empate</option>
-                  <option value="away_win">${g.away_name} vence</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin:0; min-width:90px;">
-                <label style="font-size:11px;">${g.home_name}: peças</label>
-                <input type="number" id="dama-hp-${g.id}" class="form-control" value="0" min="0">
-              </div>
-              <div class="form-group" style="margin:0; min-width:90px;">
-                <label style="font-size:11px;">${g.home_name}: damas</label>
-                <input type="number" id="dama-hd-${g.id}" class="form-control" value="0" min="0">
-              </div>
-              <div class="form-group" style="margin:0; min-width:90px;">
-                <label style="font-size:11px;">${g.away_name}: peças</label>
-                <input type="number" id="dama-ap-${g.id}" class="form-control" value="0" min="0">
-              </div>
-              <div class="form-group" style="margin:0; min-width:90px;">
-                <label style="font-size:11px;">${g.away_name}: damas</label>
-                <input type="number" id="dama-ad-${g.id}" class="form-control" value="0" min="0">
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="saveDamaResult(${g.id})">Salvar</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+            <div class="form-group" style="margin:0;">
+              <label style="font-size:11px;">Resultado</label>
+              <select id="dama-result-${g.id}" class="form-control" style="width:210px;">
+                <option value="home_win">${g.home_name} vence</option>
+                <option value="draw">Empate</option>
+                <option value="away_win">${g.away_name} vence</option>
+              </select>
             </div>
+            <div class="form-group" style="margin:0; min-width:90px;">
+              <label style="font-size:11px;">${g.home_name}: peças</label>
+              <input type="number" id="dama-hp-${g.id}" class="form-control" value="0" min="0">
+            </div>
+            <div class="form-group" style="margin:0; min-width:90px;">
+              <label style="font-size:11px;">${g.home_name}: damas</label>
+              <input type="number" id="dama-hd-${g.id}" class="form-control" value="0" min="0">
+            </div>
+            <div class="form-group" style="margin:0; min-width:90px;">
+              <label style="font-size:11px;">${g.away_name}: peças</label>
+              <input type="number" id="dama-ap-${g.id}" class="form-control" value="0" min="0">
+            </div>
+            <div class="form-group" style="margin:0; min-width:90px;">
+              <label style="font-size:11px;">${g.away_name}: damas</label>
+              <input type="number" id="dama-ad-${g.id}" class="form-control" value="0" min="0">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveDamaResult(${g.id})">Salvar</button>
           </div>`;
       }
 
-      const statusBadge = g.status === 'finished'
-        ? '<span class="badge badge-finished">Encerrado</span>'
-        : '<span class="badge badge-info">Agendado</span>';
-
       return `
-        <div class="card" style="margin-bottom:12px;">
-          <div class="card-body">
-            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; align-items:center; gap:12px;">
-                <span style="font-weight:700; font-size:15px;">${g.home_name}</span>
-                <span class="game-score">${scoreDisplay}</span>
-                <span style="font-weight:700; font-size:15px;">${g.away_name}</span>
+        <div class="card" style="margin-bottom:8px;">
+          <div class="card-body" style="padding:12px 16px; cursor:pointer; user-select:none;"
+               onclick="toggleBgCard(${g.id})">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.home_name}</span>
+                <span class="game-score" style="flex-shrink:0;">${scoreDisplay}</span>
+                <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.away_name}</span>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                ${g.phase ? `<span style="font-size:12px; color:var(--text-secondary);">${g.phase} R${g.round_number || 1}</span>` : ''}
+              <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
                 ${statusBadge}
-                <button class="btn btn-ghost btn-sm" style="color:var(--error); font-size:12px;" onclick="deleteBgGame(${g.id})">🗑️</button>
+                <button id="bg-card-toggle-${g.id}" class="btn btn-ghost btn-sm"
+                        style="font-size:11px; padding:2px 6px; min-width:24px;"
+                        onclick="event.stopPropagation(); toggleBgCard(${g.id})">▼</button>
               </div>
             </div>
-            ${resultLabel ? `<div style="margin-top:6px;">${resultLabel}</div>` : ''}
+          </div>
+          <div id="bg-game-detail-${g.id}" style="display:none; border-top:1px solid var(--border); padding:12px 16px;">
+            ${resultLabel}
             ${registerBtn}
+            <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
+              <button class="btn btn-ghost btn-sm" style="color:var(--error); font-size:12px;"
+                      onclick="deleteBgGame(${g.id})">🗑️ Remover jogo</button>
+            </div>
           </div>
         </div>`;
+    }
+
+    function toggleBgCard(gameId) {
+      const detail = document.getElementById(`bg-game-detail-${gameId}`);
+      const btn    = document.getElementById(`bg-card-toggle-${gameId}`);
+      if (!detail) return;
+      const isOpen = detail.style.display !== 'none';
+      detail.style.display = isOpen ? 'none' : 'block';
+      if (btn) btn.textContent = isOpen ? '▼' : '▲';
+    }
+
+    function _populateBgRoundFilter(games) {
+      const phaseSel = document.getElementById('bg-filter-phase');
+      const roundSel = document.getElementById('bg-filter-round');
+      if (!roundSel) return;
+      const selectedPhase = phaseSel?.value || '';
+      const rounds = [...new Set(
+        games
+          .filter(g => !selectedPhase || g.phase === selectedPhase)
+          .map(g => g.round_number)
+          .filter(r => r != null)
+      )].sort((a, b) => a - b);
+      roundSel.innerHTML = '<option value="">Todas as rodadas</option>' +
+        rounds.map(r => `<option value="${r}">Rodada ${r}</option>`).join('');
+    }
+
+    function onBgPhaseFilterChange() {
+      const roundSel = document.getElementById('bg-filter-round');
+      if (roundSel) roundSel.value = '';
+      _populateBgRoundFilter(_bgGamesList || []);
+      renderFilteredBgGames();
+    }
+
+    function renderFilteredBgGames() {
+      const container = document.getElementById('bg-games-list');
+      if (!container || !_bgGamesList) return;
+
+      const phaseSel    = document.getElementById('bg-filter-phase');
+      const roundSel    = document.getElementById('bg-filter-round');
+      const phaseFilter = phaseSel?.value || '';
+      const roundFilter = roundSel?.value ? Number(roundSel.value) : null;
+
+      const games = _bgGamesList.filter(g => {
+        if (phaseFilter && g.phase !== phaseFilter) return false;
+        if (roundFilter !== null && g.round_number !== roundFilter) return false;
+        return true;
+      });
+
+      if (!games.length) {
+        container.innerHTML = '<div class="card"><div class="card-body" style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum jogo nesta fase/rodada.</div></div>';
+        return;
+      }
+
+      const bgType_ = getBgGameType();
+      const phaseLabel = { groups: 'Fase de Grupos', knockout: 'Mata-mata' };
+
+      // Agrupar por fase + rodada
+      const groupMap = {};
+      games.forEach(g => {
+        const key = `${g.phase || ''}__${g.round_number ?? ''}`;
+        if (!groupMap[key]) groupMap[key] = { phase: g.phase, round: g.round_number, games: [] };
+        groupMap[key].games.push(g);
+      });
+
+      let html = '';
+      Object.values(groupMap).forEach(grp => {
+        const pLabel = phaseLabel[grp.phase] || grp.phase || '';
+        const rLabel = grp.round != null ? (pLabel ? ` — Rodada ${grp.round}` : `Rodada ${grp.round}`) : '';
+        const header = pLabel || rLabel;
+        if (header) {
+          html += `<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:16px 0 8px;
+                               text-transform:uppercase; letter-spacing:.5px; padding-left:2px;">${pLabel}${rLabel}</div>`;
+        }
+        html += grp.games.map(g => renderBgGameCard(g, bgType_)).join('');
+      });
+
+      container.innerHTML = html;
     }
 
     async function createBgGame() {

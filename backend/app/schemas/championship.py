@@ -73,6 +73,15 @@ class ChampionshipConfigUpdate(BaseModel):
     pts_win: Optional[int] = None
     pts_loss: Optional[int] = None
     pts_wo: Optional[int] = None
+    # Tabuleiro (Dominó / Dama / Xadrez)
+    pts_batida_simples: Optional[float] = None
+    pts_batida_caroca: Optional[float] = None
+    pts_passe_simples: Optional[float] = None
+    pts_passe_geral: Optional[float] = None
+    pts_peca_simples: Optional[float] = None
+    pts_dama_capturada: Optional[float] = None
+    pts_empate: Optional[float] = None
+    pts_draw: Optional[float] = None
 
 
 class ChampionshipOut(BaseModel):
