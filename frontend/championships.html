@@ -183,6 +183,8 @@
             <button class="tab-btn" data-tab="bg-participants" style="display:none;">👤 Participantes</button>
             <button class="tab-btn" data-tab="bg-games" style="display:none;">🎮 Jogos</button>
             <button class="tab-btn" data-tab="bg-stats" style="display:none;">📊 Estatísticas</button>
+            <button class="tab-btn" data-tab="bg-groups" style="display:none;">📋 Grupos</button>
+            <button class="tab-btn" data-tab="bg-knockout" style="display:none;">🥊 Mata-mata</button>
           </div>
 
           <!-- ---- ABA: Visão Geral ---- -->
@@ -279,6 +281,98 @@
             </div>
 
             <!-- === Configurações específicas de CORRIDA === -->
+            <div id="cfg-boardgame-section" style="display:none;">
+              <!-- Dominó -->
+              <div id="cfg-bg-domino" class="card" style="margin-bottom:12px; display:none;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:14px; font-size:15px;">🁣 Configurações de Dominó</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Melhor de</label>
+                      <select id="cfg-domino-best-of" class="form-control">
+                        <option value="3">Melhor de 3</option>
+                        <option value="5">Melhor de 5</option>
+                      </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Classificados por grupo</label>
+                      <input type="number" id="cfg-domino-classifieds" class="form-control" value="2" min="1">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts batida simples</label>
+                      <input type="number" id="cfg-domino-pts-simples" class="form-control" value="1" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts batida de carroça</label>
+                      <input type="number" id="cfg-domino-pts-caroca" class="form-control" value="2" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts passe simples (por passe)</label>
+                      <input type="number" id="cfg-domino-pts-passe-simples" class="form-control" value="1" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts passe geral</label>
+                      <input type="number" id="cfg-domino-pts-passe-geral" class="form-control" value="2" min="0">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Dama -->
+              <div id="cfg-bg-dama" class="card" style="margin-bottom:12px; display:none;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:14px; font-size:15px;">♟ Configurações de Dama</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts peça simples capturada</label>
+                      <input type="number" id="cfg-dama-pts-peca" class="form-control" value="1" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts dama capturada</label>
+                      <input type="number" id="cfg-dama-pts-dama" class="form-control" value="3" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts empate (cada jogador recebe)</label>
+                      <input type="number" id="cfg-dama-pts-empate" class="form-control" value="0.5" min="0" step="0.5">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Classificados por grupo</label>
+                      <input type="number" id="cfg-dama-classifieds" class="form-control" value="2" min="1">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Xadrez -->
+              <div id="cfg-bg-xadrez" class="card" style="margin-bottom:12px; display:none;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:14px; font-size:15px;">♚ Configurações de Xadrez</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts vitória</label>
+                      <input type="number" id="cfg-xadrez-pts-win" class="form-control" value="10" min="0" title="Armazenado ×10: 1.0pt = 10">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts empate</label>
+                      <input type="number" id="cfg-xadrez-pts-draw" class="form-control" value="5" min="0" title="Armazenado ×10: 0.5pt = 5">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pts derrota</label>
+                      <input type="number" id="cfg-xadrez-pts-loss" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Classificados por grupo</label>
+                      <input type="number" id="cfg-xadrez-classifieds" class="form-control" value="2" min="1">
+                    </div>
+                  </div>
+                  <div style="font-size:11px; color:var(--text-secondary); margin-top:8px;">Desempate: confronto direto → <span title="Soma dos pontos de todos os adversários enfrentados" style="text-decoration:underline dotted; cursor:help;">Buchholz</span> → vitórias → sorteio</div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-body" style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                  <button class="btn btn-primary" id="btn-save-config-boardgame">Salvar Configurações</button>
+                </div>
+              </div>
+            </div>
+
             <div id="cfg-running-section" style="display:none;">
               <div class="card" style="margin-bottom:16px;">
                 <div class="card-body">
@@ -610,6 +704,38 @@
           </div>
 
           <!-- ---- ABA: Estatísticas (Tabuleiro) ---- -->
+          <div id="tab-bg-groups" style="display:none;">
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-body">
+                <h3 style="font-size:15px; font-weight:700; margin-bottom:12px;">Sortear Grupos</h3>
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                  <div class="form-group" style="margin:0; min-width:160px;">
+                    <label style="font-size:12px;">Número de grupos</label>
+                    <input type="number" id="bg-group-count" class="form-control" value="2" min="1" max="8">
+                  </div>
+                  <button class="btn btn-primary" onclick="bgDrawGroups()" style="margin-top:16px;">Sortear Grupos</button>
+                </div>
+              </div>
+            </div>
+            <div id="bg-groups-content"></div>
+          </div>
+
+          <div id="tab-bg-knockout" style="display:none;">
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-body">
+                <h3 style="font-size:15px; font-weight:700; margin-bottom:12px;">Cruzamentos do Mata-mata</h3>
+                <div id="bg-knockout-setup-area"></div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                  <button class="btn btn-secondary" onclick="bgAddKnockoutMatch()">+ Adicionar Cruzamento</button>
+                  <button class="btn btn-primary" onclick="bgSetupKnockout()">Confirmar Cruzamentos</button>
+                  <button class="btn btn-teal" onclick="bgGenerateKnockout()">Gerar Jogos</button>
+                  <button class="btn btn-ghost" onclick="bgAdvanceKnockout()" style="color:var(--accent-purple);">Avançar Fase →</button>
+                </div>
+              </div>
+            </div>
+            <div id="bg-knockout-games"></div>
+          </div>
+
           <div id="tab-bg-stats" style="display:none;">
             <div id="bg-stats-content">
               <div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>
@@ -1262,7 +1388,7 @@
 
       const runningTabs  = ['participants', 'race-results', 'ranking'];
       const normalTabs   = ['teams', 'groups', 'games', 'knockout', 'stats'];
-      const bgOnlyTabs   = ['bg-participants', 'bg-games', 'bg-stats'];
+      const bgOnlyTabs    = ['bg-participants', 'bg-games', 'bg-stats', 'bg-groups', 'bg-knockout'];
       const dominoOnlyTabs = ['domino-pairs'];
 
       const allSpecialTabs = [...runningTabs, ...bgOnlyTabs, ...dominoOnlyTabs];
@@ -1281,15 +1407,18 @@
           if (btn) btn.style.display = '';
         });
       } else if (boardgame_) {
-        bgOnlyTabs.forEach(t => {
+        // Tabs comuns a todos os subtipos de tabuleiro
+        ['bg-games', 'bg-stats', 'bg-groups', 'bg-knockout'].forEach(t => {
           const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
-          if (btn) btn.style.display = bgType === 'domino' ? 'none' : '';
+          if (btn) btn.style.display = '';
         });
+        // Dominó: tab de Duplas; outros: tab de Participantes
         if (bgType === 'domino') {
-          ['domino-pairs', 'bg-games', 'bg-stats'].forEach(t => {
-            const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
-            if (btn) btn.style.display = '';
-          });
+          const btn = document.querySelector('.tab-btn[data-tab="domino-pairs"]');
+          if (btn) btn.style.display = '';
+        } else {
+          const btn = document.querySelector('.tab-btn[data-tab="bg-participants"]');
+          if (btn) btn.style.display = '';
         }
       }
 
@@ -1312,7 +1441,8 @@
     function switchTab(tabName) {
       const allTabs = ['overview', 'config', 'teams', 'groups', 'games', 'knockout', 'stats',
                        'participants', 'race-results', 'ranking',
-                       'domino-pairs', 'bg-participants', 'bg-games', 'bg-stats'];
+                       'domino-pairs', 'bg-participants', 'bg-games', 'bg-stats',
+                       'bg-groups', 'bg-knockout'];
       allTabs.forEach(t => {
         const el = document.getElementById(`tab-${t}`);
         if (el) el.style.display = 'none';
@@ -1338,6 +1468,8 @@
         case 'bg-participants':  loadBgParticipants();     break;
         case 'bg-games':         loadBgGames();            break;
         case 'bg-stats':         loadBgStats();            break;
+        case 'bg-groups':        loadBgGroups();           break;
+        case 'bg-knockout':      loadBgKnockout();         break;
       }
     }
 
@@ -1446,6 +1578,7 @@
         // Mostra/oculta seções dependentes de modalidade
         document.getElementById('cfg-volleyball-section').style.display  = vball   ? '' : 'none';
         document.getElementById('cfg-basketball-section').style.display  = bball   ? '' : 'none';
+        document.getElementById('cfg-boardgame-section').style.display   = bgame   ? '' : 'none';
         document.getElementById('cfg-running-section').style.display     = running ? '' : 'none';
         document.getElementById('cfg-futsal-pts').style.display          = (vball || bball || running || bgame) ? 'none' : '';
         document.getElementById('cfg-cards-section').style.display       = (vball || bball || running || bgame) ? 'none' : 'grid';
@@ -1460,19 +1593,30 @@
         }
 
         if (bgame) {
-          // Configurações de tabuleiro — somente leitura na aba de config
           const bgType_ = cfg.game_type || getBgGameType();
-          const bgTypeLabel = { domino: 'Dominó', dama: 'Dama', xadrez: 'Xadrez', outro: 'Outro' }[bgType_] || bgType_;
-          document.getElementById('cfg-running-section').style.display = '';
-          document.getElementById('cfg-running-distance').value   = bgTypeLabel ? `Tipo: ${bgTypeLabel}` : '—';
-          document.getElementById('cfg-running-categories').value  = bgType_ === 'domino'
-            ? `Melhor de ${cfg.best_of ?? 3} · Vitória=${cfg.pts_win ?? 3}pts`
-            : bgType_ === 'xadrez'
-            ? `Vitória=${(cfg.pts_win ?? 10)/10}pt · Empate=${(cfg.pts_draw ?? 5)/10}pt`
-            : bgType_ === 'dama'
-            ? `Peça=${cfg.pts_piece ?? 1}pt · Dama=${cfg.pts_dama ?? 3}pt`
-            : '';
-          document.getElementById('btn-save-config-running').style.display = 'none';
+          document.getElementById('cfg-boardgame-section').style.display = '';
+          document.getElementById('cfg-bg-domino').style.display  = bgType_ === 'domino'  ? '' : 'none';
+          document.getElementById('cfg-bg-dama').style.display    = bgType_ === 'dama'    ? '' : 'none';
+          document.getElementById('cfg-bg-xadrez').style.display  = bgType_ === 'xadrez'  ? '' : 'none';
+          if (bgType_ === 'domino') {
+            const bo = document.getElementById('cfg-domino-best-of');
+            if (bo) { bo.value = cfg.best_of ?? 3; }
+            const el = document.getElementById('cfg-domino-pts-simples'); if (el) el.value = cfg.pts_batida_simples ?? cfg.pts_simples ?? 1;
+            const ec = document.getElementById('cfg-domino-pts-caroca'); if (ec) ec.value = cfg.pts_batida_caroca ?? cfg.pts_caroca ?? 2;
+            const eps = document.getElementById('cfg-domino-pts-passe-simples'); if (eps) eps.value = cfg.pts_passe_simples ?? 1;
+            const epg = document.getElementById('cfg-domino-pts-passe-geral'); if (epg) epg.value = cfg.pts_passe_geral ?? 2;
+            const ecl = document.getElementById('cfg-domino-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
+          } else if (bgType_ === 'dama') {
+            const ep = document.getElementById('cfg-dama-pts-peca'); if (ep) ep.value = cfg.pts_peca_simples ?? cfg.pts_piece ?? 1;
+            const ed_ = document.getElementById('cfg-dama-pts-dama'); if (ed_) ed_.value = cfg.pts_dama_capturada ?? cfg.pts_dama ?? 3;
+            const ee = document.getElementById('cfg-dama-pts-empate'); if (ee) ee.value = cfg.pts_empate ?? 0.5;
+            const ecl = document.getElementById('cfg-dama-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
+          } else if (bgType_ === 'xadrez') {
+            const ew = document.getElementById('cfg-xadrez-pts-win'); if (ew) ew.value = cfg.pts_win ?? 10;
+            const ed_ = document.getElementById('cfg-xadrez-pts-draw'); if (ed_) ed_.value = cfg.pts_draw ?? 5;
+            const el = document.getElementById('cfg-xadrez-pts-loss'); if (el) el.value = cfg.pts_loss ?? 0;
+            const ecl = document.getElementById('cfg-xadrez-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
+          }
           return;
         }
 
@@ -2860,16 +3004,21 @@
         if (!_bgAllAthletes.length) {
           _bgAllAthletes = await apiFetch('/api/athletes/').catch(() => []);
         }
+        const pairs = await apiFetch(`/api/championships/${currentChamp.id}/domino/teams`);
+        // Filtra atletas já em dupla
+        const usedIds = new Set();
+        pairs.forEach(p => { if (p.player1_id) usedIds.add(p.player1_id); if (p.player2_id) usedIds.add(p.player2_id); });
+        const freeAthletes = _bgAllAthletes.filter(a => !usedIds.has(a.id));
         const populateSel = (selId) => {
           const sel = document.getElementById(selId);
           if (!sel) return;
           sel.innerHTML = '<option value="">— nenhum —</option>' +
-            _bgAllAthletes.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            freeAthletes.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
         };
         populateSel('domino-pair-p1');
         populateSel('domino-pair-p2');
 
-        const pairs = await apiFetch(`/api/championships/${currentChamp.id}/domino/teams`);
+        // pairs já carregadas acima
         if (!pairs.length) {
           container.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhuma dupla cadastrada.</div>';
           return;
@@ -3075,12 +3224,17 @@
               </div>
               <div class="form-group" style="margin:0;">
                 <label style="font-size:11px;">Tipo</label>
-                <select id="dm-type-${g.id}" class="form-control" style="width:150px;">
+                <select id="dm-type-${g.id}" class="form-control" style="width:150px;"
+                  onchange="document.getElementById('dm-passes-area-${g.id}').style.display=(this.value==='passe_simples'?'block':'none')">
                   <option value="batida_simples">Batida Simples</option>
                   <option value="batida_caroca">Batida de Carroça</option>
                   <option value="passe_simples">Passe Simples</option>
                   <option value="passe_geral">Passe Geral</option>
                 </select>
+              </div>
+              <div id="dm-passes-area-${g.id}" class="form-group" style="margin:0; display:none; min-width:80px;">
+                <label style="font-size:11px;">Qtd passes</label>
+                <input type="number" id="dm-passes-${g.id}" class="form-control" value="1" min="1" style="width:70px;">
               </div>
               <button class="btn btn-primary btn-sm" onclick="saveDominoMatch(${g.id})">Registrar Partida</button>
             </div>
@@ -3186,10 +3340,12 @@
       const matchNum = Number(document.getElementById(`dm-match-num-${gameId}`).value);
       const winner   = document.getElementById(`dm-winner-${gameId}`).value;
       const matchType = document.getElementById(`dm-type-${gameId}`).value;
+      const passesEl = document.getElementById(`dm-passes-${gameId}`);
+      const quantPasses = passesEl ? Number(passesEl.value || 1) : 1;
       try {
         await apiFetch(`/api/championships/${currentChamp.id}/domino/games/${gameId}/match`, {
           method: 'PUT',
-          body: JSON.stringify({ match_number: matchNum, winner, match_type: matchType, home_points: 0, away_points: 0 }),
+          body: JSON.stringify({ match_number: matchNum, winner, match_type: matchType, quantidade_passes: quantPasses }),
         });
         showToast('Partida registrada!', 'success');
         loadBgGames();
@@ -3300,6 +3456,210 @@
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
+    }
+
+    // ================================================================
+    // TABULEIRO — SALVAR CONFIG
+    // ================================================================
+
+    document.getElementById('btn-save-config-boardgame').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-save-config-boardgame');
+      btnLoading(btn, true, 'Salvando...');
+      try {
+        const bgType_ = currentChamp?.rules_config?.game_type || getBgGameType();
+        let data = { game_type: bgType_ };
+        if (bgType_ === 'domino') {
+          data.best_of              = Number(document.getElementById('cfg-domino-best-of')?.value || 3);
+          data.pts_batida_simples   = Number(document.getElementById('cfg-domino-pts-simples')?.value || 1);
+          data.pts_batida_caroca    = Number(document.getElementById('cfg-domino-pts-caroca')?.value || 2);
+          data.pts_passe_simples    = Number(document.getElementById('cfg-domino-pts-passe-simples')?.value || 1);
+          data.pts_passe_geral      = Number(document.getElementById('cfg-domino-pts-passe-geral')?.value || 2);
+          data.classifieds_per_group = Number(document.getElementById('cfg-domino-classifieds')?.value || 2);
+        } else if (bgType_ === 'dama') {
+          data.pts_peca_simples     = Number(document.getElementById('cfg-dama-pts-peca')?.value || 1);
+          data.pts_dama_capturada   = Number(document.getElementById('cfg-dama-pts-dama')?.value || 3);
+          data.pts_empate           = Number(document.getElementById('cfg-dama-pts-empate')?.value || 0.5);
+          data.classifieds_per_group = Number(document.getElementById('cfg-dama-classifieds')?.value || 2);
+        } else if (bgType_ === 'xadrez') {
+          data.pts_win  = Number(document.getElementById('cfg-xadrez-pts-win')?.value || 10);
+          data.pts_draw = Number(document.getElementById('cfg-xadrez-pts-draw')?.value || 5);
+          data.pts_loss = Number(document.getElementById('cfg-xadrez-pts-loss')?.value || 0);
+          data.classifieds_per_group = Number(document.getElementById('cfg-xadrez-classifieds')?.value || 2);
+        }
+        await ChampAPI.updateConfig(currentChamp.id, data);
+        currentChamp.rules_config = { ...currentChamp.rules_config, ...data };
+        showToast('Configurações salvas!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    });
+
+    // ================================================================
+    // TABULEIRO — GRUPOS
+    // ================================================================
+
+    async function loadBgGroups() {
+      const container = document.getElementById('bg-groups-content');
+      if (!container) return;
+      container.innerHTML = '<div class="page-loading" style="padding:20px;"><div class="spinner"></div><span>Carregando grupos...</span></div>';
+      const bgType_ = getBgGameType();
+      try {
+        const groups = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/groups`);
+        if (!groups.length) {
+          container.innerHTML = '<div class="card"><div class="card-body" style="color:var(--text-secondary); text-align:center; padding:24px;">Nenhum grupo sorteado. Use o formulário acima para sortear grupos.</div></div>';
+          return;
+        }
+        container.innerHTML = groups.map(g => renderBgGroupCard(g, bgType_)).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    async function bgDrawGroups() {
+      const count = Number(document.getElementById('bg-group-count').value) || 2;
+      const bgType_ = getBgGameType();
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/groups/draw`, {
+          method: 'POST', body: JSON.stringify({ group_count: count }),
+        });
+        showToast('Grupos sorteados!', 'success');
+        loadBgGroups();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function bgGenerateGroupGames(group) {
+      const bgType_ = getBgGameType();
+      try {
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/groups/${group}/games/generate`, { method: 'POST' });
+        showToast(`${games.length} jogo(s) gerado(s) para o Grupo ${group}!`, 'success');
+        loadBgGroups();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    function renderBgGroupCard(g, bgType_) {
+      const isXadrez = bgType_ === 'xadrez';
+      const isDomino_ = bgType_ === 'domino';
+      const isDama_ = bgType_ === 'dama';
+      const members = isDomino_
+        ? (g.teams || [])
+        : (g.participants || []);
+      const standings = g.standings || [];
+
+      let theadCols = '';
+      let tbodyCols = s => '';
+      if (isDomino_) {
+        theadCols = '<th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>D</th><th>Pts</th>';
+        tbodyCols = s => `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td>${s.j}</td><td>${s.v}</td><td>${s.d}</td><td class="pts">${s.table_pts}</td>`;
+      } else if (isDama_) {
+        theadCols = '<th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts.Peças</th><th>Total</th>';
+        tbodyCols = s => `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td><td style="color:var(--accent-teal);">${s.piece_pts}</td><td class="pts">${s.total_pts}</td>`;
+      } else if (isXadrez) {
+        theadCols = '<th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th><th title="Buchholz = soma dos pontos dos adversários">Buchholz</th>';
+        tbodyCols = s => `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.player_name||s.name}</td><td>${s.games_played||s.j||0}</td><td>${s.wins||s.v||0}</td><td>${s.draws||s.e||0}</td><td>${s.losses||s.d||0}</td><td class="pts">${s.points||s.pts||0}</td><td style="color:var(--accent-purple);">${(s.buchholz||0).toFixed(1)}</td>`;
+      }
+
+      const membersHtml = members.map(m => {
+        const label = isDomino_ ? m.name : (m.athlete_name || m.name || '—');
+        return `<span style="display:inline-block;background:var(--bg-tertiary);border-radius:6px;padding:3px 10px;margin:2px;font-size:13px;">${label}</span>`;
+      }).join('');
+
+      return `
+        <div class="group-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="margin:0;font-size:15px;font-weight:700;">Grupo ${g.group}</h3>
+            <button class="btn btn-sm btn-teal" onclick="bgGenerateGroupGames('${g.group}')">Gerar Jogos</button>
+          </div>
+          <div style="margin-bottom:10px;">${membersHtml}</div>
+          ${standings.length ? `
+          <div class="card" style="margin-top:10px;"><div class="card-body" style="padding:0;">
+            <table class="standings-table">
+              <thead><tr>${theadCols}</tr></thead>
+              <tbody>${standings.map(s => `<tr>${tbodyCols(s)}</tr>`).join('')}</tbody>
+            </table>
+          </div></div>` : ''}
+        </div>`;
+    }
+
+    // ================================================================
+    // TABULEIRO — MATA-MATA
+    // ================================================================
+    let _bgKoMatches = [];
+
+    async function loadBgKnockout() {
+      const container = document.getElementById('bg-knockout-games');
+      const setupArea = document.getElementById('bg-knockout-setup-area');
+      if (!container) return;
+      container.innerHTML = '<div class="page-loading" style="padding:20px;"><div class="spinner"></div><span>Carregando...</span></div>';
+      const bgType_ = getBgGameType();
+      try {
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/games`);
+        const koGames = games.filter(g => g.phase === 'knockout');
+        if (setupArea) renderBgKoSetupArea(setupArea);
+        if (!koGames.length) {
+          container.innerHTML = '<div class="card"><div class="card-body" style="color:var(--text-secondary); text-align:center; padding:24px;">Nenhum jogo de mata-mata. Configure os cruzamentos e clique em "Gerar Jogos".</div></div>';
+          return;
+        }
+        const byRound = {};
+        koGames.forEach(g => { const r = g.round_number || 1; (byRound[r] = byRound[r] || []).push(g); });
+        container.innerHTML = Object.entries(byRound).sort(([a],[b]) => a-b).map(([r, gs]) => `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-body">
+              <h4 style="margin-bottom:12px; font-size:14px; color:var(--text-secondary);">Rodada ${r}</h4>
+              ${gs.map(g => renderBgGameCard(g, bgType_)).join('')}
+            </div>
+          </div>`).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    function renderBgKoSetupArea(area) {
+      if (!_bgKoMatches.length) _bgKoMatches = [{ home: '', away: '' }];
+      area.innerHTML = _bgKoMatches.map((m, i) => `
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+          <input type="text" class="form-control" style="width:90px;" placeholder="Ex: 1A" value="${m.home}"
+            onchange="_bgKoMatches[${i}].home = this.value">
+          <span style="color:var(--text-secondary);">vs</span>
+          <input type="text" class="form-control" style="width:90px;" placeholder="Ex: 2B" value="${m.away}"
+            onchange="_bgKoMatches[${i}].away = this.value">
+          <button class="btn btn-ghost btn-sm" style="color:var(--error);" onclick="_bgKoMatches.splice(${i},1); renderBgKoSetupArea(document.getElementById('bg-knockout-setup-area'));">✕</button>
+        </div>`).join('');
+    }
+
+    function bgAddKnockoutMatch() {
+      _bgKoMatches.push({ home: '', away: '' });
+      renderBgKoSetupArea(document.getElementById('bg-knockout-setup-area'));
+    }
+
+    async function bgSetupKnockout() {
+      const bgType_ = getBgGameType();
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/knockout/setup`, {
+          method: 'POST', body: JSON.stringify({ matches: _bgKoMatches }),
+        });
+        showToast('Cruzamentos salvos!', 'success');
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function bgGenerateKnockout() {
+      const bgType_ = getBgGameType();
+      try {
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/knockout/generate`, { method: 'POST' });
+        showToast(`${games.length} jogo(s) de mata-mata gerado(s)!`, 'success');
+        loadBgKnockout();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function bgAdvanceKnockout() {
+      if (!confirm('Avançar fase? Serão criados jogos para os vencedores da rodada atual.')) return;
+      const bgType_ = getBgGameType();
+      try {
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/knockout/advance`, { method: 'POST' });
+        showToast(`Fase avançada! ${games.length} novo(s) jogo(s) criado(s).`, 'success');
+        loadBgKnockout();
+      } catch (err) { showToast(err.message, 'error'); }
     }
 
     // ================================================================
