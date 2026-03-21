@@ -190,9 +190,11 @@
       document.getElementById('btn-back').style.display = 'flex';
       document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;
 
-      const isVball   = c.sport?.slug === 'volleyball';
-      const isBball   = c.sport?.slug === 'basketball';
-      const isRunning = c.sport?.slug === 'running';
+      const isVball      = c.sport?.slug === 'volleyball';
+      const isBball      = c.sport?.slug === 'basketball';
+      const isRunning    = c.sport?.slug === 'running';
+      const isBoardgame_ = c.sport?.slug === 'boardgame';
+      const bgType_      = c.rules_config?.game_type || c.game_type || '';
 
       if (isRunning) {
         // Corrida: apenas aba de Ranking
@@ -210,6 +212,26 @@
           });
         });
         loadPubTab('race-ranking');
+        return;
+      }
+
+      if (isBoardgame_) {
+        // Jogos de Tabuleiro: apenas aba de Classificação
+        const bgLabel = { domino: '🁣 Classificação (Dominó)', dama: '♟ Classificação (Dama)', xadrez: '♔ Classificação (Xadrez)' }[bgType_] || '🏆 Classificação';
+        content.innerHTML = `
+          <div class="tab-nav">
+            <button class="tab-btn active" data-pub-tab="bg-standings">${bgLabel}</button>
+          </div>
+          <div id="pub-tab-bg-standings"></div>
+        `;
+        document.querySelectorAll('[data-pub-tab]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-pub-tab]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadPubTab(btn.dataset.pubTab);
+          });
+        });
+        loadPubTab('bg-standings');
         return;
       }
 
@@ -257,11 +279,12 @@
     const el = document.getElementById(`pub-tab-${tab}`);
     el.innerHTML = '<div class="page-loading" style="padding:40px;"><div class="spinner"></div><span>Carregando...</span></div>';
     try {
-      if (tab === 'standings')      await renderStandings(el);
-      else if (tab === 'scorers')   await renderScorers(el);
-      else if (tab === 'cards')     await renderCards(el);
-      else if (tab === 'games')     await renderGames(el);
+      if (tab === 'standings')         await renderStandings(el);
+      else if (tab === 'scorers')      await renderScorers(el);
+      else if (tab === 'cards')        await renderCards(el);
+      else if (tab === 'games')        await renderGames(el);
       else if (tab === 'race-ranking') await renderPubRaceRanking(el);
+      else if (tab === 'bg-standings') await renderPubBgStandings(el);
     } catch (err) {
       el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
     }
@@ -606,6 +629,74 @@
           </div>
         </div>
       </div>`;
+  }
+
+  async function renderPubBgStandings(el) {
+    const bgType_ = currentChamp?.rules_config?.game_type || currentChamp?.game_type || '';
+    if (!bgType_) {
+      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Tipo de jogo não definido.</div>';
+      return;
+    }
+
+    const standings = await pubFetch(`/api/championships/${currentChamp.id}/${bgType_}/standings`);
+    if (!standings || !standings.length) {
+      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Sem classificação disponível.</div>';
+      return;
+    }
+
+    const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+    let tableHtml = '';
+    if (bgType_ === 'domino') {
+      tableHtml = `
+        <table class="standings-table">
+          <thead><tr><th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th></tr></thead>
+          <tbody>
+            ${standings.map(s => `
+              <tr style="${s.position <= 3 ? 'background:rgba(255,215,0,0.04);' : ''}">
+                <td style="font-weight:800; font-size:16px;">${medalMap[s.position] || s.position}</td>
+                <td style="text-align:left; font-weight:600;">${s.name}</td>
+                <td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td>
+                <td class="pts">${s.pts}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } else if (bgType_ === 'dama') {
+      tableHtml = `
+        <table class="standings-table">
+          <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts.Peças</th><th>Pts.Tabela</th></tr></thead>
+          <tbody>
+            ${standings.map(s => `
+              <tr style="${s.position <= 3 ? 'background:rgba(255,215,0,0.04);' : ''}">
+                <td style="font-weight:800; font-size:16px;">${medalMap[s.position] || s.position}</td>
+                <td style="text-align:left; font-weight:600;">${s.name}</td>
+                <td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td>
+                <td style="color:var(--accent-teal);">${s.piece_pts}</td>
+                <td class="pts">${s.pts}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } else if (bgType_ === 'xadrez') {
+      tableHtml = `
+        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">
+          ♟ Desempate por Buchholz (soma dos pontos dos adversários enfrentados)
+        </div>
+        <table class="standings-table">
+          <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th><th title="Buchholz">Buchh.</th></tr></thead>
+          <tbody>
+            ${standings.map(s => `
+              <tr style="${s.position <= 3 ? 'background:rgba(255,215,0,0.04);' : ''}">
+                <td style="font-weight:800; font-size:16px;">${medalMap[s.position] || s.position}</td>
+                <td style="text-align:left; font-weight:600;">${s.player_name}</td>
+                <td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+                <td class="pts">${s.points}</td>
+                <td style="color:var(--accent-purple);">${s.buchholz.toFixed(1)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    el.innerHTML = `<div class="card"><div class="card-body" style="padding:0;"><div style="padding:16px;">${tableHtml}</div></div></div>`;
   }
 </script>
 </body>

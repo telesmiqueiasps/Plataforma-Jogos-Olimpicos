@@ -205,15 +205,20 @@ class Championship(Base):
     classifieds_per_group = Column(Integer, nullable=True, default=2)
     knockout_bracket      = Column(JSON, nullable=True,
                                    comment="Cruzamentos do mata-mata definidos manualmente")
+    game_type             = Column(String(20), nullable=True,
+                                   comment="Subcategoria de tabuleiro: domino, dama, xadrez")
 
     # relationships
     sport   = relationship("Sport", back_populates="championships")
     creator = relationship("User",  back_populates="championships_created", foreign_keys=[created_by])
 
-    team_links   = relationship("ChampionshipTeam", back_populates="championship", cascade="all, delete-orphan")
-    games        = relationship("Game",             back_populates="championship", cascade="all, delete-orphan")
-    suspensions  = relationship("Suspension",       back_populates="championship", cascade="all, delete-orphan")
-    race_results = relationship("RaceResult",       back_populates="championship", cascade="all, delete-orphan")
+    team_links           = relationship("ChampionshipTeam",      back_populates="championship", cascade="all, delete-orphan")
+    games                = relationship("Game",                   back_populates="championship", cascade="all, delete-orphan")
+    suspensions          = relationship("Suspension",             back_populates="championship", cascade="all, delete-orphan")
+    race_results         = relationship("RaceResult",             back_populates="championship", cascade="all, delete-orphan")
+    domino_teams         = relationship("DominoTeam",             back_populates="championship", cascade="all, delete-orphan")
+    boardgame_participants = relationship("BoardgameParticipant", back_populates="championship", cascade="all, delete-orphan")
+    boardgame_games      = relationship("BoardgameGame",          back_populates="championship", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_championships_sport_id",   "sport_id"),
@@ -403,3 +408,84 @@ class RaceResult(Base):
     @property
     def created_by_name(self):
         return self.creator.name if self.creator else None
+
+
+# ---------------------------------------------------------------------------
+# DominoTeam  (dupla de dominó — 2 jogadores por equipe)
+# ---------------------------------------------------------------------------
+
+class DominoTeam(Base):
+    __tablename__ = "domino_teams"
+
+    id              = Column(Integer, primary_key=True)
+    championship_id = Column(Integer, ForeignKey("championships.id", ondelete="CASCADE"), nullable=False, index=True)
+    name            = Column(String(100), nullable=False)
+    player1_id      = Column(Integer, ForeignKey("athletes.id", ondelete="SET NULL"), nullable=True)
+    player2_id      = Column(Integer, ForeignKey("athletes.id", ondelete="SET NULL"), nullable=True)
+
+    player1      = relationship("Athlete", foreign_keys=[player1_id])
+    player2      = relationship("Athlete", foreign_keys=[player2_id])
+    championship = relationship("Championship", back_populates="domino_teams")
+
+    __table_args__ = (
+        Index("ix_domino_teams_championship_id", "championship_id"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# BoardgameParticipant  (atleta inscrito em dama ou xadrez)
+# ---------------------------------------------------------------------------
+
+class BoardgameParticipant(Base):
+    __tablename__ = "boardgame_participants"
+
+    id              = Column(Integer, primary_key=True)
+    championship_id = Column(Integer, ForeignKey("championships.id", ondelete="CASCADE"), nullable=False, index=True)
+    athlete_id      = Column(Integer, ForeignKey("athletes.id",      ondelete="CASCADE"), nullable=False, index=True)
+    game_type       = Column(String(20), nullable=False, comment="dama ou xadrez")
+
+    championship = relationship("Championship", back_populates="boardgame_participants")
+    athlete      = relationship("Athlete")
+
+    __table_args__ = (
+        Index("uq_boardgame_participant", "championship_id", "athlete_id", unique=True),
+    )
+
+    @property
+    def athlete_name(self):
+        return self.athlete.name if self.athlete else None
+
+    @property
+    def athlete_photo_url(self):
+        return self.athlete.photo_url if self.athlete else None
+
+
+# ---------------------------------------------------------------------------
+# BoardgameGame  (jogo de tabuleiro — dominó, dama ou xadrez)
+# ---------------------------------------------------------------------------
+
+class BoardgameGame(Base):
+    __tablename__ = "boardgame_games"
+
+    id              = Column(Integer, primary_key=True)
+    championship_id = Column(Integer, ForeignKey("championships.id", ondelete="CASCADE"), nullable=False, index=True)
+    game_type       = Column(String(20), nullable=False, comment="domino, dama, xadrez")
+    home_id         = Column(Integer, nullable=False, comment="DominoTeam.id ou Athlete.id")
+    away_id         = Column(Integer, nullable=False, comment="DominoTeam.id ou Athlete.id")
+    status          = Column(String(20), nullable=False, default="scheduled",
+                             comment="scheduled, finished")
+    phase           = Column(String(50), nullable=True, comment="groups, knockout")
+    round_number    = Column(Integer, nullable=True)
+    scheduled_at    = Column(DateTime(timezone=True), nullable=True)
+    extra_data      = Column(JSON, nullable=True,
+                             comment="Detalhes: partidas de dominó, peças de dama, resultado de xadrez")
+    home_score      = Column(Integer, nullable=True, comment="Partidas ganhas (dominó) ou pontos×10 (dama/xadrez)")
+    away_score      = Column(Integer, nullable=True)
+    result          = Column(String(20), nullable=True, comment="home_win, away_win, draw")
+
+    championship = relationship("Championship", back_populates="boardgame_games")
+
+    __table_args__ = (
+        Index("ix_boardgame_games_championship_id", "championship_id"),
+        Index("ix_boardgame_games_game_type",       "game_type"),
+    )
