@@ -174,6 +174,11 @@
   // ================================================================
   let currentChamp = null;
 
+  function isDomino()    { return currentChamp?.sport?.slug === 'domino'; }
+  function isDama()      { return currentChamp?.sport?.slug === 'dama'; }
+  function isXadrez()    { return currentChamp?.sport?.slug === 'xadrez'; }
+  function isBoardgame() { return isDomino() || isDama() || isXadrez(); }
+
   async function showChampionshipPage(id) {
     const content = document.getElementById('pub-content');
     try {
@@ -190,11 +195,9 @@
       document.getElementById('btn-back').style.display = 'flex';
       document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;
 
-      const isVball      = c.sport?.slug === 'volleyball';
-      const isBball      = c.sport?.slug === 'basketball';
-      const isRunning    = c.sport?.slug === 'running';
-      const isBoardgame_ = c.sport?.slug === 'boardgame';
-      const bgType_      = c.rules_config?.game_type || c.game_type || '';
+      const isVball   = c.sport?.slug === 'volleyball';
+      const isBball   = c.sport?.slug === 'basketball';
+      const isRunning = c.sport?.slug === 'running';
 
       if (isRunning) {
         // Corrida: apenas aba de Ranking
@@ -215,20 +218,28 @@
         return;
       }
 
-      if (isBoardgame_) {
-        // Jogos de Tabuleiro: apenas aba de Classificação
-        const bgLabel = { domino: '🁣 Classificação (Dominó)', dama: '♟ Classificação (Dama)', xadrez: '♔ Classificação (Xadrez)' }[bgType_] || '🏆 Classificação';
+      if (isBoardgame()) {
+        // Jogos de Tabuleiro: abas Classificação + Jogos
         content.innerHTML = `
           <div class="tab-nav">
-            <button class="tab-btn active" data-pub-tab="bg-standings">${bgLabel}</button>
+            <button class="tab-btn active" data-pub-tab="bg-standings">🏆 Classificação</button>
+            <button class="tab-btn" data-pub-tab="bg-games">🎮 Jogos</button>
           </div>
           <div id="pub-tab-bg-standings"></div>
+          <div id="pub-tab-bg-games" style="display:none;"></div>
         `;
         document.querySelectorAll('[data-pub-tab]').forEach(btn => {
           btn.addEventListener('click', () => {
             document.querySelectorAll('[data-pub-tab]').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            loadPubTab(btn.dataset.pubTab);
+            ['bg-standings', 'bg-games'].forEach(t => {
+              const tabEl = document.getElementById(`pub-tab-${t}`);
+              if (tabEl) tabEl.style.display = 'none';
+            });
+            const tab = btn.dataset.pubTab;
+            const activeEl = document.getElementById(`pub-tab-${tab}`);
+            if (activeEl) activeEl.style.display = 'block';
+            loadPubTab(tab);
           });
         });
         loadPubTab('bg-standings');
@@ -285,6 +296,7 @@
       else if (tab === 'games')        await renderGames(el);
       else if (tab === 'race-ranking') await renderPubRaceRanking(el);
       else if (tab === 'bg-standings') await renderPubBgStandings(el);
+      else if (tab === 'bg-games')     await renderPubBgGames(el);
     } catch (err) {
       el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
     }
@@ -632,71 +644,248 @@
   }
 
   async function renderPubBgStandings(el) {
-    const bgType_ = currentChamp?.rules_config?.game_type || currentChamp?.game_type || '';
-    if (!bgType_) {
+    const bgType_ = currentChamp?.sport?.slug;
+    if (!bgType_ || !['domino', 'dama', 'xadrez'].includes(bgType_)) {
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Tipo de jogo não definido.</div>';
       return;
     }
 
-    const standings = await pubFetch(`/api/championships/${currentChamp.id}/${bgType_}/standings`);
-    if (!standings || !standings.length) {
-      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Sem classificação disponível.</div>';
+    const classified = currentChamp.rules_config?.classifieds_per_group ?? 2;
+    const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+    try {
+      const standings = await pubFetch(`/api/championships/${currentChamp.id}/${bgType_}/standings`);
+      if (!standings || !standings.length) {
+        el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Sem classificação disponível ainda.</div>';
+        return;
+      }
+
+      // Card de campeão (apenas se campeonato encerrado)
+      let championCard = '';
+      if (currentChamp.status === 'finished' && standings[0]) {
+        const champName = bgType_ === 'xadrez' ? standings[0].player_name : standings[0].name;
+        if (champName) {
+          championCard = `
+            <div style="margin-bottom:20px; padding:20px 24px; background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,215,0,0.04)); border:1px solid rgba(255,215,0,0.25); border-radius:12px; text-align:center;">
+              <div style="font-size:36px; margin-bottom:4px;">🏆</div>
+              <div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Campeão</div>
+              <div style="font-size:20px; font-weight:800;">${champName}</div>
+            </div>`;
+        }
+      }
+
+      let tableHtml = '';
+      if (bgType_ === 'domino') {
+        tableHtml = `
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th style="width:36px;">#</th>
+                <th>Dupla</th>
+                <th>J</th><th>V</th><th>D</th><th class="pts">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${standings.map((s, i) => `
+                <tr class="${i < classified ? 'classified-row' : ''}">
+                  <td style="font-weight:800; font-size:${i < 3 ? 16 : 13}px; text-align:center;">${medalMap[s.position] || s.position}</td>
+                  <td style="text-align:left; font-weight:600;">
+                    ${s.name}
+                    ${i < classified ? '<span class="badge-classified">Classificado</span>' : ''}
+                  </td>
+                  <td>${s.j}</td><td>${s.v}</td><td>${s.d}</td>
+                  <td class="pts">${s.pts}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } else if (bgType_ === 'dama') {
+        tableHtml = `
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th style="width:36px;">#</th>
+                <th>Jogador</th>
+                <th>J</th><th>V</th><th>E</th><th>D</th>
+                <th title="Pontos de peças capturadas">Pts.Peças</th>
+                <th class="pts">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${standings.map((s, i) => `
+                <tr class="${i < classified ? 'classified-row' : ''}">
+                  <td style="font-weight:800; font-size:${i < 3 ? 16 : 13}px; text-align:center;">${medalMap[s.position] || s.position}</td>
+                  <td style="text-align:left; font-weight:600;">
+                    ${s.name}
+                    ${i < classified ? '<span class="badge-classified">Classificado</span>' : ''}
+                  </td>
+                  <td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td>
+                  <td style="color:var(--accent-teal);">${s.piece_pts}</td>
+                  <td class="pts">${s.pts}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } else if (bgType_ === 'xadrez') {
+        tableHtml = `
+          <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px; padding:0 4px;">
+            ♟ Buchholz = soma dos pontos dos adversários enfrentados (critério de desempate)
+          </div>
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th style="width:36px;">#</th>
+                <th>Jogador</th>
+                <th>J</th><th>V</th><th>E</th><th>D</th>
+                <th class="pts">Pts</th>
+                <th title="Buchholz: soma dos pontos dos adversários enfrentados">Buchh.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${standings.map((s, i) => `
+                <tr class="${i < classified ? 'classified-row' : ''}">
+                  <td style="font-weight:800; font-size:${i < 3 ? 16 : 13}px; text-align:center;">${medalMap[s.position] || s.position}</td>
+                  <td style="text-align:left; font-weight:600;">
+                    ${s.player_name}
+                    ${i < classified ? '<span class="badge-classified">Classificado</span>' : ''}
+                  </td>
+                  <td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+                  <td class="pts">${s.points}</td>
+                  <td style="color:var(--accent-purple);">${s.buchholz.toFixed(1)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      }
+
+      el.innerHTML = `
+        ${championCard}
+        <div class="card"><div class="card-body" style="padding:16px 0;">${tableHtml}</div></div>`;
+    } catch (err) {
+      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
+    }
+  }
+
+  // ================================================================
+  // ABA: JOGOS (Tabuleiro público)
+  // ================================================================
+  async function renderPubBgGames(el) {
+    const bgType_ = currentChamp?.sport?.slug;
+    if (!bgType_ || !['domino', 'dama', 'xadrez'].includes(bgType_)) {
+      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis.</div>';
       return;
     }
 
-    const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    try {
+      const games = await pubFetch(`/api/championships/${currentChamp.id}/${bgType_}/games`);
+      if (!games || !games.length) {
+        el.innerHTML = '<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum jogo cadastrado ainda.</div>';
+        return;
+      }
 
-    let tableHtml = '';
+      const phaseLabel = { groups: 'Fase de Grupos', knockout: 'Mata-mata' };
+
+      // Agrupar por fase + rodada mantendo ordem de inserção
+      const groupMap = {};
+      const groupOrder = [];
+      games.forEach(g => {
+        const key = `${g.phase || ''}__${g.round_number ?? ''}`;
+        if (!groupMap[key]) {
+          groupMap[key] = { phase: g.phase, round: g.round_number, games: [] };
+          groupOrder.push(key);
+        }
+        groupMap[key].games.push(g);
+      });
+
+      let html = '';
+      groupOrder.forEach(key => {
+        const grp = groupMap[key];
+        const pLabel = phaseLabel[grp.phase] || grp.phase || '';
+        const rLabel = grp.round != null ? (pLabel ? ` — Rodada ${grp.round}` : `Rodada ${grp.round}`) : '';
+        const header = pLabel || rLabel;
+        if (header) {
+          html += `<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:16px 0 8px;
+                               text-transform:uppercase; letter-spacing:.5px; padding-left:2px;">${pLabel}${rLabel}</div>`;
+        }
+        html += grp.games.map(g => renderPubBgGameCard(g, bgType_)).join('');
+      });
+
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
+    }
+  }
+
+  function renderPubBgGameCard(g, bgType_) {
+    let scoreDisplay = '';
     if (bgType_ === 'domino') {
-      tableHtml = `
-        <table class="standings-table">
-          <thead><tr><th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th></tr></thead>
-          <tbody>
-            ${standings.map(s => `
-              <tr style="${s.position <= 3 ? 'background:rgba(255,215,0,0.04);' : ''}">
-                <td style="font-weight:800; font-size:16px;">${medalMap[s.position] || s.position}</td>
-                <td style="text-align:left; font-weight:600;">${s.name}</td>
-                <td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td>
-                <td class="pts">${s.pts}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    } else if (bgType_ === 'dama') {
-      tableHtml = `
-        <table class="standings-table">
-          <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts.Peças</th><th>Pts.Tabela</th></tr></thead>
-          <tbody>
-            ${standings.map(s => `
-              <tr style="${s.position <= 3 ? 'background:rgba(255,215,0,0.04);' : ''}">
-                <td style="font-weight:800; font-size:16px;">${medalMap[s.position] || s.position}</td>
-                <td style="text-align:left; font-weight:600;">${s.name}</td>
-                <td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td>
-                <td style="color:var(--accent-teal);">${s.piece_pts}</td>
-                <td class="pts">${s.pts}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
+      scoreDisplay = g.home_score !== null ? `${g.home_score} × ${g.away_score}` : 'vs';
     } else if (bgType_ === 'xadrez') {
-      tableHtml = `
-        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">
-          ♟ Desempate por Buchholz (soma dos pontos dos adversários enfrentados)
-        </div>
-        <table class="standings-table">
-          <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th><th title="Buchholz">Buchh.</th></tr></thead>
-          <tbody>
-            ${standings.map(s => `
-              <tr style="${s.position <= 3 ? 'background:rgba(255,215,0,0.04);' : ''}">
-                <td style="font-weight:800; font-size:16px;">${medalMap[s.position] || s.position}</td>
-                <td style="text-align:left; font-weight:600;">${s.player_name}</td>
-                <td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
-                <td class="pts">${s.points}</td>
-                <td style="color:var(--accent-purple);">${s.buchholz.toFixed(1)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
+      const hp = g.home_score !== null ? (g.home_score / 10).toFixed(1) : '—';
+      const ap = g.away_score !== null ? (g.away_score / 10).toFixed(1) : '—';
+      scoreDisplay = g.home_score !== null ? `${hp} × ${ap}` : 'vs';
+    } else {
+      scoreDisplay = g.home_score !== null ? `${g.home_score/10}pt × ${g.away_score/10}pt` : 'vs';
     }
 
-    el.innerHTML = `<div class="card"><div class="card-body" style="padding:0;"><div style="padding:16px;">${tableHtml}</div></div></div>`;
+    const statusBadge = g.status === 'finished'
+      ? `<span class="game-status-badge" style="background:rgba(108,99,255,0.15);color:#6c63ff;">Encerrado</span>`
+      : `<span class="game-status-badge" style="background:rgba(107,114,128,0.15);color:#9ca3af;">Agendado</span>`;
+
+    // Detalhes expandidos (somente leitura)
+    let resultDetail = '';
+    if (g.status === 'finished') {
+      const winner = g.result === 'home_win' ? g.home_name
+                   : g.result === 'away_win' ? g.away_name
+                   : null;
+      if (winner) {
+        resultDetail += `<div style="color:var(--accent-teal); font-size:13px; margin-bottom:6px;">✓ ${winner} venceu</div>`;
+      } else if (g.result === 'draw') {
+        resultDetail += `<div style="color:var(--text-secondary); font-size:13px; margin-bottom:6px;">Empate</div>`;
+      }
+      if (bgType_ === 'domino') {
+        const events_ = g.extra_data?.events || [];
+        if (events_.length) {
+          const eHtml = events_.map(e => {
+            if (e.event_type === 'batida') return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">🏆 ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')}) +${e.points}pts</span>`;
+            if (e.event_type === 'passe')  return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">↪ ${e.quem_passou==='home'?g.home_name:g.away_name} passou +${e.points}pts</span>`;
+            return '';
+          }).filter(Boolean).join('');
+          if (eHtml) resultDetail += `<div style="display:flex; flex-wrap:wrap; gap:4px;">${eHtml}</div>`;
+        }
+      }
+    }
+
+    const hasDetail = resultDetail.length > 0;
+
+    return `
+      <div class="card" style="margin-bottom:8px;">
+        <div class="card-body" style="padding:12px 16px; cursor:pointer; user-select:none;"
+             onclick="togglePubBgCard(${g.id})">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+              <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.home_name}</span>
+              <span style="font-size:${scoreDisplay === 'vs' ? 13 : 17}px; font-weight:800; color:var(--accent-purple); flex-shrink:0; padding:0 4px;">${scoreDisplay}</span>
+              <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.away_name}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              ${statusBadge}
+              ${hasDetail ? `<button id="pub-bg-toggle-${g.id}" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:11px;padding:2px 6px;"
+                              onclick="event.stopPropagation();togglePubBgCard(${g.id})">▼</button>` : ''}
+            </div>
+          </div>
+        </div>
+        ${hasDetail ? `
+        <div id="pub-bg-detail-${g.id}" style="display:none; border-top:1px solid var(--border); padding:12px 16px;">
+          ${resultDetail}
+        </div>` : ''}
+      </div>`;
+  }
+
+  function togglePubBgCard(gameId) {
+    const detail = document.getElementById(`pub-bg-detail-${gameId}`);
+    const btn    = document.getElementById(`pub-bg-toggle-${gameId}`);
+    if (!detail) return;
+    const isOpen = detail.style.display !== 'none';
+    detail.style.display = isOpen ? 'none' : 'block';
+    if (btn) btn.textContent = isOpen ? '▼' : '▲';
   }
 </script>
 </body>
