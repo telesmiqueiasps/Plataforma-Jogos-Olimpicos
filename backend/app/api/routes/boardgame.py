@@ -269,7 +269,6 @@ def delete_domino_team(
 def list_domino_games(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     _get_champ_or_404(championship_id, db)
     games = db.query(BoardgameGame).filter(
@@ -588,7 +587,6 @@ def domino_draw_groups(
 def domino_list_groups(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     champ = _get_champ_or_404(championship_id, db)
     return _domino_groups_response(championship_id, champ, db)
@@ -769,7 +767,6 @@ def domino_knockout_advance(
 def domino_standings(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     _get_champ_or_404(championship_id, db)
     teams = db.query(DominoTeam).filter(DominoTeam.championship_id == championship_id).all()
@@ -844,7 +841,6 @@ def remove_dama_participant(
 def list_dama_games(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     _get_champ_or_404(championship_id, db)
     games = db.query(BoardgameGame).filter(
@@ -972,7 +968,6 @@ def dama_draw_groups(
 def dama_list_groups(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     champ = _get_champ_or_404(championship_id, db)
     return _dama_groups_response(championship_id, champ, db)
@@ -1136,7 +1131,6 @@ def dama_knockout_advance(
 def dama_standings(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     champ = _get_champ_or_404(championship_id, db)
     rules = champ.rules_config or {}
@@ -1211,7 +1205,6 @@ def remove_xadrez_participant(
 def list_xadrez_games(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     _get_champ_or_404(championship_id, db)
     games = db.query(BoardgameGame).filter(
@@ -1326,7 +1319,6 @@ def xadrez_draw_groups(
 def xadrez_list_groups(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     champ = _get_champ_or_404(championship_id, db)
     return _xadrez_groups_response(championship_id, champ, db)
@@ -1500,7 +1492,6 @@ def xadrez_knockout_advance(
 def xadrez_standings(
     championship_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     champ = _get_champ_or_404(championship_id, db)
     rules = champ.rules_config or {}
