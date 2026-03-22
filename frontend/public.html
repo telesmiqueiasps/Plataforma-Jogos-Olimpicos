@@ -53,8 +53,6 @@
 </head>
 <body>
 
-<div id="debug-panel" style="background:#ff000033;color:#fff;padding:8px;font-size:11px;position:fixed;bottom:0;left:0;right:0;z-index:9999;max-height:200px;overflow-y:auto;"></div>
-
 <header class="pub-header" id="pub-header">
   <a href="public.html" class="logo-wrap">
     <img src="img/logo.png" alt="Logo">
@@ -87,12 +85,6 @@
 <script src="js/app.js"></script>
 <script>
   const API_BASE = 'https://sports-platform-api.onrender.com';
-
-  function debugLog(msg) {
-    var p = document.getElementById('debug-panel');
-    if (p) p.innerHTML += '<div>' + new Date().toISOString().substr(11, 8) + ' ' + msg + '</div>';
-    console.log(msg);
-  }
 
   async function pubFetch(path) {
     const token = localStorage.getItem('sp_token');
@@ -663,8 +655,6 @@
 
   async function renderPubBgStandings(el) {
     var bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
-    debugLog('sport slug: ' + (currentChamp && currentChamp.sport ? currentChamp.sport.slug : 'NULL'));
-    debugLog('isDomino: ' + isDomino() + ' | isDama: ' + isDama() + ' | isXadrez: ' + isXadrez());
     if (!bgType_ || ['domino', 'dama', 'xadrez'].indexOf(bgType_) === -1) {
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Tipo de jogo não definido.</div>';
       return;
@@ -676,9 +666,7 @@
 
     try {
       var standingsUrl = '/api/championships/' + currentChamp.id + '/' + bgType_ + '/standings';
-      debugLog('fetch url: ' + standingsUrl);
       var standings = await pubFetch(standingsUrl);
-      debugLog('data: ' + JSON.stringify(standings).substring(0, 100));
       if (!standings || !standings.length) {
         el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Sem classificação disponível ainda.</div>';
         return;
@@ -709,7 +697,7 @@
               + '<td style="font-weight:800; font-size:' + (i < 3 ? 16 : 13) + 'px; text-align:center;">' + (medalMap[s.position] || s.position) + '</td>'
               + '<td style="text-align:left; font-weight:600;">' + s.name + (i < classified ? ' <span class="badge-classified">Classificado</span>' : '') + '</td>'
               + '<td>' + s.j + '</td><td>' + s.v + '</td><td>' + s.d + '</td>'
-              + '<td class="pts">' + s.pts + '</td>'
+              + '<td class="pts">' + s.table_pts + '</td>'
               + '</tr>';
           }
           tableHtml = '<table class="standings-table"><thead><tr>'
@@ -725,7 +713,7 @@
               + '<td style="text-align:left; font-weight:600;">' + s.name + (i < classified ? ' <span class="badge-classified">Classificado</span>' : '') + '</td>'
               + '<td>' + s.j + '</td><td>' + s.v + '</td><td>' + s.e + '</td><td>' + s.d + '</td>'
               + '<td style="color:var(--accent-teal);">' + s.piece_pts + '</td>'
-              + '<td class="pts">' + s.pts + '</td>'
+              + '<td class="pts">' + s.total_pts + '</td>'
               + '</tr>';
           }
           tableHtml = '<table class="standings-table"><thead><tr>'
@@ -755,11 +743,9 @@
 
         el.innerHTML = championCard + '<div class="card"><div class="card-body" style="padding:16px 0;">' + tableHtml + '</div></div>';
       } catch(e) {
-        debugLog('ERRO renderização standings: ' + e.message);
         el.innerHTML = '<p style="padding:24px; text-align:center;">Erro ao exibir classificação.</p>';
       }
     } catch (err) {
-      debugLog('ERRO fetch standings: ' + err.message);
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
     }
   }
@@ -769,8 +755,6 @@
   // ================================================================
   async function renderPubBgGames(el) {
     var bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
-    debugLog('sport slug: ' + (currentChamp && currentChamp.sport ? currentChamp.sport.slug : 'NULL'));
-    debugLog('isDomino: ' + isDomino() + ' | isDama: ' + isDama() + ' | isXadrez: ' + isXadrez());
     if (!bgType_ || ['domino', 'dama', 'xadrez'].indexOf(bgType_) === -1) {
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis.</div>';
       return;
@@ -778,9 +762,7 @@
 
     try {
       var gamesUrl = '/api/championships/' + currentChamp.id + '/' + bgType_ + '/games';
-      debugLog('fetch url: ' + gamesUrl);
       var games = await pubFetch(gamesUrl);
-      debugLog('data: ' + JSON.stringify(games).substring(0, 100));
       if (!games || !games.length) {
         el.innerHTML = '<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum jogo cadastrado ainda.</div>';
         return;
@@ -819,11 +801,9 @@
 
         el.innerHTML = html;
       } catch(e) {
-        debugLog('ERRO renderização jogos: ' + e.message);
         el.innerHTML = '<p style="padding:24px; text-align:center;">Erro ao exibir jogos.</p>';
       }
     } catch (err) {
-      debugLog('ERRO fetch jogos: ' + err.message);
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
     }
   }
@@ -901,7 +881,6 @@
         + detailPanel
         + '</div>';
     } catch(e) {
-      debugLog('ERRO renderPubBgGameCard: ' + e.message);
       return '<div class="card" style="margin-bottom:8px; padding:12px; color:var(--text-secondary);">Erro ao exibir jogo.</div>';
     }
   }
