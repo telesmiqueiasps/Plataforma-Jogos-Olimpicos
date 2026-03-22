@@ -174,9 +174,10 @@
   // ================================================================
   let currentChamp = null;
 
-  function isDomino()    { return currentChamp?.sport?.slug === 'domino'; }
-  function isDama()      { return currentChamp?.sport?.slug === 'dama'; }
-  function isXadrez()    { return currentChamp?.sport?.slug === 'xadrez'; }
+  // Helpers globais — definidos no escopo raiz do script para acesso universal
+  function isDomino()    { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'domino'; }
+  function isDama()      { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'dama'; }
+  function isXadrez()    { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'xadrez'; }
   function isBoardgame() { return isDomino() || isDama() || isXadrez(); }
 
   async function showChampionshipPage(id) {
@@ -644,13 +645,15 @@
   }
 
   async function renderPubBgStandings(el) {
-    const bgType_ = currentChamp?.sport?.slug;
+    const bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
+    console.log('Carregando dados para:', bgType_, 'ID:', currentChamp && currentChamp.id);
     if (!bgType_ || !['domino', 'dama', 'xadrez'].includes(bgType_)) {
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Tipo de jogo não definido.</div>';
       return;
     }
 
-    const classified = currentChamp.rules_config?.classifieds_per_group ?? 2;
+    const classified = (currentChamp.rules_config && currentChamp.rules_config.classifieds_per_group != null)
+      ? currentChamp.rules_config.classifieds_per_group : 2;
     const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
     try {
@@ -767,7 +770,8 @@
   // ABA: JOGOS (Tabuleiro público)
   // ================================================================
   async function renderPubBgGames(el) {
-    const bgType_ = currentChamp?.sport?.slug;
+    const bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
+    console.log('Carregando jogos para:', bgType_, 'ID:', currentChamp && currentChamp.id);
     if (!bgType_ || !['domino', 'dama', 'xadrez'].includes(bgType_)) {
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis.</div>';
       return;
@@ -786,7 +790,7 @@
       const groupMap = {};
       const groupOrder = [];
       games.forEach(g => {
-        const key = `${g.phase || ''}__${g.round_number ?? ''}`;
+        const key = (g.phase || '') + '__' + (g.round_number != null ? g.round_number : '');
         if (!groupMap[key]) {
           groupMap[key] = { phase: g.phase, round: g.round_number, games: [] };
           groupOrder.push(key);
@@ -841,7 +845,7 @@
         resultDetail += `<div style="color:var(--text-secondary); font-size:13px; margin-bottom:6px;">Empate</div>`;
       }
       if (bgType_ === 'domino') {
-        const events_ = g.extra_data?.events || [];
+        const events_ = (g.extra_data && g.extra_data.events) || [];
         if (events_.length) {
           const eHtml = events_.map(e => {
             if (e.event_type === 'batida') return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">🏆 ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')}) +${e.points}pts</span>`;
