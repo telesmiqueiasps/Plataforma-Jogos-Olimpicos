@@ -1,3 +1,25 @@
+// --- Theme (light/dark) ---
+function initTheme() {
+  var saved = localStorage.getItem('sp_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon(saved);
+}
+
+function toggleTheme() {
+  var current = document.documentElement.getAttribute('data-theme') || 'light';
+  var next = current === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sp_theme', next);
+  updateThemeIcon(next);
+}
+
+function updateThemeIcon(theme) {
+  var btn = document.getElementById('theme-toggle');
+  if (btn) btn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+}
+
+document.addEventListener('DOMContentLoaded', initTheme);
+
 // --- Toast notifications ---
 function showToast(msg, type = 'success', duration = 3500) {
   let container = document.getElementById('toast-container');
