@@ -653,127 +653,104 @@
   }
 
   async function renderPubBgStandings(el) {
-    const bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
+    var bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
     debugLog('sport slug: ' + (currentChamp && currentChamp.sport ? currentChamp.sport.slug : 'NULL'));
     debugLog('isDomino: ' + isDomino() + ' | isDama: ' + isDama() + ' | isXadrez: ' + isXadrez());
-    if (!bgType_ || !['domino', 'dama', 'xadrez'].includes(bgType_)) {
+    if (!bgType_ || ['domino', 'dama', 'xadrez'].indexOf(bgType_) === -1) {
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Tipo de jogo não definido.</div>';
       return;
     }
 
-    const classified = (currentChamp.rules_config && currentChamp.rules_config.classifieds_per_group != null)
+    var classified = (currentChamp.rules_config && currentChamp.rules_config.classifieds_per_group != null)
       ? currentChamp.rules_config.classifieds_per_group : 2;
-    const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    var medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
     try {
-      const standingsUrl = '/api/championships/' + currentChamp.id + '/' + bgType_ + '/standings';
+      var standingsUrl = '/api/championships/' + currentChamp.id + '/' + bgType_ + '/standings';
       debugLog('fetch url: ' + standingsUrl);
-      const standings = await pubFetch(standingsUrl);
+      var standings = await pubFetch(standingsUrl);
       debugLog('data: ' + JSON.stringify(standings).substring(0, 100));
       if (!standings || !standings.length) {
         el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Sem classificação disponível ainda.</div>';
         return;
       }
 
-      // Card de campeão (apenas se campeonato encerrado)
-      let championCard = '';
-      if (currentChamp.status === 'finished' && standings[0]) {
-        const champName = bgType_ === 'xadrez' ? standings[0].player_name : standings[0].name;
-        if (champName) {
-          championCard = `
-            <div style="margin-bottom:20px; padding:20px 24px; background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,215,0,0.04)); border:1px solid rgba(255,215,0,0.25); border-radius:12px; text-align:center;">
-              <div style="font-size:36px; margin-bottom:4px;">🏆</div>
-              <div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Campeão</div>
-              <div style="font-size:20px; font-weight:800;">${champName}</div>
-            </div>`;
+      try {
+        // Card de campeão (apenas se campeonato encerrado)
+        var championCard = '';
+        if (currentChamp.status === 'finished' && standings[0]) {
+          var champName = bgType_ === 'xadrez' ? standings[0].player_name : standings[0].name;
+          if (champName) {
+            championCard = '<div style="margin-bottom:20px; padding:20px 24px; background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,215,0,0.04)); border:1px solid rgba(255,215,0,0.25); border-radius:12px; text-align:center;">'
+              + '<div style="font-size:36px; margin-bottom:4px;">🏆</div>'
+              + '<div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Campeão</div>'
+              + '<div style="font-size:20px; font-weight:800;">' + champName + '</div>'
+              + '</div>';
+          }
         }
-      }
 
-      let tableHtml = '';
-      if (bgType_ === 'domino') {
-        tableHtml = `
-          <table class="standings-table">
-            <thead>
-              <tr>
-                <th style="width:36px;">#</th>
-                <th>Dupla</th>
-                <th>J</th><th>V</th><th>D</th><th class="pts">Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${standings.map((s, i) => `
-                <tr class="${i < classified ? 'classified-row' : ''}">
-                  <td style="font-weight:800; font-size:${i < 3 ? 16 : 13}px; text-align:center;">${medalMap[s.position] || s.position}</td>
-                  <td style="text-align:left; font-weight:600;">
-                    ${s.name}
-                    ${i < classified ? '<span class="badge-classified">Classificado</span>' : ''}
-                  </td>
-                  <td>${s.j}</td><td>${s.v}</td><td>${s.d}</td>
-                  <td class="pts">${s.pts}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>`;
-      } else if (bgType_ === 'dama') {
-        tableHtml = `
-          <table class="standings-table">
-            <thead>
-              <tr>
-                <th style="width:36px;">#</th>
-                <th>Jogador</th>
-                <th>J</th><th>V</th><th>E</th><th>D</th>
-                <th title="Pontos de peças capturadas">Pts.Peças</th>
-                <th class="pts">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${standings.map((s, i) => `
-                <tr class="${i < classified ? 'classified-row' : ''}">
-                  <td style="font-weight:800; font-size:${i < 3 ? 16 : 13}px; text-align:center;">${medalMap[s.position] || s.position}</td>
-                  <td style="text-align:left; font-weight:600;">
-                    ${s.name}
-                    ${i < classified ? '<span class="badge-classified">Classificado</span>' : ''}
-                  </td>
-                  <td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td>
-                  <td style="color:var(--accent-teal);">${s.piece_pts}</td>
-                  <td class="pts">${s.pts}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>`;
-      } else if (bgType_ === 'xadrez') {
-        tableHtml = `
-          <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px; padding:0 4px;">
-            ♟ Buchholz = soma dos pontos dos adversários enfrentados (critério de desempate)
-          </div>
-          <table class="standings-table">
-            <thead>
-              <tr>
-                <th style="width:36px;">#</th>
-                <th>Jogador</th>
-                <th>J</th><th>V</th><th>E</th><th>D</th>
-                <th class="pts">Pts</th>
-                <th title="Buchholz: soma dos pontos dos adversários enfrentados">Buchh.</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${standings.map((s, i) => `
-                <tr class="${i < classified ? 'classified-row' : ''}">
-                  <td style="font-weight:800; font-size:${i < 3 ? 16 : 13}px; text-align:center;">${medalMap[s.position] || s.position}</td>
-                  <td style="text-align:left; font-weight:600;">
-                    ${s.player_name}
-                    ${i < classified ? '<span class="badge-classified">Classificado</span>' : ''}
-                  </td>
-                  <td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
-                  <td class="pts">${s.points}</td>
-                  <td style="color:var(--accent-purple);">${s.buchholz.toFixed(1)}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>`;
-      }
+        var tableHtml = '';
+        var rows = '';
+        var i, s;
+        if (bgType_ === 'domino') {
+          rows = '';
+          for (i = 0; i < standings.length; i++) {
+            s = standings[i];
+            rows += '<tr class="' + (i < classified ? 'classified-row' : '') + '">'
+              + '<td style="font-weight:800; font-size:' + (i < 3 ? 16 : 13) + 'px; text-align:center;">' + (medalMap[s.position] || s.position) + '</td>'
+              + '<td style="text-align:left; font-weight:600;">' + s.name + (i < classified ? ' <span class="badge-classified">Classificado</span>' : '') + '</td>'
+              + '<td>' + s.j + '</td><td>' + s.v + '</td><td>' + s.d + '</td>'
+              + '<td class="pts">' + s.pts + '</td>'
+              + '</tr>';
+          }
+          tableHtml = '<table class="standings-table"><thead><tr>'
+            + '<th style="width:36px;">#</th><th>Dupla</th>'
+            + '<th>J</th><th>V</th><th>D</th><th class="pts">Pts</th>'
+            + '</tr></thead><tbody>' + rows + '</tbody></table>';
+        } else if (bgType_ === 'dama') {
+          rows = '';
+          for (i = 0; i < standings.length; i++) {
+            s = standings[i];
+            rows += '<tr class="' + (i < classified ? 'classified-row' : '') + '">'
+              + '<td style="font-weight:800; font-size:' + (i < 3 ? 16 : 13) + 'px; text-align:center;">' + (medalMap[s.position] || s.position) + '</td>'
+              + '<td style="text-align:left; font-weight:600;">' + s.name + (i < classified ? ' <span class="badge-classified">Classificado</span>' : '') + '</td>'
+              + '<td>' + s.j + '</td><td>' + s.v + '</td><td>' + s.e + '</td><td>' + s.d + '</td>'
+              + '<td style="color:var(--accent-teal);">' + s.piece_pts + '</td>'
+              + '<td class="pts">' + s.pts + '</td>'
+              + '</tr>';
+          }
+          tableHtml = '<table class="standings-table"><thead><tr>'
+            + '<th style="width:36px;">#</th><th>Jogador</th>'
+            + '<th>J</th><th>V</th><th>E</th><th>D</th>'
+            + '<th title="Pontos de peças capturadas">Pts.Peças</th><th class="pts">Total</th>'
+            + '</tr></thead><tbody>' + rows + '</tbody></table>';
+        } else if (bgType_ === 'xadrez') {
+          rows = '';
+          for (i = 0; i < standings.length; i++) {
+            s = standings[i];
+            rows += '<tr class="' + (i < classified ? 'classified-row' : '') + '">'
+              + '<td style="font-weight:800; font-size:' + (i < 3 ? 16 : 13) + 'px; text-align:center;">' + (medalMap[s.position] || s.position) + '</td>'
+              + '<td style="text-align:left; font-weight:600;">' + s.player_name + (i < classified ? ' <span class="badge-classified">Classificado</span>' : '') + '</td>'
+              + '<td>' + s.games_played + '</td><td>' + s.wins + '</td><td>' + s.draws + '</td><td>' + s.losses + '</td>'
+              + '<td class="pts">' + s.points + '</td>'
+              + '<td style="color:var(--accent-purple);">' + s.buchholz.toFixed(1) + '</td>'
+              + '</tr>';
+          }
+          tableHtml = '<div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px; padding:0 4px;">♟ Buchholz = soma dos pontos dos adversários enfrentados (critério de desempate)</div>'
+            + '<table class="standings-table"><thead><tr>'
+            + '<th style="width:36px;">#</th><th>Jogador</th>'
+            + '<th>J</th><th>V</th><th>E</th><th>D</th>'
+            + '<th class="pts">Pts</th><th title="Buchholz: soma dos pontos dos adversários enfrentados">Buchh.</th>'
+            + '</tr></thead><tbody>' + rows + '</tbody></table>';
+        }
 
-      el.innerHTML = `
-        ${championCard}
-        <div class="card"><div class="card-body" style="padding:16px 0;">${tableHtml}</div></div>`;
+        el.innerHTML = championCard + '<div class="card"><div class="card-body" style="padding:16px 0;">' + tableHtml + '</div></div>';
+      } catch(e) {
+        debugLog('ERRO renderização standings: ' + e.message);
+        el.innerHTML = '<p style="padding:24px; text-align:center;">Erro ao exibir classificação.</p>';
+      }
     } catch (err) {
+      debugLog('ERRO fetch standings: ' + err.message);
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
     }
   }
@@ -782,121 +759,142 @@
   // ABA: JOGOS (Tabuleiro público)
   // ================================================================
   async function renderPubBgGames(el) {
-    const bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
+    var bgType_ = (currentChamp && currentChamp.sport && currentChamp.sport.slug) || '';
     debugLog('sport slug: ' + (currentChamp && currentChamp.sport ? currentChamp.sport.slug : 'NULL'));
     debugLog('isDomino: ' + isDomino() + ' | isDama: ' + isDama() + ' | isXadrez: ' + isXadrez());
-    if (!bgType_ || !['domino', 'dama', 'xadrez'].includes(bgType_)) {
+    if (!bgType_ || ['domino', 'dama', 'xadrez'].indexOf(bgType_) === -1) {
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis.</div>';
       return;
     }
 
     try {
-      const gamesUrl = '/api/championships/' + currentChamp.id + '/' + bgType_ + '/games';
+      var gamesUrl = '/api/championships/' + currentChamp.id + '/' + bgType_ + '/games';
       debugLog('fetch url: ' + gamesUrl);
-      const games = await pubFetch(gamesUrl);
+      var games = await pubFetch(gamesUrl);
       debugLog('data: ' + JSON.stringify(games).substring(0, 100));
       if (!games || !games.length) {
         el.innerHTML = '<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum jogo cadastrado ainda.</div>';
         return;
       }
 
-      const phaseLabel = { groups: 'Fase de Grupos', knockout: 'Mata-mata' };
+      try {
+        var phaseLabel = { groups: 'Fase de Grupos', knockout: 'Mata-mata' };
 
-      // Agrupar por fase + rodada mantendo ordem de inserção
-      const groupMap = {};
-      const groupOrder = [];
-      games.forEach(g => {
-        const key = (g.phase || '') + '__' + (g.round_number != null ? g.round_number : '');
-        if (!groupMap[key]) {
-          groupMap[key] = { phase: g.phase, round: g.round_number, games: [] };
-          groupOrder.push(key);
+        // Agrupar por fase + rodada mantendo ordem de inserção
+        var groupMap = {};
+        var groupOrder = [];
+        var gi, g, key;
+        for (gi = 0; gi < games.length; gi++) {
+          g = games[gi];
+          key = (g.phase || '') + '__' + (g.round_number != null ? g.round_number : '');
+          if (!groupMap[key]) {
+            groupMap[key] = { phase: g.phase, round: g.round_number, games: [] };
+            groupOrder.push(key);
+          }
+          groupMap[key].games.push(g);
         }
-        groupMap[key].games.push(g);
-      });
 
-      let html = '';
-      groupOrder.forEach(key => {
-        const grp = groupMap[key];
-        const pLabel = phaseLabel[grp.phase] || grp.phase || '';
-        const rLabel = grp.round != null ? (pLabel ? ` — Rodada ${grp.round}` : `Rodada ${grp.round}`) : '';
-        const header = pLabel || rLabel;
-        if (header) {
-          html += `<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:16px 0 8px;
-                               text-transform:uppercase; letter-spacing:.5px; padding-left:2px;">${pLabel}${rLabel}</div>`;
+        var html = '';
+        var ki, grp, pLabel, rLabel, gg;
+        for (ki = 0; ki < groupOrder.length; ki++) {
+          grp = groupMap[groupOrder[ki]];
+          pLabel = phaseLabel[grp.phase] || grp.phase || '';
+          rLabel = grp.round != null ? (pLabel ? ' — Rodada ' + grp.round : 'Rodada ' + grp.round) : '';
+          if (pLabel || rLabel) {
+            html += '<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:16px 0 8px; text-transform:uppercase; letter-spacing:.5px; padding-left:2px;">' + pLabel + rLabel + '</div>';
+          }
+          for (gg = 0; gg < grp.games.length; gg++) {
+            html += renderPubBgGameCard(grp.games[gg], bgType_);
+          }
         }
-        html += grp.games.map(g => renderPubBgGameCard(g, bgType_)).join('');
-      });
 
-      el.innerHTML = html;
+        el.innerHTML = html;
+      } catch(e) {
+        debugLog('ERRO renderização jogos: ' + e.message);
+        el.innerHTML = '<p style="padding:24px; text-align:center;">Erro ao exibir jogos.</p>';
+      }
     } catch (err) {
+      debugLog('ERRO fetch jogos: ' + err.message);
       el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
     }
   }
 
   function renderPubBgGameCard(g, bgType_) {
-    let scoreDisplay = '';
-    if (bgType_ === 'domino') {
-      scoreDisplay = g.home_score !== null ? `${g.home_score} × ${g.away_score}` : 'vs';
-    } else if (bgType_ === 'xadrez') {
-      const hp = g.home_score !== null ? (g.home_score / 10).toFixed(1) : '—';
-      const ap = g.away_score !== null ? (g.away_score / 10).toFixed(1) : '—';
-      scoreDisplay = g.home_score !== null ? `${hp} × ${ap}` : 'vs';
-    } else {
-      scoreDisplay = g.home_score !== null ? `${g.home_score/10}pt × ${g.away_score/10}pt` : 'vs';
-    }
+    try {
+      var scoreDisplay = '';
+      if (bgType_ === 'domino') {
+        scoreDisplay = g.home_score !== null ? (g.home_score + ' × ' + g.away_score) : 'vs';
+      } else if (bgType_ === 'xadrez') {
+        var hp = g.home_score !== null ? (g.home_score / 10).toFixed(1) : '—';
+        var ap = g.away_score !== null ? (g.away_score / 10).toFixed(1) : '—';
+        scoreDisplay = g.home_score !== null ? (hp + ' × ' + ap) : 'vs';
+      } else {
+        scoreDisplay = g.home_score !== null ? ((g.home_score / 10) + 'pt × ' + (g.away_score / 10) + 'pt') : 'vs';
+      }
 
-    const statusBadge = g.status === 'finished'
-      ? `<span class="game-status-badge" style="background:rgba(108,99,255,0.15);color:#6c63ff;">Encerrado</span>`
-      : `<span class="game-status-badge" style="background:rgba(107,114,128,0.15);color:#9ca3af;">Agendado</span>`;
+      var statusBadge = g.status === 'finished'
+        ? '<span class="game-status-badge" style="background:rgba(108,99,255,0.15);color:#6c63ff;">Encerrado</span>'
+        : '<span class="game-status-badge" style="background:rgba(107,114,128,0.15);color:#9ca3af;">Agendado</span>';
 
-    // Detalhes expandidos (somente leitura)
-    let resultDetail = '';
-    if (g.status === 'finished') {
-      const winner = g.result === 'home_win' ? g.home_name
+      // Detalhes expandidos (somente leitura)
+      var resultDetail = '';
+      if (g.status === 'finished') {
+        var winner = g.result === 'home_win' ? g.home_name
                    : g.result === 'away_win' ? g.away_name
                    : null;
-      if (winner) {
-        resultDetail += `<div style="color:var(--accent-teal); font-size:13px; margin-bottom:6px;">✓ ${winner} venceu</div>`;
-      } else if (g.result === 'draw') {
-        resultDetail += `<div style="color:var(--text-secondary); font-size:13px; margin-bottom:6px;">Empate</div>`;
-      }
-      if (bgType_ === 'domino') {
-        const events_ = (g.extra_data && g.extra_data.events) || [];
-        if (events_.length) {
-          const eHtml = events_.map(e => {
-            if (e.event_type === 'batida') return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">🏆 ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')}) +${e.points}pts</span>`;
-            if (e.event_type === 'passe')  return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">↪ ${e.quem_passou==='home'?g.home_name:g.away_name} passou +${e.points}pts</span>`;
-            return '';
-          }).filter(Boolean).join('');
-          if (eHtml) resultDetail += `<div style="display:flex; flex-wrap:wrap; gap:4px;">${eHtml}</div>`;
+        if (winner) {
+          resultDetail += '<div style="color:var(--accent-teal); font-size:13px; margin-bottom:6px;">✓ ' + winner + ' venceu</div>';
+        } else if (g.result === 'draw') {
+          resultDetail += '<div style="color:var(--text-secondary); font-size:13px; margin-bottom:6px;">Empate</div>';
+        }
+        if (bgType_ === 'domino') {
+          var events_ = (g.extra_data && g.extra_data.events) || [];
+          if (events_.length) {
+            var eHtml = '';
+            var ei, ev;
+            for (ei = 0; ei < events_.length; ei++) {
+              ev = events_[ei];
+              if (ev.event_type === 'batida') {
+                eHtml += '<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">🏆 '
+                  + (ev.winner === 'home' ? g.home_name : g.away_name)
+                  + ' (' + (ev.match_type || '').replace('_', ' ') + ') +' + ev.points + 'pts</span>';
+              } else if (ev.event_type === 'passe') {
+                eHtml += '<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">↪ '
+                  + (ev.quem_passou === 'home' ? g.home_name : g.away_name)
+                  + ' passou +' + ev.points + 'pts</span>';
+              }
+            }
+            if (eHtml) resultDetail += '<div style="display:flex; flex-wrap:wrap; gap:4px;">' + eHtml + '</div>';
+          }
         }
       }
+
+      var hasDetail = resultDetail.length > 0;
+      var scoreFontSize = scoreDisplay === 'vs' ? 13 : 17;
+      var toggleBtn = hasDetail
+        ? '<button id="pub-bg-toggle-' + g.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:11px;padding:2px 6px;" onclick="event.stopPropagation();togglePubBgCard(' + g.id + ')">▼</button>'
+        : '';
+      var detailPanel = hasDetail
+        ? '<div id="pub-bg-detail-' + g.id + '" style="display:none; border-top:1px solid var(--border); padding:12px 16px;">' + resultDetail + '</div>'
+        : '';
+
+      return '<div class="card" style="margin-bottom:8px;">'
+        + '<div class="card-body" style="padding:12px 16px; cursor:pointer; user-select:none;" onclick="togglePubBgCard(' + g.id + ')">'
+        + '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">'
+        + '<div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">'
+        + '<span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">' + g.home_name + '</span>'
+        + '<span style="font-size:' + scoreFontSize + 'px; font-weight:800; color:var(--accent-purple); flex-shrink:0; padding:0 4px;">' + scoreDisplay + '</span>'
+        + '<span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">' + g.away_name + '</span>'
+        + '</div>'
+        + '<div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">'
+        + statusBadge + toggleBtn
+        + '</div></div></div>'
+        + detailPanel
+        + '</div>';
+    } catch(e) {
+      debugLog('ERRO renderPubBgGameCard: ' + e.message);
+      return '<div class="card" style="margin-bottom:8px; padding:12px; color:var(--text-secondary);">Erro ao exibir jogo.</div>';
     }
-
-    const hasDetail = resultDetail.length > 0;
-
-    return `
-      <div class="card" style="margin-bottom:8px;">
-        <div class="card-body" style="padding:12px 16px; cursor:pointer; user-select:none;"
-             onclick="togglePubBgCard(${g.id})">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-              <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.home_name}</span>
-              <span style="font-size:${scoreDisplay === 'vs' ? 13 : 17}px; font-weight:800; color:var(--accent-purple); flex-shrink:0; padding:0 4px;">${scoreDisplay}</span>
-              <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.away_name}</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-              ${statusBadge}
-              ${hasDetail ? `<button id="pub-bg-toggle-${g.id}" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:11px;padding:2px 6px;"
-                              onclick="event.stopPropagation();togglePubBgCard(${g.id})">▼</button>` : ''}
-            </div>
-          </div>
-        </div>
-        ${hasDetail ? `
-        <div id="pub-bg-detail-${g.id}" style="display:none; border-top:1px solid var(--border); padding:12px 16px;">
-          ${resultDetail}
-        </div>` : ''}
-      </div>`;
   }
 
   function togglePubBgCard(gameId) {
