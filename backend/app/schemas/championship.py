@@ -82,6 +82,14 @@ class ChampionshipConfigUpdate(BaseModel):
     pts_dama_capturada: Optional[float] = None
     pts_empate: Optional[float] = None
     pts_draw: Optional[float] = None
+    # Tênis de Mesa
+    pts_per_set: Optional[int] = None
+    pts_win_straight: Optional[float] = None
+    pts_win_one_loss: Optional[float] = None
+    pts_win_two_loss: Optional[float] = None
+    pts_win_three_loss: Optional[float] = None
+    pts_loss_three_wins: Optional[float] = None
+    pts_loss_two_wins: Optional[float] = None
 
 
 class ChampionshipOut(BaseModel):

@@ -82,7 +82,7 @@
   <div class="pub-footer-logo">🏆</div>
   <div class="pub-footer-brand">Jogos Olímpicos Sinodal PB</div>
   <div class="pub-footer-sub">
-    Powered by <a href="https://jogossinodal.netlify.app" target="_blank">Sports Platform</a> ·
+    Powered by Miquéias Teles</a> ·
     <a href="https://jogossinodal.netlify.app" target="_blank">Acesso para organizadores →</a>
   </div>
 </footer>
@@ -234,11 +234,12 @@
         domino:'linear-gradient(135deg,#5b21b6,#8b5cf6)',
         dama:'linear-gradient(135deg,#9d174d,#ec4899)',
         xadrez:'linear-gradient(135deg,#374151,#6b7280)',
+        tenis_mesa:'linear-gradient(135deg,#0f766e,#14b8a6)',
       };
       const heroBg = heroColors[c.sport?.slug] || 'linear-gradient(135deg,#1e3a8a,#2563eb)';
       const heroEmoji = {
         futsal:'⚽',volleyball:'🏐',basketball:'🏀',running:'🏃',
-        domino:'🁣',dama:'♟',xadrez:'♟',
+        domino:'🁣',dama:'♟',xadrez:'♟',tenis_mesa:'🏓',
       }[c.sport?.slug] || '🏆';
       const statusMap = {active:'Ativo',finished:'Encerrado',draft:'Rascunho'};
       const heroHtml = `
@@ -306,6 +307,34 @@
         return;
       }
 
+      if (isTenisMesa()) {
+        // Tênis de Mesa: abas Classificação + Jogos
+        content.innerHTML = heroHtml + `
+          <div class="tab-nav">
+            <button class="tab-btn active" data-pub-tab="tm-standings">🏆 Classificação</button>
+            <button class="tab-btn" data-pub-tab="tm-games">🎮 Jogos</button>
+          </div>
+          <div id="pub-tab-tm-standings"></div>
+          <div id="pub-tab-tm-games" style="display:none;"></div>
+        `;
+        document.querySelectorAll('[data-pub-tab]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-pub-tab]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            ['tm-standings', 'tm-games'].forEach(t => {
+              const tabEl = document.getElementById(`pub-tab-${t}`);
+              if (tabEl) tabEl.style.display = 'none';
+            });
+            const tab = btn.dataset.pubTab;
+            const activeEl = document.getElementById(`pub-tab-${tab}`);
+            if (activeEl) activeEl.style.display = 'block';
+            loadPubTab(tab);
+          });
+        });
+        loadPubTab('tm-standings');
+        return;
+      }
+
       // Build tabs — oculta artilharia e cartões para vôlei e tênis de mesa; basquete mostra Cestinhas mas não Cartões
       const isTenis = c.sport?.slug === 'tenis_mesa';
       const extraTabs = (isVball || isTenis) ? '' : isBball
@@ -358,6 +387,8 @@
       else if (tab === 'race-ranking') await renderPubRaceRanking(el);
       else if (tab === 'bg-standings') await renderPubBgStandings(el);
       else if (tab === 'bg-games')     await renderPubBgGames(el);
+      else if (tab === 'tm-standings') await renderPubTenisMesaStandings(el);
+      else if (tab === 'tm-games')     await renderPubTenisMesaGames(el);
     } catch (err) {
       el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
     }
@@ -516,6 +547,33 @@
           </div>
         </div>`;
     } else {
+      const isFutsal = currentChamp?.sport?.slug === 'futsal';
+      const bestDefense = isFutsal ? (stats.best_defense || []) : [];
+      const defenseSection = isFutsal && bestDefense.length ? `
+        <div class="card" style="margin-top:16px;">
+          <div class="card-body" style="padding:0;">
+            <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-teal); border-bottom:1px solid var(--border);">🛡️ Defesas Menos Vazadas</div>
+            <table class="stat-table">
+              <thead><tr>
+                <th style="width:36px;">#</th><th style="width:40px;"></th><th>Equipe</th>
+                <th style="text-align:center;">J</th>
+                <th style="text-align:center;">Gols Sofridos</th>
+                <th style="text-align:center;">Média/Jogo</th>
+              </tr></thead>
+              <tbody>
+                ${bestDefense.map((d, i) => `
+                  <tr style="${i === 0 ? 'background:rgba(0,212,170,0.06);' : ''}">
+                    <td style="color:var(--text-secondary); font-weight:600; text-align:center;">${i + 1}</td>
+                    <td>${teamAvatar({id: d.team_id, name: d.team_name, logo_url: d.logo_url}, 32)}</td>
+                    <td style="font-weight:600;">${d.team_name}${i === 0 ? ' <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:rgba(0,212,170,0.15);color:var(--accent-teal);font-size:10px;font-weight:600;">🛡️ Melhor Defesa</span>' : ''}</td>
+                    <td style="text-align:center;">${d.games_played}</td>
+                    <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${d.goals_against}</td>
+                    <td style="text-align:center; color:var(--text-secondary);">${d.goals_per_game.toFixed(2)}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>` : (isFutsal ? `<div style="margin-top:16px; padding:20px; text-align:center; color:var(--text-secondary); font-size:13px;">🛡️ Dados de defesa não disponíveis ainda.</div>` : '');
       el.innerHTML = `
         <div class="card">
           <div class="card-body" style="padding:0;">
@@ -534,7 +592,7 @@
               </tbody>
             </table>
           </div>
-        </div>`;
+        </div>${defenseSection}`;
     }
   }
 
@@ -960,6 +1018,175 @@
     } catch(e) {
       return '<div class="card" style="margin-bottom:8px; padding:12px; color:var(--text-secondary);">Erro ao exibir jogo.</div>';
     }
+  }
+
+  // ================================================================
+  // ABA: CLASSIFICAÇÃO — Tênis de Mesa (pública)
+  // ================================================================
+  async function renderPubTenisMesaStandings(el) {
+    var classified = (currentChamp.rules_config && currentChamp.rules_config.classifieds_per_group != null)
+      ? currentChamp.rules_config.classifieds_per_group : 2;
+    var medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+    try {
+      var groups = await pubFetch('/api/championships/' + currentChamp.id + '/tenis/groups');
+      if (!groups || !groups.length) {
+        el.innerHTML = '<div style="padding:32px; text-align:center; color:var(--text-secondary);">Grupos ainda não definidos.</div>';
+        return;
+      }
+
+      // Card de campeão — derivado do jogo final do mata-mata
+      var championCard = '';
+      try {
+        var allGames = await pubFetch('/api/championships/' + currentChamp.id + '/tenis/games');
+        var koGames = (allGames || []).filter(function(g) { return g.phase === 'knockout' && g.status === 'finished'; });
+        if (koGames.length) {
+          var maxRound = koGames.reduce(function(m, g) { return Math.max(m, g.round_number || 1); }, 0);
+          var finalGames = koGames.filter(function(g) { return (g.round_number || 1) === maxRound; });
+          if (finalGames.length === 1) {
+            var fg = finalGames[0];
+            var champName = fg.result === 'home_win' ? fg.home_name : (fg.result === 'away_win' ? fg.away_name : null);
+            if (champName) {
+              championCard = '<div style="margin-bottom:20px; padding:20px 24px; background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,215,0,0.04)); border:1px solid rgba(255,215,0,0.25); border-radius:12px; text-align:center;">'
+                + '<div style="font-size:36px; margin-bottom:4px;">🏆</div>'
+                + '<div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Campeão</div>'
+                + '<div style="font-size:20px; font-weight:800;">🏓 ' + champName + '</div>'
+                + '</div>';
+            }
+          }
+        }
+      } catch(e) { /* sem campeão ainda */ }
+
+      var html = championCard;
+      for (var gi = 0; gi < groups.length; gi++) {
+        var g = groups[gi];
+        var standings = g.standings || [];
+        var rows = '';
+        for (var i = 0; i < standings.length; i++) {
+          var s = standings[i];
+          var saldo = s.saldo_sets != null ? s.saldo_sets : 0;
+          var isClassified = classified > 0 && i < classified;
+          rows += '<tr class="' + (isClassified ? 'classified-row' : '') + '">'
+            + '<td style="text-align:center; font-weight:800; font-size:' + (i < 3 ? 16 : 13) + 'px;">' + (medalMap[s.position] || s.position) + '</td>'
+            + '<td style="text-align:left;"><div style="display:flex; align-items:center; gap:8px;"><div style="width:32px;height:32px;border-radius:50%;background:var(--accent-teal);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0;">' + (s.name || '?').substring(0,2).toUpperCase() + '</div><div><span style="font-weight:600;">' + (s.name || '—') + '</span>' + (isClassified ? ' <span class="badge-classified">Classificado ✓</span>' : '') + '</div></div></td>'
+            + '<td>' + (s.j != null ? s.j : 0) + '</td>'
+            + '<td>' + (s.v != null ? s.v : 0) + '</td>'
+            + '<td>' + (s.d != null ? s.d : 0) + '</td>'
+            + '<td>' + (s.sets_won != null ? s.sets_won : 0) + '</td>'
+            + '<td>' + (s.sets_lost != null ? s.sets_lost : 0) + '</td>'
+            + '<td style="color:' + (saldo >= 0 ? 'var(--accent-teal)' : '#f87171') + ';">' + (saldo >= 0 ? '+' : '') + saldo + '</td>'
+            + '<td class="pts">' + (s.pontos != null ? s.pontos : 0) + '</td>'
+            + '</tr>';
+        }
+        html += '<div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">'
+          + '<div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-teal); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">Grupo ' + g.group + '</div>'
+          + (standings.length ? ('<table class="standings-table"><thead><tr><th style="width:36px;">#</th><th style="text-align:left;">Atleta</th><th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th class="pts">Pts</th></tr></thead><tbody>' + rows + '</tbody></table>') : '<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>')
+          + '</div></div>';
+      }
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
+    }
+  }
+
+  // ================================================================
+  // ABA: JOGOS — Tênis de Mesa (pública)
+  // ================================================================
+  async function renderPubTenisMesaGames(el) {
+    try {
+      var games = await pubFetch('/api/championships/' + currentChamp.id + '/tenis/games');
+      if (!games || !games.length) {
+        el.innerHTML = '<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum jogo cadastrado ainda.</div>';
+        return;
+      }
+
+      var phaseLabel = { groups: 'Fase de Grupos', knockout: 'Mata-mata' };
+      var groupMap = {};
+      var groupOrder = [];
+      for (var gi = 0; gi < games.length; gi++) {
+        var g = games[gi];
+        var key = (g.phase || '') + '__' + (g.round_number != null ? g.round_number : '');
+        if (!groupMap[key]) {
+          groupMap[key] = { phase: g.phase, round: g.round_number, games: [] };
+          groupOrder.push(key);
+        }
+        groupMap[key].games.push(g);
+      }
+
+      var html = '';
+      for (var ki = 0; ki < groupOrder.length; ki++) {
+        var grp = groupMap[groupOrder[ki]];
+        var pLabel = phaseLabel[grp.phase] || grp.phase || '';
+        var rLabel = grp.round != null ? (pLabel ? ' — Rodada ' + grp.round : 'Rodada ' + grp.round) : '';
+        if (pLabel || rLabel) {
+          html += '<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:16px 0 8px; text-transform:uppercase; letter-spacing:.5px; padding-left:2px;">' + pLabel + rLabel + '</div>';
+        }
+        for (var gg = 0; gg < grp.games.length; gg++) {
+          html += renderPubTenisMesaGameCard(grp.games[gg]);
+        }
+      }
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Dados não disponíveis ainda.</div>';
+    }
+  }
+
+  function renderPubTenisMesaGameCard(g) {
+    var sets = (g.extra_data && g.extra_data.sets) || [];
+    var homeSets = 0, awaySets = 0;
+    for (var si = 0; si < sets.length; si++) {
+      if (sets[si].home_points > sets[si].away_points) homeSets++;
+      else if (sets[si].away_points > sets[si].home_points) awaySets++;
+    }
+    var scoreDisplay = g.home_score !== null && g.away_score !== null
+      ? (g.home_score + ' × ' + g.away_score + ' sets')
+      : (sets.length ? homeSets + ' × ' + awaySets + ' sets' : 'vs');
+    var statusBadge_ = g.status === 'finished'
+      ? '<span class="game-status-badge" style="background:rgba(108,99,255,0.15);color:#6c63ff;">Encerrado</span>'
+      : '<span class="game-status-badge" style="background:rgba(107,114,128,0.15);color:#9ca3af;">Agendado</span>';
+
+    var setsDetail = '';
+    if (sets.length) {
+      setsDetail = sets.map(function(s, i) {
+        return '<div style="font-size:12px; color:var(--text-secondary); padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.04);">'
+          + '<span style="color:var(--text-secondary);">Set ' + (i + 1) + ':</span> '
+          + '<span style="font-weight:700; color:' + (s.home_points > s.away_points ? 'var(--accent-teal)' : 'var(--text-primary)') + ';">' + s.home_points + '</span>'
+          + ' × '
+          + '<span style="font-weight:700; color:' + (s.away_points > s.home_points ? 'var(--accent-teal)' : 'var(--text-primary)') + ';">' + s.away_points + '</span>'
+          + '</div>';
+      }).join('');
+    }
+
+    var hasDetail = setsDetail.length > 0;
+    var toggleBtn = hasDetail
+      ? '<button id="pub-tm-toggle-' + g.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:11px;padding:2px 6px;" onclick="event.stopPropagation();togglePubTmCard(' + g.id + ')">▼</button>'
+      : '';
+    var detailPanel = hasDetail
+      ? '<div id="pub-tm-detail-' + g.id + '" style="display:none; border-top:1px solid var(--border); padding:10px 16px;">' + setsDetail + '</div>'
+      : '';
+
+    return '<div class="card" style="margin-bottom:8px;">'
+      + '<div class="card-body" style="padding:12px 16px; cursor:pointer; user-select:none;" onclick="togglePubTmCard(' + g.id + ')">'
+      + '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">'
+      + '<div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">'
+      + '<span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">' + (g.home_name || '—') + '</span>'
+      + '<span style="font-size:' + (scoreDisplay === 'vs' ? 13 : 15) + 'px; font-weight:800; color:var(--accent-teal); flex-shrink:0; padding:0 4px;">' + scoreDisplay + '</span>'
+      + '<span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">' + (g.away_name || '—') + '</span>'
+      + '</div>'
+      + '<div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">'
+      + statusBadge_ + toggleBtn
+      + '</div></div></div>'
+      + detailPanel
+      + '</div>';
+  }
+
+  function togglePubTmCard(gameId) {
+    var detail = document.getElementById('pub-tm-detail-' + gameId);
+    var btn = document.getElementById('pub-tm-toggle-' + gameId);
+    if (!detail) return;
+    var isOpen = detail.style.display !== 'none';
+    detail.style.display = isOpen ? 'none' : 'block';
+    if (btn) btn.textContent = isOpen ? '▼' : '▲';
   }
 
   function togglePubBgCard(gameId) {
