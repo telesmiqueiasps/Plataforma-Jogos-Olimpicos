@@ -16,27 +16,30 @@
 <body>
   <div class="auth-split">
 
-    <!-- Painel decorativo esquerdo -->
-    <div class="auth-panel">
-      <div class="auth-panel-bg"></div>
+    <!-- Painel decorativo esquerdo com slideshow -->
+    <div class="auth-panel auth-panel-slideshow">
+      <!-- Foto de fundo com fade -->
+      <img id="slide-bg" class="slide-bg-img" src="img/foto1.png" alt="Edição anterior">
+      <!-- Overlay gradiente para legibilidade -->
+      <div class="slide-overlay"></div>
+      <!-- Conteúdo sobre as fotos -->
       <div class="auth-panel-content">
-        <span class="auth-panel-logo">🏅</span>
-        <h1 class="auth-panel-title">Junte-se a nós</h1>
-        <p class="auth-panel-tagline">Crie sua conta e organize campeonatos incríveis</p>
-        <div class="auth-panel-stats">
-          <div class="auth-stat-card">
-            <div class="auth-stat-value">100%</div>
-            <div class="auth-stat-label">Gratuito</div>
-          </div>
-          <div class="auth-stat-card">
-            <div class="auth-stat-value">∞</div>
-            <div class="auth-stat-label">Campeon.</div>
-          </div>
-          <div class="auth-stat-card">
-            <div class="auth-stat-value">7+</div>
-            <div class="auth-stat-label">Modali.</div>
-          </div>
+        <div class="auth-panel-top">
+          <span class="auth-panel-logo">🏅</span>
+          <h1 class="auth-panel-title">Junte-se a nós</h1>
+          <p class="auth-panel-tagline">Crie sua conta e organize campeonatos incríveis</p>
         </div>
+        <!-- Bolinhas indicadoras -->
+        <div class="slide-dots">
+          <span class="slide-dot" style="opacity:1" onclick="goToSlide(0)"></span>
+          <span class="slide-dot" onclick="goToSlide(1)"></span>
+          <span class="slide-dot" onclick="goToSlide(2)"></span>
+          <span class="slide-dot" onclick="goToSlide(3)"></span>
+          <span class="slide-dot" onclick="goToSlide(4)"></span>
+          <span class="slide-dot" onclick="goToSlide(5)"></span>
+        </div>
+        <!-- Legenda -->
+        <div class="slide-caption">📸 Edição anterior</div>
       </div>
     </div>
 
@@ -101,6 +104,35 @@
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script>
+    // Slideshow
+    let currentSlide = 0;
+    const slides = ['img/foto1.png','img/foto2.png','img/foto3.png',
+                    'img/foto4.png','img/foto5.png','img/foto6.png'];
+
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % slides.length;
+      updateSlide();
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateSlide();
+    }
+
+    function updateSlide() {
+      const bg = document.getElementById('slide-bg');
+      bg.style.opacity = '0';
+      setTimeout(() => {
+        bg.src = slides[currentSlide];
+        bg.style.opacity = '1';
+        document.querySelectorAll('.slide-dot').forEach((dot, i) => {
+          dot.style.opacity = i === currentSlide ? '1' : '0.5';
+        });
+      }, 300);
+    }
+
+    setInterval(nextSlide, 4000);
+
     if (!isAuthenticated()) {
       window.location.replace('login.html');
     }

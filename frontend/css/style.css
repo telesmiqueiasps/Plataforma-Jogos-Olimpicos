@@ -1382,3 +1382,84 @@ h1, h2, h3, h4, h5, h6 {
   .topbar-greeting-main { font-size: 14px; }
   .topbar-greeting-date { display: none; }
 }
+
+/* ====================================================
+   AUTH PANEL — SLIDESHOW
+   ==================================================== */
+.auth-panel-slideshow {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  background: #1e3a8a;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.slide-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+  z-index: 0;
+}
+
+.slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(30,58,138,0.5) 0%, rgba(37,99,235,0.7) 100%);
+  z-index: 1;
+}
+
+.auth-panel-slideshow .auth-panel-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 40px 36px;
+  box-sizing: border-box;
+  background: none;
+}
+
+.auth-panel-top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.slide-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
+.slide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  display: inline-block;
+}
+
+.slide-caption {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 768px) {
+  .auth-panel-slideshow {
+    display: none;
+  }
+}
