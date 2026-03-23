@@ -32,14 +32,7 @@
 
     # Controla quais recursos o browser pode carregar
     # Ajuste a URL da API conforme necessário
-    Content-Security-Policy = """
-      default-src 'self';
-      script-src  'self' 'unsafe-inline';
-      style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src    'self' https://fonts.gstatic.com;
-      img-src     'self' data: https:;
-      connect-src 'self' https://sports-platform-api.onrender.com;
-    """
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://sports-platform-api.onrender.com https://lh3.googleusercontent.com; frame-ancestors 'none';"
 
     # Desativa funcionalidades desnecessárias do browser
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
