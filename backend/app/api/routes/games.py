@@ -159,9 +159,9 @@ def set_result(
         db.refresh(game)
         return game.result
 
-    elif sport_slug == "volleyball":
+    elif sport_slug in ("volleyball", "tenis_mesa"):
         if not data.sets:
-            raise HTTPException(status_code=400, detail="Para vôlei, envie 'sets' no body")
+            raise HTTPException(status_code=400, detail=f"Para {sport_slug}, envie 'sets' no body")
 
         finalize = data.finalize if data.finalize is not None else True
         home_score = sum(1 for s in data.sets if s.home_points > s.away_points)
@@ -172,6 +172,7 @@ def set_result(
         notes = data.notes
 
         # Salva sets detalhados e pontos de tabela no extra_data do jogo
+        # Usa "volleyball" como chave padrão para compatibilidade com volleyball_service
         extra = dict(game.extra_data or {})
         extra["volleyball"] = {
             "sets": [

@@ -207,6 +207,7 @@ function sportIcon(slug, size = 20) {
     'domino':     'img/domino.png',
     'dama':       'img/dama.png',
     'xadrez':     'img/xadrez.png',
+    'tenis_mesa': 'img/tenis.png',
   };
   const src = map[slug];
   if (!src) return '';

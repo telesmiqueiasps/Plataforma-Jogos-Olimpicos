@@ -10,12 +10,18 @@ from typing import Optional
 
 def calculate_match_points(home_sets: int, away_sets: int, best_of: int = 5) -> tuple[int, int]:
     """
-    Retorna (pontos_mandante, pontos_visitante) pelo sistema brasileiro de vôlei.
+    Retorna (pontos_mandante, pontos_visitante) pelo sistema brasileiro de vôlei/tênis de mesa.
     - Melhor de 3: vence quem chegar a 2 sets (2-0 = 3/0 pts; 2-1 = 2/1 pts)
     - Melhor de 5: vence quem chegar a 3 sets (3-0/3-1 = 3/0 pts; 3-2 = 2/1 pts)
+    - Melhor de 7: vence quem chegar a 4 sets (4-0/4-1/4-2 = 3/0 pts; 4-3 = 2/1 pts)
     """
-    sets_to_win = 2 if best_of == 3 else 3
-    max_close   = sets_to_win - 1  # 1 para melhor-de-3; 2 para melhor-de-5
+    if best_of == 3:
+        sets_to_win = 2
+    elif best_of == 5:
+        sets_to_win = 3
+    else:  # best_of == 7
+        sets_to_win = 4
+    max_close = sets_to_win - 1  # 1 para B3; 2 para B5; 3 para B7
 
     if home_sets == sets_to_win:
         return (2, 1) if away_sets == max_close else (3, 0)
@@ -39,10 +45,15 @@ def calculate_volleyball_standings(
 
     Retorna lista de dicts com todos os campos necessários para StandingEntry.
     """
-    # Configuração de melhor-de (3 ou 5); afeta quantos sets são necessários para vencer
-    best_of    = int(rules_config.get("best_of", 5))
-    sets_to_win = 2 if best_of == 3 else 3
-    max_close   = sets_to_win - 1
+    # Configuração de melhor-de (3, 5 ou 7); afeta quantos sets são necessários para vencer
+    best_of = int(rules_config.get("best_of", 5))
+    if best_of == 3:
+        sets_to_win = 2
+    elif best_of == 5:
+        sets_to_win = 3
+    else:  # best_of == 7
+        sets_to_win = 4
+    max_close = sets_to_win - 1
 
     # Pontuação configurável (padrão: 3-2-1-0)
     pts_win_easy  = int(rules_config.get("pts_win_easy",  3))   # vitória fácil (ex: 3-0 ou 3-1)

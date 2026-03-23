@@ -206,6 +206,7 @@
   function isDomino()    { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'domino'; }
   function isDama()      { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'dama'; }
   function isXadrez()    { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'xadrez'; }
+  function isTenisMesa() { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'tenis_mesa'; }
   function isBoardgame() { return isDomino() || isDama() || isXadrez(); }
 
   async function showChampionshipPage(id) {
@@ -305,8 +306,9 @@
         return;
       }
 
-      // Build tabs — oculta artilharia e cartões para vôlei; basquete mostra Cestinhas mas não Cartões
-      const extraTabs = isVball ? '' : isBball
+      // Build tabs — oculta artilharia e cartões para vôlei e tênis de mesa; basquete mostra Cestinhas mas não Cartões
+      const isTenis = c.sport?.slug === 'tenis_mesa';
+      const extraTabs = (isVball || isTenis) ? '' : isBball
         ? `<button class="tab-btn" data-pub-tab="scorers">🏀 Cestinhas</button>`
         : `<button class="tab-btn" data-pub-tab="scorers">Artilharia</button>
            <button class="tab-btn" data-pub-tab="cards">Cartões</button>`;
@@ -410,15 +412,18 @@
     if (!rows.length) return `<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>`;
     const isVball = currentChamp?.sport?.slug === 'volleyball';
     const isBball = currentChamp?.sport?.slug === 'basketball';
+    const isTenis = currentChamp?.sport?.slug === 'tenis_mesa';
     const medals = ['🥇','🥈','🥉'];
     const avatarColors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#0891b2','#6b7280'];
+    // Tênis de mesa usa athlete_id/name em vez de team_id/team_name
+    const nameField = isTenis ? 'name' : 'team_name';
     return `
       <table class="standings-table standings-enhanced">
         <thead>
           <tr>
             <th style="text-align:center;width:44px;">#</th>
-            <th style="text-align:left;">Equipe</th>
-            ${isVball
+            <th style="text-align:left;">${isTenis ? 'Jogador' : 'Equipe'}</th>
+            ${(isVball || isTenis)
               ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th>Avg</th><th class="pts-col">Pts</th>'
               : isBball
                 ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts-col">Tab</th>'
@@ -430,31 +435,32 @@
             const isLeader = i === 0;
             const isClassified = classifiedPerGroup > 0 && i < classifiedPerGroup;
             const medal = medals[i] || '';
-            const initials = (s.team_name || '?').substring(0, 2).toUpperCase();
+            const displayName = s[nameField] || '?';
+            const initials = displayName.substring(0, 2).toUpperCase();
             const avatarColor = avatarColors[i % avatarColors.length];
             const rowClass = isLeader ? 'leader-row' : (isClassified ? 'classified-row' : '');
             return `
             <tr class="${rowClass}">
               <td style="text-align:center;">
                 ${medal
-                  ? `<span style="font-size:18px;" title="${s.team_name}">${medal}</span>`
+                  ? `<span style="font-size:18px;" title="${displayName}">${medal}</span>`
                   : `<span class="standings-pos">${s.position}</span>`}
               </td>
               <td>
                 <div class="standings-team-cell">
                   <div class="standings-avatar" style="background:${avatarColor};">${initials}</div>
                   <div>
-                    <div style="font-weight:600;font-size:14px;">${s.team_name}</div>
+                    <div style="font-weight:600;font-size:14px;">${displayName}</div>
                     ${isClassified ? '<span class="badge-classified">Classificado ✓</span>' : ''}
                   </div>
                 </div>
               </td>
-              ${isVball
-                ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
+              ${(isVball || isTenis)
+                ? `<td>${s.games_played ?? s.j ?? 0}</td><td>${s.wins ?? s.v ?? 0}</td><td>${s.losses ?? s.d ?? 0}</td>
                    <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
-                   <td>${(s.set_difference ?? 0) >= 0 ? '+' : ''}${s.set_difference ?? 0}</td>
-                   <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
-                   <td class="pts-col">${s.points}</td>`
+                   <td>${((s.set_difference ?? s.saldo_sets) ?? 0) >= 0 ? '+' : ''}${(s.set_difference ?? s.saldo_sets) ?? 0}</td>
+                   <td>${(s.set_average != null ? s.set_average.toFixed(3) : null) ?? (s.pontos_average != null ? s.pontos_average.toFixed(3) : '—')}</td>
+                   <td class="pts-col">${s.points ?? s.pontos ?? 0}</td>`
                 : isBball
                   ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                      <td>${s.goals_for}</td><td>${s.goals_against}</td>
@@ -683,13 +689,17 @@
     const groupLabel = g.extra_data?.group ? ` · Grupo ${g.extra_data.group}` : '';
     const isVball = currentChamp?.sport?.slug === 'volleyball';
     const isBball = currentChamp?.sport?.slug === 'basketball';
+    const isTenisGame = currentChamp?.sport?.slug === 'tenis_mesa';
     const vballSets = isVball && g.extra_data?.volleyball?.sets;
+    const tenisSets = isTenisGame && g.extra_data?.sets;
     const bballData = isBball && g.extra_data?.basketball;
     const setsDetail = vballSets
       ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${vballSets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
-      : bballData?.quarters
-        ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
-        : '';
+      : tenisSets
+        ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${tenisSets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
+        : bballData?.quarters
+          ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
+          : '';
     return `
       <div style="border-bottom:1px solid rgba(255,255,255,0.04);">
         <div class="game-row-pub">

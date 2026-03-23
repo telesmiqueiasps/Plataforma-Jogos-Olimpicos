@@ -944,7 +944,54 @@ def get_championship_stats(championship_id: int, db: Session = Depends(get_db)):
             "expulsion": s.games_remaining >= 999,
         })
 
-    return {"scorers": scorers, "cards": cards_list, "suspensions": susp_list, "sport": sport_slug_stats}
+    # --- Melhor defesa (apenas futsal) ---
+    best_defense = []
+    if sport_slug_stats == "futsal" and finished_game_ids:
+        defense_map: dict[int, dict] = {}
+        finished_games_objs = db.query(Game).filter(Game.id.in_(finished_game_ids)).all()
+        for g in finished_games_objs:
+            if not g.result:
+                continue
+            for tid, goals_suffered in [
+                (g.home_team_id, g.result.away_score),
+                (g.away_team_id, g.result.home_score),
+            ]:
+                if tid is None:
+                    continue
+                if tid not in defense_map:
+                    defense_map[tid] = {"team_id": tid, "games_played": 0, "goals_against": 0}
+                defense_map[tid]["games_played"] += 1
+                defense_map[tid]["goals_against"] += (goals_suffered or 0)
+
+        all_def_team_ids = list(defense_map.keys())
+        def_teams_map: dict = {}
+        if all_def_team_ids:
+            def_teams_map = {
+                t.id: t for t in db.query(Team).filter(Team.id.in_(all_def_team_ids)).all()
+            }
+
+        best_defense = sorted(
+            [
+                {
+                    "team_id": tid,
+                    "team_name": def_teams_map[tid].name if tid in def_teams_map else "—",
+                    "logo_url": getattr(def_teams_map.get(tid), "logo_url", None),
+                    "games_played": d["games_played"],
+                    "goals_against": d["goals_against"],
+                    "goals_per_game": round(d["goals_against"] / d["games_played"], 2) if d["games_played"] > 0 else 0.0,
+                }
+                for tid, d in defense_map.items()
+            ],
+            key=lambda x: (x["goals_against"], -x["games_played"]),
+        )[:5]
+
+    return {
+        "scorers": scorers,
+        "cards": cards_list,
+        "suspensions": susp_list,
+        "sport": sport_slug_stats,
+        "best_defense": best_defense,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1068,9 +1115,9 @@ def _build_standings(
     group: Optional[str] = None,
     phase: Optional[str] = None,
 ) -> list[StandingEntry]:
-    # Detecta modalidade — vôlei e basquete usam lógica própria
+    # Detecta modalidade — vôlei, tênis de mesa e basquete usam lógica própria
     sport_slug = champ.sport.slug if champ.sport else None
-    if sport_slug == "volleyball":
+    if sport_slug in ("volleyball", "tenis_mesa"):
         return _build_volleyball_standings(champ, db, group, phase)
     if sport_slug == "basketball":
         return _build_basketball_standings(champ, db, group, phase)

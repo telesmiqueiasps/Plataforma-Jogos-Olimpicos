@@ -255,6 +255,7 @@
                     <select id="cfg-vball-best-of" class="form-control" style="max-width:200px;">
                       <option value="3">Melhor de 3</option>
                       <option value="5">Melhor de 5</option>
+                      <option value="7">Melhor de 7</option>
                     </select>
                   </div>
                 </div>
@@ -947,9 +948,10 @@
       return currentChamp?.sport?.slug || '';
     }
 
-    function isDomino()  { return currentChamp?.sport?.slug === 'domino'; }
-    function isDama()    { return currentChamp?.sport?.slug === 'dama'; }
-    function isXadrez()  { return currentChamp?.sport?.slug === 'xadrez'; }
+    function isDomino()    { return currentChamp?.sport?.slug === 'domino'; }
+    function isDama()      { return currentChamp?.sport?.slug === 'dama'; }
+    function isXadrez()    { return currentChamp?.sport?.slug === 'xadrez'; }
+    function isTenisMesa() { return currentChamp?.sport?.slug === 'tenis_mesa'; }
 
     // ================================================================
     // UTILS
@@ -1005,6 +1007,7 @@
       const slugHeaderBg = {
         futsal:'#dbeafe', volleyball:'#d1fae5', basketball:'#fed7aa',
         running:'#fce7f3', domino:'#ede9fe', dama:'#fef3c7', xadrez:'#f1f5f9',
+        tenis_mesa:'#dcfce7',
       };
 
       container.innerHTML = `
@@ -2464,12 +2467,51 @@
 
         const vball = isVolleyball();
         const bball = isBasketball();
-        // Vôlei e Basquete não mostram cartões; Basquete mostra cestinhas; Futsal mostra artilharia e cartões
+        const tenis = isTenisMesa();
+        const futsal = currentChamp?.sport?.slug === 'futsal';
+
+        // Melhor defesa (apenas futsal)
+        const bestDefenseHtml = (futsal && stats.best_defense && stats.best_defense.length)
+          ? `<div class="card" style="margin-bottom:16px;">
+              <div class="card-body">
+                <h3 style="margin-bottom:16px; font-size:15px;">🛡️ Defesas Menos Vazadas</h3>
+                <table class="stat-table">
+                  <thead><tr>
+                    <th style="width:32px;">#</th>
+                    <th style="width:40px;"></th>
+                    <th>Equipe</th>
+                    <th style="text-align:center;">J</th>
+                    <th style="text-align:center;">Gols Sofridos</th>
+                    <th style="text-align:center;">Média/Jogo</th>
+                  </tr></thead>
+                  <tbody>
+                    ${stats.best_defense.map((d, i) => `
+                      <tr>
+                        <td style="color:var(--text-secondary);">
+                          ${i === 0 ? '<span title="Melhor Defesa">🛡️</span>' : i + 1}
+                        </td>
+                        <td>${teamAvatar({id: d.team_id, name: d.team_name, logo_url: d.logo_url}, 32)}</td>
+                        <td style="font-weight:${i === 0 ? '700' : '500'};">${d.team_name}</td>
+                        <td style="text-align:center;">${d.games_played}</td>
+                        <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${d.goals_against}</td>
+                        <td style="text-align:center; color:var(--text-secondary);">${d.goals_per_game.toFixed(2)}</td>
+                      </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>`
+          : '';
+
+        // Vôlei e Basquete não mostram cartões; Basquete mostra cestinhas; Futsal mostra artilharia e cartões; Tênis de mesa mostra só suspensões
         if (isRunning()) {
           container.innerHTML = `<div class="info-banner" style="margin:16px 0;">🏃 Corrida de rua: gerencie participantes e resultados nas abas <strong>Participantes</strong>, <strong>Resultados</strong> e <strong>Ranking</strong>.</div>`;
           return;
         }
-        container.innerHTML = standingsHtml + (vball ? '' : scorersHtml) + (vball || bball ? '' : cardsHtml) + suspHtml;
+        if (tenis) {
+          container.innerHTML = standingsHtml + suspHtml;
+          return;
+        }
+        container.innerHTML = standingsHtml + (vball ? '' : scorersHtml) + (vball || bball ? '' : cardsHtml) + (futsal ? bestDefenseHtml : '') + suspHtml;
       } catch (err) {
         container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
