@@ -1896,7 +1896,7 @@
       const vball = isVolleyball();
       const bball = isBasketball();
       const standingsHtml = standings && standings.length
-        ? `<table class="standings-table" style="margin-top:12px;">
+        ? `<div class="table-responsive"><table class="standings-table" style="margin-top:12px;">
             <thead><tr>
               <th class="pos">#</th><th>Equipe</th>
               ${vball
@@ -1929,7 +1929,7 @@
                 </tr>
               `).join('')}
             </tbody>
-          </table>`
+          </table></div>`
         : `<div style="color:var(--text-secondary); font-size:12px; margin-top:8px;">Nenhum jogo disputado ainda.</div>`;
 
       return `
@@ -2399,7 +2399,7 @@
                     return `<div>
                       <div style="font-weight:700; color:var(--accent-purple); margin-bottom:8px; font-size:14px;">Grupo ${g.group}</div>
                       ${st && st.length ? `
-                        <table class="standings-table">
+                        <div class="table-responsive"><table class="standings-table">
                           <thead><tr><th class="pos">#</th><th>Equipe</th>
                             ${_vball
                               ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Avg</th><th class="pts">Pts</th>'
@@ -2427,7 +2427,7 @@
                                      <td class="pts">${s.points}</td>`}
                             </tr>`).join('')}
                           </tbody>
-                        </table>` : `<div style="color:var(--text-secondary);font-size:12px;">Sem jogos disputados.</div>`}
+                        </table></div>` : `<div style="color:var(--text-secondary);font-size:12px;">Sem jogos disputados.</div>`}
                     </div>`;
                   }).join('')}
                 </div>
@@ -3685,7 +3685,7 @@
         if (bgType_ === 'domino') {
           html = `
             <div class="card"><div class="card-body" style="padding:0;">
-              <table class="standings-table">
+              <div class="table-responsive"><table class="standings-table">
                 <thead><tr><th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th></tr></thead>
                 <tbody>
                   ${standings.map(s => `
@@ -3696,12 +3696,12 @@
                       <td class="pts">${s.pts}</td>
                     </tr>`).join('')}
                 </tbody>
-              </table>
+              </table></div>
             </div></div>`;
         } else if (bgType_ === 'dama') {
           html = `
             <div class="card"><div class="card-body" style="padding:0;">
-              <table class="standings-table">
+              <div class="table-responsive"><table class="standings-table">
                 <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts.Peças</th><th>Pts.Tabela</th></tr></thead>
                 <tbody>
                   ${standings.map(s => `
@@ -3713,13 +3713,13 @@
                       <td class="pts">${s.pts}</td>
                     </tr>`).join('')}
                 </tbody>
-              </table>
+              </table></div>
             </div></div>`;
         } else if (bgType_ === 'xadrez') {
           html = `
             <div class="info-banner" style="margin-bottom:16px;">♟ Buchholz = soma dos pontos dos adversários enfrentados (critério de desempate).</div>
             <div class="card"><div class="card-body" style="padding:0;">
-              <table class="standings-table">
+              <div class="table-responsive"><table class="standings-table">
                 <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th><th title="Buchholz = soma dos pontos dos adversários">Buchholz</th></tr></thead>
                 <tbody>
                   ${standings.map(s => `
@@ -3731,12 +3731,12 @@
                       <td style="color:var(--accent-purple); font-weight:700;">${s.buchholz.toFixed(1)}</td>
                     </tr>`).join('')}
                 </tbody>
-              </table>
+              </table></div>
             </div></div>`;
         } else if (bgType_ === 'tenis_mesa') {
           html = `
             <div class="card"><div class="card-body" style="padding:0;">
-              <table class="standings-table">
+              <div class="table-responsive"><table class="standings-table">
                 <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th>Pts</th></tr></thead>
                 <tbody>
                   ${standings.map(s => `
@@ -3750,7 +3750,7 @@
                       <td class="pts">${s.pontos}</td>
                     </tr>`).join('')}
                 </tbody>
-              </table>
+              </table></div>
             </div></div>`;
         }
 
@@ -3928,10 +3928,10 @@
           <div style="margin-bottom:10px;">${membersHtml}</div>
           ${standings.length ? `
           <div class="card" style="margin-top:10px;"><div class="card-body" style="padding:0;">
-            <table class="standings-table">
+            <div class="table-responsive"><table class="standings-table">
               <thead><tr>${theadCols}</tr></thead>
               <tbody>${standings.map(s => `<tr>${tbodyCols(s)}</tr>`).join('')}</tbody>
-            </table>
+            </table></div>
           </div></div>` : ''}
         </div>`;
     }

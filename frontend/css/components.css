@@ -814,6 +814,36 @@ table.table {
   font-size: 14px;
 }
 
+/* === Responsive table wrapper === */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .table-responsive .standings-table,
+  .table-responsive .standings-enhanced {
+    min-width: 520px;
+    font-size: 12px;
+  }
+  .table-responsive .standings-table th,
+  .table-responsive .standings-table td,
+  .table-responsive .standings-enhanced th,
+  .table-responsive .standings-enhanced td {
+    padding: 7px 6px;
+    white-space: nowrap;
+  }
+  .table-responsive .stat-table {
+    min-width: 400px;
+  }
+  .table-responsive .stat-table th,
+  .table-responsive .stat-table td {
+    white-space: nowrap;
+    padding: 7px 8px;
+  }
+}
+
 /* === Chips / Filter tabs === */
 .filter-tabs {
   display: flex;

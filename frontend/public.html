@@ -52,6 +52,13 @@
     .game-score-pub { font-size: 20px; font-weight: 800; color: var(--accent-purple); white-space: nowrap; padding: 0 8px; }
     .game-vs-pub { font-size: 13px; color: var(--text-secondary); padding: 0 8px; }
     .game-meta-pub { font-size: 11px; color: var(--text-secondary); text-align: right; min-width: 100px; }
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+    @media (max-width: 768px) {
+      .table-responsive .standings-table { min-width: 520px; font-size: 12px; }
+      .table-responsive .standings-table th, .table-responsive .standings-table td { padding: 7px 6px; white-space: nowrap; }
+      .table-responsive .stat-table { min-width: 400px; }
+      .table-responsive .stat-table th, .table-responsive .stat-table td { white-space: nowrap; padding: 7px 8px; }
+    }
   </style>
 </head>
 <body>
@@ -449,7 +456,7 @@
     // Tênis de mesa usa athlete_id/name em vez de team_id/team_name
     const nameField = isTenis ? 'name' : 'team_name';
     return `
-      <table class="standings-table standings-enhanced">
+      <div class="table-responsive"><table class="standings-table standings-enhanced">
         <thead>
           <tr>
             <th style="text-align:center;width:44px;">#</th>
@@ -503,7 +510,7 @@
                      <td class="pts-col">${s.points}</td>`}
             </tr>`}).join('')}
         </tbody>
-      </table>`;
+      </table></div>`;
   }
 
   // ================================================================
@@ -513,15 +520,18 @@
     const stats = await pubFetch(`/api/championships/${currentChamp.id}/stats`);
     const scorers = (stats.scorers || []).slice(0, 10);
     const isBball = stats.sport === 'basketball' || currentChamp?.sport?.slug === 'basketball';
-    if (!scorers.length) {
-      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">${isBball ? 'Nenhum ponto registrado.' : 'Nenhum gol registrado.'}</div>`;
-      return;
-    }
+    const isFutsal = currentChamp?.sport?.slug === 'futsal';
+
     if (isBball) {
+      if (!scorers.length) {
+        el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum ponto registrado.</div>`;
+        return;
+      }
       el.innerHTML = `
         <div class="card">
           <div class="card-body" style="padding:0;">
             <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">🏀 Cestinhas — Top ${scorers.length}</div>
+            <div class="table-responsive">
             <table class="stat-table">
               <thead><tr>
                 <th style="width:36px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th>
@@ -544,56 +554,70 @@
                   </tr>`).join('')}
               </tbody>
             </table>
+            </div>
           </div>
         </div>`;
-    } else {
-      const isFutsal = currentChamp?.sport?.slug === 'futsal';
-      const bestDefense = isFutsal ? (stats.best_defense || []) : [];
-      const defenseSection = isFutsal && bestDefense.length ? `
-        <div class="card" style="margin-top:16px;">
-          <div class="card-body" style="padding:0;">
-            <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-teal); border-bottom:1px solid var(--border);">🛡️ Defesas Menos Vazadas</div>
-            <table class="stat-table">
-              <thead><tr>
-                <th style="width:36px;">#</th><th style="width:40px;"></th><th>Equipe</th>
-                <th style="text-align:center;">J</th>
-                <th style="text-align:center;">Gols Sofridos</th>
-                <th style="text-align:center;">Média/Jogo</th>
-              </tr></thead>
-              <tbody>
-                ${bestDefense.map((d, i) => `
-                  <tr style="${i === 0 ? 'background:rgba(0,212,170,0.06);' : ''}">
-                    <td style="color:var(--text-secondary); font-weight:600; text-align:center;">${i + 1}</td>
-                    <td>${teamAvatar({id: d.team_id, name: d.team_name, logo_url: d.logo_url}, 32)}</td>
-                    <td style="font-weight:600;">${d.team_name}${i === 0 ? ' <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:rgba(0,212,170,0.15);color:var(--accent-teal);font-size:10px;font-weight:600;">🛡️ Melhor Defesa</span>' : ''}</td>
-                    <td style="text-align:center;">${d.games_played}</td>
-                    <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${d.goals_against}</td>
-                    <td style="text-align:center; color:var(--text-secondary);">${d.goals_per_game.toFixed(2)}</td>
-                  </tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>` : (isFutsal ? `<div style="margin-top:16px; padding:20px; text-align:center; color:var(--text-secondary); font-size:13px;">🛡️ Dados de defesa não disponíveis ainda.</div>` : '');
-      el.innerHTML = `
-        <div class="card">
-          <div class="card-body" style="padding:0;">
-            <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">⚽ Artilharia — Top ${scorers.length}</div>
-            <table class="stat-table">
-              <thead><tr><th style="width:36px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
-              <tbody>
-                ${scorers.map((s, i) => `
-                  <tr>
-                    <td style="color:var(--text-secondary); font-weight:600;">${i + 1}</td>
-                    <td>${athleteAvatar({name: s.name, id: s.athlete_id, photo_url: s.photo_url}, 32)}</td>
-                    <td style="font-weight:600;">${s.name}</td>
-                    <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
-                    <td style="text-align:center; font-weight:800; color:var(--accent-teal); font-size:16px;">${s.goals}</td>
-                  </tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>${defenseSection}`;
+      return;
     }
+
+    // Futsal e demais esportes com gols
+    const bestDefense = isFutsal ? (stats.best_defense || []) : [];
+    const defenseSection = isFutsal ? (bestDefense.length ? `
+      <div class="card" style="margin-top:16px;">
+        <div class="card-body" style="padding:0;">
+          <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-teal); border-bottom:1px solid var(--border);">🛡️ Defesas Menos Vazadas</div>
+          <div class="table-responsive">
+          <table class="stat-table">
+            <thead><tr>
+              <th style="width:36px;">#</th><th style="width:40px;"></th><th>Equipe</th>
+              <th style="text-align:center;">J</th>
+              <th style="text-align:center;">GS</th>
+              <th style="text-align:center;">Média</th>
+            </tr></thead>
+            <tbody>
+              ${bestDefense.map((d, i) => `
+                <tr style="${i === 0 ? 'background:rgba(0,212,170,0.06);' : ''}">
+                  <td style="color:var(--text-secondary); font-weight:700; text-align:center;width:32px;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${i===0?'var(--accent-teal)':'var(--bg-tertiary)'};color:${i===0?'#fff':'var(--text-secondary)'};font-size:11px;">${i + 1}</span>
+                  </td>
+                  <td>${teamAvatar({id: d.team_id, name: d.team_name, logo_url: d.logo_url}, 32)}</td>
+                  <td style="font-weight:600;">${d.team_name}${i === 0 ? ' <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:rgba(0,212,170,0.15);color:var(--accent-teal);font-size:10px;font-weight:600;">🛡️ Melhor Defesa</span>' : ''}</td>
+                  <td style="text-align:center;">${d.games_played}</td>
+                  <td style="text-align:center; font-weight:700; color:var(--accent-teal);">${d.goals_against}</td>
+                  <td style="text-align:center; color:var(--text-secondary);">${d.goals_per_game.toFixed(2)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>` : `<div style="margin-top:16px; padding:20px; background:var(--bg-secondary); border-radius:8px; text-align:center; color:var(--text-secondary); font-size:13px;">🛡️ Dados de defesa ainda não disponíveis.</div>`) : '';
+
+    if (!scorers.length) {
+      el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum gol registrado.</div>${defenseSection}`;
+      return;
+    }
+
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">⚽ Artilharia — Top ${scorers.length}</div>
+          <div class="table-responsive">
+          <table class="stat-table">
+            <thead><tr><th style="width:36px;">#</th><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">Gols</th></tr></thead>
+            <tbody>
+              ${scorers.map((s, i) => `
+                <tr>
+                  <td style="color:var(--text-secondary); font-weight:600;">${i + 1}</td>
+                  <td>${athleteAvatar({name: s.name, id: s.athlete_id, photo_url: s.photo_url}, 32)}</td>
+                  <td style="font-weight:600;">${s.name}</td>
+                  <td><div style="display:flex;align-items:center;gap:6px;">${teamAvatar({id: s.team_id, name: s.team_name, logo_url: s.team_logo_url}, 22)}<span style="color:var(--text-secondary);">${s.team_name}</span></div></td>
+                  <td style="text-align:center; font-weight:800; color:var(--accent-teal); font-size:16px;">${s.goals}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>${defenseSection}`;
   }
 
   // ================================================================
@@ -611,6 +635,7 @@
       <div class="card">
         <div class="card-body" style="padding:0;">
           <div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">🟨 Disciplina</div>
+          <div class="table-responsive">
           <table class="stat-table">
             <thead><tr><th style="width:40px;"></th><th>Atleta</th><th>Equipe</th><th style="text-align:center;">🟨</th><th style="text-align:center;">🟥</th><th>Status</th></tr></thead>
             <tbody>
@@ -627,6 +652,7 @@
                 </tr>`).join('')}
             </tbody>
           </table>
+          </div>
         </div>
       </div>`;
   }
@@ -681,7 +707,7 @@
     function rankTable(rows) {
       if (!rows.length) return `<div style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum resultado registrado ainda.</div>`;
       return `
-        <table class="stat-table">
+        <div class="table-responsive"><table class="stat-table">
           <thead><tr><th style="width:50px; text-align:center;">Pos</th><th>Atleta</th><th>Tempo</th></tr></thead>
           <tbody>
             ${rows.map(r => `
@@ -691,7 +717,7 @@
                 <td style="font-weight:700; color:var(--accent-teal);">${r.finish_time || '—'}</td>
               </tr>`).join('')}
           </tbody>
-        </table>`;
+        </table></div>`;
     }
 
     const catTabsHtml = tabs.length > 1
@@ -835,10 +861,10 @@
               + '<td class="pts">' + s.table_pts + '</td>'
               + '</tr>';
           }
-          tableHtml = '<table class="standings-table"><thead><tr>'
+          tableHtml = '<div class="table-responsive"><table class="standings-table"><thead><tr>'
             + '<th style="width:36px;">#</th><th>Dupla</th>'
             + '<th>J</th><th>V</th><th>D</th><th class="pts">Pts</th>'
-            + '</tr></thead><tbody>' + rows + '</tbody></table>';
+            + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
         } else if (bgType_ === 'dama') {
           rows = '';
           for (i = 0; i < standings.length; i++) {
@@ -851,11 +877,11 @@
               + '<td class="pts">' + s.total_pts + '</td>'
               + '</tr>';
           }
-          tableHtml = '<table class="standings-table"><thead><tr>'
+          tableHtml = '<div class="table-responsive"><table class="standings-table"><thead><tr>'
             + '<th style="width:36px;">#</th><th>Jogador</th>'
             + '<th>J</th><th>V</th><th>E</th><th>D</th>'
             + '<th title="Pontos de peças capturadas">Pts.Peças</th><th class="pts">Total</th>'
-            + '</tr></thead><tbody>' + rows + '</tbody></table>';
+            + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
         } else if (bgType_ === 'xadrez') {
           rows = '';
           for (i = 0; i < standings.length; i++) {
@@ -869,11 +895,11 @@
               + '</tr>';
           }
           tableHtml = '<div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px; padding:0 4px;">♟ Buchholz = soma dos pontos dos adversários enfrentados (critério de desempate)</div>'
-            + '<table class="standings-table"><thead><tr>'
+            + '<div class="table-responsive"><table class="standings-table"><thead><tr>'
             + '<th style="width:36px;">#</th><th>Jogador</th>'
             + '<th>J</th><th>V</th><th>E</th><th>D</th>'
             + '<th class="pts">Pts</th><th title="Buchholz: soma dos pontos dos adversários enfrentados">Buchh.</th>'
-            + '</tr></thead><tbody>' + rows + '</tbody></table>';
+            + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
         }
 
         el.innerHTML = championCard + '<div class="card"><div class="card-body" style="padding:16px 0;">' + tableHtml + '</div></div>';
@@ -1080,7 +1106,7 @@
         }
         html += '<div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">'
           + '<div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-teal); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">Grupo ' + g.group + '</div>'
-          + (standings.length ? ('<table class="standings-table"><thead><tr><th style="width:36px;">#</th><th style="text-align:left;">Atleta</th><th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th class="pts">Pts</th></tr></thead><tbody>' + rows + '</tbody></table>') : '<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>')
+          + (standings.length ? ('<div class="table-responsive"><table class="standings-table"><thead><tr><th style="width:36px;">#</th><th style="text-align:left;">Atleta</th><th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th class="pts">Pts</th></tr></thead><tbody>' + rows + '</tbody></table></div>') : '<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>')
           + '</div></div>';
       }
       el.innerHTML = html;
