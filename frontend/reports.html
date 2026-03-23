@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
+  <title>Relatórios — Jogos Olímpicos Sinodal PB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="dashboard.html" class="sidebar-logo">
+          <img src="img/logo.png" alt="Logo" style="width:50px;height:50px;object-fit:contain;flex-shrink:0;">
+          <span>Jogos Olímpicos<br>Sinodal PB</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item">
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item">
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Jogos</span>
+        </a>
+        <a href="reports.html" class="nav-item active">
+          <span class="nav-icon">📄</span>
+          <span>Relatórios</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item">
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item">
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Atletas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Organizador</div>
+          </div>
+        </div>
+        <a href="register.html" class="btn btn-secondary btn-sm" style="width:100%;margin-top:12px;justify-content:center;">
+          Criar novo usuário
+        </a>
+        <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">👤 Meu Perfil</a>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">Sair</button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">Relatórios PDF</span>
+        <div class="topbar-actions">
+          <button id="theme-toggle" onclick="if(typeof toggleTheme==='function')toggleTheme();else{const t=localStorage.getItem('sp_theme')==='dark'?'light':'dark';localStorage.setItem('sp_theme',t);document.documentElement.setAttribute('data-theme',t);this.innerHTML=t==='dark'?'☀️':'🌙';}" title="Alternar tema">🌙</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Relatórios PDF</h1>
+            <p class="page-subtitle">Gere e baixe relatórios formatados dos campeonatos</p>
+          </div>
+        </div>
+
+        <!-- Championship selector -->
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-body">
+            <div class="form-group" style="margin:0;">
+              <label for="champ-select">Selecione o Campeonato</label>
+              <select id="champ-select" class="form-control" onchange="onChampSelect()" style="max-width:520px;">
+                <option value="">— Selecione —</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Championship banner (shown after selection) -->
+        <div id="champ-info-banner" style="margin-bottom:20px;display:none;"></div>
+
+        <!-- Report cards -->
+        <div id="report-cards" style="display:none;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+
+            <!-- Card 1: Relatório Geral -->
+            <div class="card">
+              <div class="card-body" style="display:flex;flex-direction:column;gap:12px;min-height:220px;">
+                <div style="font-size:40px;text-align:center;line-height:1;">📊</div>
+                <h3 style="text-align:center;font-size:15px;font-weight:700;margin:0;">Relatório Geral</h3>
+                <p style="text-align:center;font-size:13px;color:var(--text-secondary);margin:0;line-height:1.5;">
+                  Classificação, jogos realizados, artilharia e estatísticas completas do campeonato.
+                </p>
+                <button class="btn btn-primary" id="btn-general" onclick="generateReport('general')"
+                  style="width:100%;justify-content:center;margin-top:auto;">
+                  📥 Baixar Relatório Geral
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 2: Súmula -->
+            <div class="card">
+              <div class="card-body" style="display:flex;flex-direction:column;gap:12px;min-height:220px;">
+                <div style="font-size:40px;text-align:center;line-height:1;">📋</div>
+                <h3 style="text-align:center;font-size:15px;font-weight:700;margin:0;">Súmula de Jogo</h3>
+                <p style="text-align:center;font-size:13px;color:var(--text-secondary);margin:0;line-height:1.5;">
+                  Súmula detalhada com eventos cronológicos, placar e linha de assinatura.
+                </p>
+                <div class="form-group" style="margin:0;">
+                  <label for="game-select" style="font-size:12px;">Selecione o Jogo</label>
+                  <select id="game-select" class="form-control" style="font-size:13px;">
+                    <option value="">— Selecione um jogo —</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" id="btn-sumula" onclick="generateReport('sumula')"
+                  style="width:100%;justify-content:center;margin-top:auto;">
+                  📥 Baixar Súmula
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 3: Classificação -->
+            <div class="card">
+              <div class="card-body" style="display:flex;flex-direction:column;gap:12px;min-height:220px;">
+                <div style="font-size:40px;text-align:center;line-height:1;">🏆</div>
+                <h3 style="text-align:center;font-size:15px;font-weight:700;margin:0;">Tabela de Classificação</h3>
+                <p style="text-align:center;font-size:13px;color:var(--text-secondary);margin:0;line-height:1.5;">
+                  Tabela formatada por grupo com legenda dos critérios de desempate.
+                </p>
+                <button class="btn btn-primary" id="btn-standings" onclick="generateReport('standings')"
+                  style="width:100%;justify-content:center;margin-top:auto;">
+                  📥 Baixar Classificação
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="report-placeholder" class="empty-state">
+          <span class="empty-icon">📄</span>
+          <p>Selecione um campeonato acima para ver as opções de relatório disponíveis.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Hidden PDF render area (off-screen) -->
+  <div id="pdf-render-area"
+    style="position:absolute;left:-9999px;top:0;width:794px;background:#ffffff;font-family:Arial,sans-serif;color:#1a1d2e;font-size:12px;line-height:1.4;">
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // ================================================================
+    //  State
+    // ================================================================
+    var currentChamp = null;
+    var champGames = [];
+
+    // ================================================================
+    //  Init
+    // ================================================================
+    document.addEventListener('DOMContentLoaded', function () {
+      requireAuth();
+      loadUser();
+      setupSidebar();
+      loadChampionships();
+    });
+
+    function loadUser() {
+      var user = getUser ? getUser() : {};
+      if (!user) return;
+      var avatar = document.getElementById('user-avatar');
+      var name = document.getElementById('user-name');
+      var role = document.getElementById('user-role');
+      if (avatar && user.full_name) avatar.textContent = user.full_name[0].toUpperCase();
+      if (name && user.full_name) name.textContent = user.full_name;
+      if (role && user.role) role.textContent = user.role === 'organizer' ? 'Organizador' : user.role;
+    }
+
+    function setupSidebar() {
+      var toggle = document.getElementById('sidebar-toggle');
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebar-overlay');
+      if (toggle) toggle.addEventListener('click', function () {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('show');
+      });
+      if (overlay) overlay.addEventListener('click', function () {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+      });
+      var logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) logoutBtn.addEventListener('click', function () {
+        localStorage.removeItem('sp_token');
+        localStorage.removeItem('sp_user');
+        window.location.href = 'login.html';
+      });
+    }
+
+    // ================================================================
+    //  Load Championships
+    // ================================================================
+    async function loadChampionships() {
+      try {
+        var champs = await ChampAPI.list();
+        var sel = document.getElementById('champ-select');
+        champs.forEach(function (c) {
+          var opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = c.name + (c.sport ? ' — ' + c.sport.name : '') + ' (' + statusLabel(c.status) + ')';
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        showToast('Erro ao carregar campeonatos: ' + e.message, 'error');
+      }
+    }
+
+    function statusLabel(s) {
+      if (s === 'active') return 'Ativo';
+      if (s === 'finished') return 'Encerrado';
+      return 'Rascunho';
+    }
+
+    // ================================================================
+    //  On Championship Selected
+    // ================================================================
+    async function onChampSelect() {
+      var id = document.getElementById('champ-select').value;
+      if (!id) {
+        document.getElementById('report-cards').style.display = 'none';
+        document.getElementById('report-placeholder').style.display = '';
+        document.getElementById('champ-info-banner').style.display = 'none';
+        currentChamp = null;
+        return;
+      }
+      try {
+        currentChamp = await ChampAPI.get(id);
+        renderChampBanner(currentChamp);
+        document.getElementById('champ-info-banner').style.display = '';
+        document.getElementById('report-cards').style.display = '';
+        document.getElementById('report-placeholder').style.display = 'none';
+        await loadGamesForSumula(id);
+      } catch (e) {
+        showToast('Erro ao carregar campeonato: ' + e.message, 'error');
+      }
+    }
+
+    function renderChampBanner(c) {
+      var el = document.getElementById('champ-info-banner');
+      var icon = sportEmoji(c.sport ? c.sport.slug : '');
+      var period = '';
+      if (c.start_date) {
+        period = formatDate(c.start_date);
+        if (c.end_date) period += ' – ' + formatDate(c.end_date);
+      }
+      el.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--accent-blue-light,#eff6ff);border:1px solid var(--border);border-radius:10px;">' +
+        '<span style="font-size:30px;flex-shrink:0;">' + icon + '</span>' +
+        '<div>' +
+        '<div style="font-weight:700;font-size:15px;">' + escHtml(c.name) + '</div>' +
+        '<div style="font-size:13px;color:var(--text-secondary);">' +
+          (c.sport ? escHtml(c.sport.name) : '') +
+          (period ? ' &nbsp;·&nbsp; ' + period : '') +
+          ' &nbsp;·&nbsp; ' + statusLabel(c.status) +
+        '</div>' +
+        '</div>' +
+        '</div>';
+    }
+
+    function sportEmoji(slug) {
+      var map = {
+        futsal: '⚽', futebol: '⚽',
+        basquete: '🏀', basketball: '🏀',
+        volei: '🏐', voleibol: '🏐', volleyball: '🏐',
+        'tenis-mesa': '🏓', tenis_mesa: '🏓', 'ping-pong': '🏓',
+        corrida: '🏃', atletismo: '🏃',
+        natacao: '🏊', ciclismo: '🚴',
+        domino: '🎲', dama: '♟️', xadrez: '♟️',
+      };
+      return map[slug] || '🏅';
+    }
+
+    // ================================================================
+    //  Load Games for Súmula selector
+    // ================================================================
+    async function loadGamesForSumula(champId) {
+      var sel = document.getElementById('game-select');
+      sel.innerHTML = '<option value="">— Selecione um jogo —</option>';
+      var slug = currentChamp && currentChamp.sport ? currentChamp.sport.slug : '';
+      var boardgameSlugs = ['domino', 'dama', 'xadrez'];
+      var isBg = boardgameSlugs.indexOf(slug) !== -1;
+      try {
+        var games;
+        if (isBg) {
+          games = await apiFetch('/api/championships/' + champId + '/' + slug + '/games');
+        } else {
+          games = await ChampAPI.games(champId);
+        }
+        champGames = games || [];
+        champGames.forEach(function (g) {
+          var opt = document.createElement('option');
+          opt.value = g.id;
+          var home = (g.home_team && g.home_team.name) || g.home_name || 'Time A';
+          var away = (g.away_team && g.away_team.name) || g.away_name || 'Time B';
+          var score = g.status === 'finished' ? (' — ' + g.home_score + 'x' + g.away_score) : '';
+          var phase = g.phase ? ' [' + g.phase + ']' : '';
+          var round = g.round ? ' R' + g.round : '';
+          opt.textContent = home + ' x ' + away + score + phase + round;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        // Leave empty on error
+      }
+    }
+
+    // ================================================================
+    //  Generate Report (main entry point)
+    // ================================================================
+    async function generateReport(type) {
+      if (!currentChamp) { showToast('Selecione um campeonato primeiro.', 'error'); return; }
+
+      var btnIds = { general: 'btn-general', sumula: 'btn-sumula', standings: 'btn-standings' };
+      var btn = document.getElementById(btnIds[type]);
+      if (btn) btnLoading(btn, true, 'Gerando PDF...');
+      showToast('⏳ Gerando PDF...', 'info', 10000);
+
+      try {
+        var html = '';
+        var champSlug = currentChamp.name.replace(/[^\w\u00C0-\u017E ]/g, '').replace(/ /g, '-').toLowerCase();
+        var filename = '';
+
+        if (type === 'general') {
+          var data = await fetchGeneralData(currentChamp.id);
+          html = buildGeneralReportHTML(data);
+          filename = 'relatorio-geral-' + champSlug + '.pdf';
+
+        } else if (type === 'sumula') {
+          var gameId = document.getElementById('game-select').value;
+          if (!gameId) {
+            showToast('Selecione um jogo para gerar a súmula.', 'error');
+            if (btn) btnLoading(btn, false);
+            return;
+          }
+          var game = null;
+          for (var i = 0; i < champGames.length; i++) {
+            if (String(champGames[i].id) === String(gameId)) { game = champGames[i]; break; }
+          }
+          if (!game) game = {};
+          var events = [];
+          try { events = await GamesAPI.events(gameId); } catch (e) {}
+          html = buildSumulaHTML(currentChamp, game, events || []);
+          var homeN = (game.home_team && game.home_team.name) || game.home_name || 'A';
+          var awayN = (game.away_team && game.away_team.name) || game.away_name || 'B';
+          filename = 'sumula-' + homeN.replace(/ /g, '-') + '-vs-' + awayN.replace(/ /g, '-') + '.pdf';
+
+        } else if (type === 'standings') {
+          var standData = await fetchStandingsData(currentChamp.id);
+          html = buildStandingsHTML(standData);
+          filename = 'classificacao-' + champSlug + '.pdf';
+        }
+
+        await renderPDF(html, filename);
+        showToast('✅ PDF baixado com sucesso!', 'success');
+      } catch (e) {
+        showToast('Erro ao gerar PDF: ' + e.message, 'error');
+      } finally {
+        if (btn) btnLoading(btn, false);
+      }
+    }
+
+    // ================================================================
+    //  Data Fetchers
+    // ================================================================
+    async function fetchGeneralData(id) {
+      var slug = currentChamp.sport ? currentChamp.sport.slug : '';
+      var boardgameSlugs = ['domino', 'dama', 'xadrez'];
+      var isBg = boardgameSlugs.indexOf(slug) !== -1;
+
+      var teams = [], games = [], stats = null, standings = [], groups = [];
+      var fetches = [
+        ChampAPI.teams(id).catch(function () { return []; }),
+        (isBg
+          ? apiFetch('/api/championships/' + id + '/' + slug + '/games').catch(function () { return []; })
+          : ChampAPI.games(id).catch(function () { return []; })
+        ),
+        (isBg ? Promise.resolve(null) : ChampAPI.stats(id).catch(function () { return null; })),
+      ];
+      var results = await Promise.all(fetches);
+      teams = results[0] || [];
+      games = results[1] || [];
+      stats = results[2];
+
+      try {
+        if (isBg) {
+          standings = await apiFetch('/api/championships/' + id + '/' + slug + '/standings');
+        } else {
+          standings = await ChampAPI.standings(id);
+        }
+      } catch (e) {}
+
+      try {
+        if (isBg) {
+          groups = await apiFetch('/api/championships/' + id + '/' + slug + '/groups').catch(function () { return []; });
+        } else {
+          groups = await ChampAPI.groups(id).catch(function () { return []; });
+        }
+      } catch (e) {}
+
+      return {
+        champ: currentChamp,
+        teams: teams || [],
+        games: games || [],
+        stats: stats,
+        standings: standings || [],
+        groups: groups || [],
+      };
+    }
+
+    async function fetchStandingsData(id) {
+      var slug = currentChamp.sport ? currentChamp.sport.slug : '';
+      var boardgameSlugs = ['domino', 'dama', 'xadrez'];
+      var isBg = boardgameSlugs.indexOf(slug) !== -1;
+      var standings = [], groups = [];
+      try {
+        if (isBg) {
+          standings = await apiFetch('/api/championships/' + id + '/' + slug + '/standings');
+        } else {
+          standings = await ChampAPI.standings(id);
+        }
+      } catch (e) {}
+      try {
+        if (!isBg) {
+          groups = await ChampAPI.groups(id);
+        }
+      } catch (e) {}
+      return { champ: currentChamp, standings: standings || [], groups: groups || [] };
+    }
+
+    // ================================================================
+    //  Render PDF
+    // ================================================================
+    async function renderPDF(html, filename) {
+      var area = document.getElementById('pdf-render-area');
+      area.innerHTML = html;
+
+      // Wait for DOM to settle
+      await new Promise(function (r) { setTimeout(r, 400); });
+
+      var canvas = await html2canvas(area, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 794,
+      });
+
+      var jspdf = window.jspdf;
+      var doc = new jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      var pageW = 210;
+      var pageH = 297;
+      var imgW = pageW;
+      var imgH = (canvas.height * pageW) / canvas.width;
+      var imgData = canvas.toDataURL('image/png');
+
+      var pageNum = 0;
+      var posY = 0;
+      var remaining = imgH;
+      while (remaining > 0) {
+        if (pageNum > 0) doc.addPage();
+        doc.addImage(imgData, 'PNG', 0, -posY, imgW, imgH);
+        posY += pageH;
+        remaining -= pageH;
+        pageNum++;
+      }
+
+      doc.save(filename);
+      area.innerHTML = '';
+    }
+
+    // ================================================================
+    //  Shared Helpers
+    // ================================================================
+    function escHtml(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      try { return new Date(d).toLocaleDateString('pt-BR'); } catch (e) { return String(d); }
+    }
+
+    function formatDateTime(d) {
+      if (!d) return '—';
+      try { return new Date(d).toLocaleString('pt-BR'); } catch (e) { return String(d); }
+    }
+
+    function pdfStyles() {
+      return '<style>' +
+        '* { box-sizing: border-box; margin: 0; padding: 0; }' +
+        'body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1d2e; background: #fff; }' +
+        'table { border-collapse: collapse; width: 100%; }' +
+        'th { background: #2563eb; color: #fff; padding: 8px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }' +
+        'td { padding: 7px 12px; border-bottom: 1px solid #e2e6ef; font-size: 12px; vertical-align: middle; }' +
+        'tr:nth-child(even) td { background: #f8f9fc; }' +
+        'tr:nth-child(odd) td { background: #ffffff; }' +
+        '</style>';
+    }
+
+    function buildHeader(champ) {
+      var slug = champ.sport ? champ.sport.slug : '';
+      var icon = sportEmoji(slug);
+      var period = '';
+      if (champ.start_date) {
+        period = formatDate(champ.start_date);
+        if (champ.end_date) period += ' – ' + formatDate(champ.end_date);
+      }
+      return '<div style="background:#2563eb;color:#fff;padding:28px 32px 22px;">' +
+        '<div style="font-size:40px;line-height:1;margin-bottom:10px;">' + icon + '</div>' +
+        '<h1 style="font-size:22px;font-weight:700;margin-bottom:5px;">' + escHtml(champ.name) + '</h1>' +
+        '<div style="font-size:13px;opacity:0.85;">' +
+          (champ.sport ? escHtml(champ.sport.name) : '') +
+          (period ? ' &nbsp;·&nbsp; ' + period : '') +
+          ' &nbsp;·&nbsp; ' + statusLabel(champ.status) +
+        '</div>' +
+        '</div>';
+    }
+
+    function sectionTitle(title) {
+      return '<div style="padding:14px 32px 8px;font-size:14px;font-weight:700;color:#1a1d2e;border-top:2px solid #e2e6ef;margin-top:8px;">' + title + '</div>';
+    }
+
+    function summaryCard(label, value) {
+      return '<div style="flex:1;padding:14px 12px;text-align:center;border-right:1px solid #e2e6ef;">' +
+        '<div style="font-size:26px;font-weight:800;color:#2563eb;line-height:1;">' + value + '</div>' +
+        '<div style="font-size:10px;color:#4a5068;margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">' + label + '</div>' +
+        '</div>';
+    }
+
+    function pdfFooter() {
+      return '<div style="margin-top:32px;padding:14px 32px;border-top:1px solid #e2e6ef;font-size:10px;color:#8b92a9;text-align:center;">' +
+        'Gerado em ' + new Date().toLocaleString('pt-BR') + ' · Sports Platform — Jogos Olímpicos Sinodal PB' +
+        '</div>';
+    }
+
+    function groupByPhase(games) {
+      var phases = {};
+      var order = [];
+      games.forEach(function (g) {
+        var key = g.phase || 'Outros';
+        if (!phases[key]) { phases[key] = []; order.push(key); }
+        phases[key].push(g);
+      });
+      return order.map(function (k) { return { label: k, games: phases[k] }; });
+    }
+
+    // ================================================================
+    //  Standings Table Builder
+    // ================================================================
+    function buildStandingsTable(standings, slug) {
+      var isDomino = slug === 'domino';
+      var isDama = slug === 'dama';
+      var isXadrez = slug === 'xadrez';
+      var isFutsal = slug === 'futsal' || slug === 'futebol';
+      var isBasquete = slug === 'basquete' || slug === 'basketball';
+
+      var html = '<table>';
+      if (isXadrez) {
+        html += '<tr><th style="width:36px;">#</th><th>Jogador</th><th style="text-align:center;width:36px;">J</th><th style="text-align:center;width:36px;">V</th><th style="text-align:center;width:36px;">E</th><th style="text-align:center;width:36px;">D</th><th style="text-align:center;width:48px;">Pts</th><th style="text-align:center;width:64px;">Buchholz</th></tr>';
+      } else if (isDomino) {
+        html += '<tr><th style="width:36px;">#</th><th>Equipe</th><th style="text-align:center;width:36px;">J</th><th style="text-align:center;width:36px;">V</th><th style="text-align:center;width:36px;">D</th><th style="text-align:center;width:64px;">Pts Mesa</th></tr>';
+      } else if (isDama) {
+        html += '<tr><th style="width:36px;">#</th><th>Jogador</th><th style="text-align:center;width:36px;">J</th><th style="text-align:center;width:36px;">V</th><th style="text-align:center;width:36px;">E</th><th style="text-align:center;width:36px;">D</th><th style="text-align:center;width:64px;">Pts Peças</th><th style="text-align:center;width:48px;">Total</th></tr>';
+      } else if (isFutsal || isBasquete) {
+        html += '<tr><th style="width:36px;">#</th><th>Equipe</th><th style="text-align:center;width:36px;">J</th><th style="text-align:center;width:36px;">V</th><th style="text-align:center;width:36px;">E</th><th style="text-align:center;width:36px;">D</th><th style="text-align:center;width:36px;">GP</th><th style="text-align:center;width:36px;">GC</th><th style="text-align:center;width:36px;">SG</th><th style="text-align:center;width:40px;">Pts</th></tr>';
+      } else {
+        html += '<tr><th style="width:36px;">#</th><th>Equipe / Atleta</th><th style="text-align:center;width:36px;">J</th><th style="text-align:center;width:36px;">V</th><th style="text-align:center;width:36px;">D</th><th style="text-align:center;width:40px;">Pts</th></tr>';
+      }
+
+      standings.forEach(function (s, idx) {
+        var pos = s.position || (idx + 1);
+        var name = s.name || s.team_name || s.player_name || '—';
+        var posStyle = 'text-align:center;font-weight:700;';
+        if (pos === 1) posStyle += 'background:#ffd700 !important;color:#6b4900;';
+        else if (pos === 2) posStyle += 'background:#e0e0e0 !important;color:#444;';
+        else if (pos === 3) posStyle += 'background:#cd7f32 !important;color:#fff;';
+        else posStyle += 'color:#4a5068;';
+
+        html += '<tr>';
+        html += '<td style="' + posStyle + '">' + pos + '</td>';
+        html += '<td style="font-weight:500;">' + escHtml(name) + '</td>';
+
+        if (isXadrez) {
+          html += '<td style="text-align:center;">' + (s.games_played || s.j || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.wins || s.v || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.draws || s.e || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.losses || s.d || 0) + '</td>';
+          html += '<td style="text-align:center;font-weight:700;color:#2563eb;">' + (s.points != null ? s.points : (s.pts || 0)) + '</td>';
+          html += '<td style="text-align:center;">' + (s.buchholz || 0) + '</td>';
+        } else if (isDomino) {
+          html += '<td style="text-align:center;">' + (s.j || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.v || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.d || 0) + '</td>';
+          html += '<td style="text-align:center;font-weight:700;color:#2563eb;">' + (s.table_pts || 0) + '</td>';
+        } else if (isDama) {
+          html += '<td style="text-align:center;">' + (s.j || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.v || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.e || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.d || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.piece_pts || 0) + '</td>';
+          html += '<td style="text-align:center;font-weight:700;color:#2563eb;">' + (s.total_pts || 0) + '</td>';
+        } else if (isFutsal || isBasquete) {
+          var gf = s.goals_for || s.gf || s.points_for || 0;
+          var gc = s.goals_against || s.gc || s.points_against || 0;
+          html += '<td style="text-align:center;">' + (s.played || s.j || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.wins || s.v || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.draws || s.e || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.losses || s.d || 0) + '</td>';
+          html += '<td style="text-align:center;">' + gf + '</td>';
+          html += '<td style="text-align:center;">' + gc + '</td>';
+          html += '<td style="text-align:center;">' + (gf - gc) + '</td>';
+          html += '<td style="text-align:center;font-weight:700;color:#2563eb;">' + (s.points || s.pts || 0) + '</td>';
+        } else {
+          html += '<td style="text-align:center;">' + (s.played || s.j || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.wins || s.v || 0) + '</td>';
+          html += '<td style="text-align:center;">' + (s.losses || s.d || 0) + '</td>';
+          html += '<td style="text-align:center;font-weight:700;color:#2563eb;">' + (s.points || s.pts || 0) + '</td>';
+        }
+        html += '</tr>';
+      });
+
+      html += '</table>';
+      return html;
+    }
+
+    // ================================================================
+    //  General Report HTML
+    // ================================================================
+    function buildGeneralReportHTML(data) {
+      var champ = data.champ;
+      var teams = data.teams;
+      var games = data.games;
+      var stats = data.stats;
+      var standings = data.standings;
+      var groups = data.groups;
+      var slug = champ.sport ? champ.sport.slug : '';
+      var isBg = ['domino', 'dama', 'xadrez'].indexOf(slug) !== -1;
+      var isFutsal = slug === 'futsal' || slug === 'futebol';
+
+      var finishedGames = games.filter(function (g) { return g.status === 'finished'; });
+      var pendingGames = games.filter(function (g) { return g.status === 'pending'; });
+
+      var html = pdfStyles();
+      html += buildHeader(champ);
+
+      // Summary strip
+      html += '<div style="display:flex;background:#f8f9fc;border-bottom:2px solid #2563eb;">';
+      html += summaryCard('Equipes / Part.', teams.length || '—');
+      html += summaryCard('Jogos Realizados', finishedGames.length);
+      html += summaryCard('Jogos Pendentes', pendingGames.length);
+      html += summaryCard('Total de Jogos', games.length);
+      html += '</div>';
+
+      // Global standings
+      if (standings && standings.length > 0) {
+        html += sectionTitle('🏆 Classificação Geral');
+        html += '<div style="padding:0 32px 16px;">' + buildStandingsTable(standings, slug) + '</div>';
+      }
+
+      // Standings per group
+      if (groups && groups.length > 0) {
+        var hasGroupStandings = groups.some(function (g) { return g.standings && g.standings.length > 0; });
+        if (hasGroupStandings) {
+          html += sectionTitle('📋 Classificação por Grupos');
+          groups.forEach(function (grp) {
+            if (!grp.standings || grp.standings.length === 0) return;
+            var gname = grp.name || grp.group_name || grp.group || '';
+            html += '<div style="padding:4px 32px 2px;font-size:12px;font-weight:700;color:#2563eb;">Grupo ' + escHtml(gname) + '</div>';
+            html += '<div style="padding:0 32px 12px;">' + buildStandingsTable(grp.standings, slug) + '</div>';
+          });
+        }
+      }
+
+      // Finished games
+      if (finishedGames.length > 0) {
+        html += sectionTitle('🎮 Jogos Realizados');
+        var byPhase = groupByPhase(finishedGames);
+        byPhase.forEach(function (pg) {
+          html += '<div style="padding:4px 32px 2px;font-size:11px;font-weight:700;color:#4a5068;text-transform:uppercase;letter-spacing:0.5px;">' + escHtml(pg.label) + '</div>';
+          html += '<table style="margin:0 32px 12px;width:calc(100% - 64px);">';
+          html += '<tr><th>Mandante</th><th style="text-align:center;width:80px;">Placar</th><th>Visitante</th><th style="width:80px;">Data</th></tr>';
+          pg.games.forEach(function (g) {
+            var home = (g.home_team && g.home_team.name) || g.home_name || '—';
+            var away = (g.away_team && g.away_team.name) || g.away_name || '—';
+            var score = '—';
+            if (g.status === 'finished') {
+              if (isBg && (slug === 'xadrez' || slug === 'dama')) {
+                score = (g.home_score / 10).toFixed(1) + ' × ' + (g.away_score / 10).toFixed(1);
+              } else {
+                score = g.home_score + ' × ' + g.away_score;
+              }
+            }
+            html += '<tr>' +
+              '<td>' + escHtml(home) + '</td>' +
+              '<td style="text-align:center;font-weight:700;color:#2563eb;">' + score + '</td>' +
+              '<td>' + escHtml(away) + '</td>' +
+              '<td style="font-size:11px;color:#4a5068;">' + formatDate(g.scheduled_at || g.date) + '</td>' +
+              '</tr>';
+          });
+          html += '</table>';
+        });
+      }
+
+      // Artilharia
+      if (stats && stats.scorers && stats.scorers.length > 0) {
+        html += sectionTitle('⚽ Artilharia — Top 10');
+        html += '<table style="margin:0 32px 16px;width:calc(100% - 64px);">';
+        html += '<tr><th style="width:36px;">#</th><th>Atleta</th><th>Equipe</th><th style="text-align:center;width:60px;">Gols</th></tr>';
+        stats.scorers.slice(0, 10).forEach(function (s, i) {
+          html += '<tr>' +
+            '<td style="text-align:center;color:#4a5068;">' + (i + 1) + '</td>' +
+            '<td>' + escHtml(s.athlete_name || s.name || '—') + '</td>' +
+            '<td style="color:#4a5068;">' + escHtml(s.team_name || '—') + '</td>' +
+            '<td style="text-align:center;font-weight:700;color:#2563eb;">' + (s.goals || s.points || 0) + '</td>' +
+            '</tr>';
+        });
+        html += '</table>';
+      }
+
+      // Cartões (futsal)
+      if (isFutsal && stats && stats.cards && stats.cards.length > 0) {
+        html += sectionTitle('🟨 Cartões e Suspensões');
+        html += '<table style="margin:0 32px 16px;width:calc(100% - 64px);">';
+        html += '<tr><th>Atleta</th><th>Equipe</th><th style="text-align:center;width:80px;">Amarelos</th><th style="text-align:center;width:80px;">Vermelhos</th></tr>';
+        stats.cards.slice(0, 20).forEach(function (s) {
+          html += '<tr>' +
+            '<td>' + escHtml(s.athlete_name || s.name || '—') + '</td>' +
+            '<td style="color:#4a5068;">' + escHtml(s.team_name || '—') + '</td>' +
+            '<td style="text-align:center;">' + (s.yellow || s.yellow_cards || 0) + '</td>' +
+            '<td style="text-align:center;color:#dc2626;font-weight:700;">' + (s.red || s.red_cards || 0) + '</td>' +
+            '</tr>';
+        });
+        html += '</table>';
+      }
+
+      // Defesa
+      if (isFutsal && stats && stats.defense && stats.defense.length > 0) {
+        html += sectionTitle('🥅 Defesa Menos Vazada');
+        html += '<table style="margin:0 32px 16px;width:calc(100% - 64px);">';
+        html += '<tr><th style="width:36px;">#</th><th>Equipe</th><th style="text-align:center;">Gols Sofridos</th><th style="text-align:center;">Jogos Sem Sofrer</th></tr>';
+        stats.defense.slice(0, 10).forEach(function (s, i) {
+          html += '<tr>' +
+            '<td style="text-align:center;color:#4a5068;">' + (i + 1) + '</td>' +
+            '<td>' + escHtml(s.team_name || s.name || '—') + '</td>' +
+            '<td style="text-align:center;">' + (s.goals_against || 0) + '</td>' +
+            '<td style="text-align:center;font-weight:700;">' + (s.clean_sheets || 0) + '</td>' +
+            '</tr>';
+        });
+        html += '</table>';
+      }
+
+      html += pdfFooter();
+      return '<div style="width:794px;background:#fff;">' + html + '</div>';
+    }
+
+    // ================================================================
+    //  Súmula HTML
+    // ================================================================
+    function buildSumulaHTML(champ, game, events) {
+      var home = (game.home_team && game.home_team.name) || game.home_name || 'Mandante';
+      var away = (game.away_team && game.away_team.name) || game.away_name || 'Visitante';
+      var slug = champ.sport ? champ.sport.slug : '';
+      var isBg = ['domino', 'dama', 'xadrez'].indexOf(slug) !== -1;
+      var homeScore = game.home_score != null ? game.home_score : null;
+      var awayScore = game.away_score != null ? game.away_score : null;
+      var scoreDisplay = '—';
+      if (game.status === 'finished' && homeScore != null) {
+        if (isBg && (slug === 'xadrez' || slug === 'dama')) {
+          scoreDisplay = (homeScore / 10).toFixed(1) + ' × ' + (awayScore / 10).toFixed(1);
+        } else {
+          scoreDisplay = homeScore + ' × ' + awayScore;
+        }
+      }
+
+      var html = pdfStyles();
+
+      // Top header strip
+      html += '<div style="background:#2563eb;color:#fff;padding:18px 32px 14px;">';
+      html += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.8;margin-bottom:3px;">Súmula de Jogo</div>';
+      html += '<div style="font-size:18px;font-weight:700;">' + escHtml(champ.name) + '</div>';
+      html += '<div style="font-size:12px;opacity:0.8;margin-top:3px;">' +
+        (champ.sport ? escHtml(champ.sport.name) : '') +
+        (game.phase ? ' &nbsp;·&nbsp; ' + escHtml(game.phase) : '') +
+        (game.round ? ' &nbsp;·&nbsp; Rodada ' + game.round : '') +
+        '</div>';
+      html += '</div>';
+
+      // Teams + score
+      html += '<div style="display:flex;align-items:center;padding:20px 32px;background:#f8f9fc;border-bottom:2px solid #e2e6ef;">';
+      html += '<div style="flex:1;text-align:center;">';
+      html += '<div style="font-size:10px;color:#8b92a9;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Mandante</div>';
+      html += '<div style="font-size:17px;font-weight:800;color:#1a1d2e;">' + escHtml(home) + '</div>';
+      html += '</div>';
+      html += '<div style="text-align:center;padding:0 24px;flex-shrink:0;">';
+      if (game.status === 'finished') {
+        html += '<div style="font-size:36px;font-weight:900;color:#2563eb;line-height:1;">' + scoreDisplay + '</div>';
+        html += '<div style="font-size:10px;color:#8b92a9;margin-top:4px;text-transform:uppercase;letter-spacing:1px;">Placar Final</div>';
+      } else {
+        html += '<div style="font-size:24px;font-weight:700;color:#8b92a9;padding:0 8px;">vs</div>';
+        html += '<div style="font-size:10px;color:#d97706;margin-top:4px;text-transform:uppercase;letter-spacing:1px;">' +
+          (game.status === 'in_progress' ? 'Em andamento' : 'Pendente') + '</div>';
+      }
+      html += '</div>';
+      html += '<div style="flex:1;text-align:center;">';
+      html += '<div style="font-size:10px;color:#8b92a9;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Visitante</div>';
+      html += '<div style="font-size:17px;font-weight:800;color:#1a1d2e;">' + escHtml(away) + '</div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Meta info
+      html += '<div style="padding:10px 32px;background:#fff;border-bottom:1px solid #e2e6ef;display:flex;gap:24px;font-size:11px;color:#4a5068;flex-wrap:wrap;">';
+      html += '<div><strong>Data:</strong> ' + formatDateTime(game.scheduled_at || game.date) + '</div>';
+      html += '<div><strong>Local:</strong> ' + escHtml(game.location || '—') + '</div>';
+      html += '<div><strong>Status:</strong> ' + statusLabel(game.status) + '</div>';
+      html += '</div>';
+
+      // Events
+      html += '<div style="padding:12px 32px 6px;font-size:13px;font-weight:700;border-bottom:1px solid #e2e6ef;">Eventos</div>';
+      if (events && events.length > 0) {
+        html += '<table style="margin:0;">';
+        html += '<tr><th style="width:52px;text-align:center;">Min</th><th style="width:160px;">Tipo</th><th>Atleta</th><th style="width:160px;">Equipe</th></tr>';
+        events.forEach(function (ev) {
+          var type = ev.type || ev.event_type || '';
+          var athlete = (ev.athlete && ev.athlete.name) || ev.athlete_name || '—';
+          var team = (ev.team && ev.team.name) || ev.team_name || '—';
+          var minute = ev.minute != null ? ev.minute + "'" : '—';
+          html += '<tr>' +
+            '<td style="text-align:center;color:#4a5068;">' + minute + '</td>' +
+            '<td>' + eventTypeLabel(type) + '</td>' +
+            '<td>' + escHtml(athlete) + '</td>' +
+            '<td style="color:#4a5068;">' + escHtml(team) + '</td>' +
+            '</tr>';
+        });
+        html += '</table>';
+      } else {
+        html += '<div style="padding:20px 32px;color:#8b92a9;font-size:12px;">Nenhum evento registrado.</div>';
+      }
+
+      // Signature area
+      html += '<div style="padding:40px 32px 20px;">';
+      html += '<div style="display:flex;gap:48px;">';
+      html += signatureBlock('Organizador Responsável');
+      html += signatureBlock('Árbitro');
+      html += '</div>';
+      html += '</div>';
+
+      html += pdfFooter();
+      return '<div style="width:794px;background:#fff;">' + html + '</div>';
+    }
+
+    function signatureBlock(label) {
+      return '<div style="flex:1;text-align:center;">' +
+        '<div style="border-top:1px solid #1a1d2e;padding-top:6px;margin-top:56px;font-size:11px;color:#4a5068;">' + label + '</div>' +
+        '</div>';
+    }
+
+    function eventTypeLabel(type) {
+      var map = {
+        goal: '⚽ Gol', penalty_goal: '⚽ Pênalti (Gol)', own_goal: '⚽ Gol Contra',
+        penalty_miss: '❌ Pênalti (Perdido)',
+        yellow_card: '🟨 Cartão Amarelo', red_card: '🟥 Cartão Vermelho',
+        point: '🏀 Ponto', basket: '🏀 Cesta', free_throw: '🏀 Lance Livre',
+        substitution: '🔄 Substituição',
+        ace: '🏐 Ace', set_win: '🏐 Set vencido',
+        match_win: '✅ Partida vencida', match_loss: '❌ Partida perdida',
+      };
+      return map[type] || escHtml(type) || '—';
+    }
+
+    // ================================================================
+    //  Standings Report HTML
+    // ================================================================
+    function buildStandingsHTML(data) {
+      var champ = data.champ;
+      var standings = data.standings;
+      var groups = data.groups;
+      var slug = champ.sport ? champ.sport.slug : '';
+
+      var html = pdfStyles();
+      html += buildHeader(champ);
+
+      var hasGroupStandings = groups && groups.length > 0 &&
+        groups.some(function (g) { return g.standings && g.standings.length > 0; });
+
+      if (hasGroupStandings) {
+        groups.forEach(function (grp) {
+          if (!grp.standings || grp.standings.length === 0) return;
+          var gname = grp.name || grp.group_name || grp.group || '';
+          html += sectionTitle('📋 Grupo ' + escHtml(gname));
+          html += '<div style="padding:0 32px 12px;">' + buildStandingsTable(grp.standings, slug) + '</div>';
+        });
+      } else if (standings && standings.length > 0) {
+        html += sectionTitle('🏆 Classificação Geral');
+        html += '<div style="padding:0 32px 12px;">' + buildStandingsTable(standings, slug) + '</div>';
+      } else {
+        html += '<div style="padding:32px;color:#8b92a9;text-align:center;font-size:13px;">Classificação não disponível ainda.</div>';
+      }
+
+      // Tiebreaker legend
+      html += '<div style="margin:8px 32px 16px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;color:#1e40af;">';
+      html += '<strong>Critérios de desempate: </strong>';
+      if (slug === 'xadrez') {
+        html += 'Pontos (vitória=1, empate=0.5, derrota=0) &nbsp;·&nbsp; Buchholz (soma dos pontos dos adversários)';
+      } else if (slug === 'domino') {
+        html += 'Pontos de mesa &nbsp;·&nbsp; Vitórias &nbsp;·&nbsp; Saldo de partidas';
+      } else if (slug === 'dama') {
+        html += 'Total de pontos &nbsp;·&nbsp; Pontos de peças &nbsp;·&nbsp; Vitórias';
+      } else {
+        html += 'Pontos &nbsp;·&nbsp; Saldo de gols &nbsp;·&nbsp; Gols marcados &nbsp;·&nbsp; Confronto direto';
+      }
+      html += '</div>';
+
+      html += pdfFooter();
+      return '<div style="width:794px;background:#fff;padding-bottom:16px;">' + html + '</div>';
+    }
+  </script>
+</body>
+</html>
