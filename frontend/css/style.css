@@ -1419,7 +1419,10 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
   height: 100%;
   padding: 40px 36px;
   box-sizing: border-box;
@@ -1429,8 +1432,19 @@ h1, h2, h3, h4, h5, h6 {
 .auth-panel-top {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+}
+
+/* Logo img no painel lateral */
+.auth-panel-logo-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.3));
 }
 
 .slide-dots {
@@ -1458,8 +1472,47 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.3px;
 }
 
+/* Mobile — header compacto (120px) em vez de esconder */
 @media (max-width: 768px) {
   .auth-panel-slideshow {
+    display: flex !important; /* sobrescreve o display:none do .auth-panel */
+    width: 100% !important;
+    height: 120px;
+    flex-shrink: 0;
+  }
+
+  .auth-panel-slideshow .auth-panel-content {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+    height: 100%;
+  }
+
+  .auth-panel-top {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .auth-panel-logo-img {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0;
+  }
+
+  .auth-panel-title {
+    font-size: 18px;
+    margin-bottom: 0;
+  }
+
+  .auth-panel-tagline {
+    display: none;
+  }
+
+  .slide-caption {
     display: none;
   }
 }
