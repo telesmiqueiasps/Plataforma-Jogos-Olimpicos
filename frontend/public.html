@@ -59,6 +59,15 @@
       .table-responsive .stat-table { min-width: 400px; }
       .table-responsive .stat-table th, .table-responsive .stat-table td { white-space: nowrap; padding: 7px 8px; }
     }
+    .game-events-panel { padding: 12px 16px 14px; border-top: 1px dashed rgba(255,255,255,0.08); background: rgba(0,0,0,0.12); }
+    .game-events-cols { display: flex; gap: 16px; }
+    .game-events-col { flex: 1; min-width: 0; }
+    .game-events-col-hdr { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .game-event-item { font-size: 12px; padding: 2px 0; line-height: 1.5; }
+    .game-events-footer { font-size: 11px; color: var(--text-secondary); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); text-align: right; }
+    @media (max-width: 400px) {
+      .game-events-cols { flex-direction: column; gap: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -208,6 +217,7 @@
   // PÁGINA DO CAMPEONATO
   // ================================================================
   let currentChamp = null;
+  const eventsCache = {};
 
   // Helpers globais — definidos no escopo raiz do script para acesso universal
   function isDomino()    { return currentChamp && currentChamp.sport && currentChamp.sport.slug === 'domino'; }
@@ -774,6 +784,7 @@
     const isVball = currentChamp?.sport?.slug === 'volleyball';
     const isBball = currentChamp?.sport?.slug === 'basketball';
     const isTenisGame = currentChamp?.sport?.slug === 'tenis_mesa';
+    const isFutsal = currentChamp?.sport?.slug === 'futsal';
     const vballSets = isVball && g.extra_data?.volleyball?.sets;
     const tenisSets = isTenisGame && g.extra_data?.sets;
     const bballData = isBball && g.extra_data?.basketball;
@@ -784,9 +795,11 @@
         : bballData?.quarters
           ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
           : '';
+    const htSafe = ht.replace(/"/g, '&quot;');
+    const atSafe = at.replace(/"/g, '&quot;');
     return `
       <div style="border-bottom:1px solid rgba(255,255,255,0.04);">
-        <div class="game-row-pub">
+        <div class="game-row-pub"${isFutsal ? ` onclick="toggleGameEvents(${g.id})" style="cursor:pointer;"` : ''}>
           <div class="game-teams-pub">
             <div class="game-team-pub" style="${homeWin ? 'color:var(--accent-teal);' : ''}">
               ${teamAvatar(g.home_team || {name:ht,id:g.home_team_id}, 26)}
@@ -804,6 +817,7 @@
             </div>
           </div>
           <div class="game-meta-pub">
+            ${isFutsal ? `<div id="game-toggle-${g.id}" style="float:right; font-size:12px; color:var(--text-secondary); margin-left:8px;">▼</div>` : ''}
             ${gameStatusBadge(g.status)}<br>
             ${g.scheduled_at ? `<span>📅 ${fmtDatetime(g.scheduled_at)}</span><br>` : ''}
             ${g.venue ? `<span>📍 ${g.venue}</span><br>` : ''}
@@ -811,7 +825,73 @@
             ${hasScore && g.result?.created_by_name ? `<span style="font-size:10px; color:var(--text-secondary); display:block; margin-top:3px;">✓ Resultado por ${g.result.created_by_name}</span>` : ''}
           </div>
         </div>
+        ${isFutsal ? `<div id="game-events-${g.id}" class="game-events-panel" data-home-id="${g.home_team_id || ''}" data-away-id="${g.away_team_id || ''}" data-home-name="${htSafe}" data-away-name="${atSafe}" style="display:none;"></div>` : ''}
       </div>`;
+  }
+
+  async function toggleGameEvents(gameId) {
+    const panel = document.getElementById('game-events-' + gameId);
+    const icon  = document.getElementById('game-toggle-' + gameId);
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    if (isOpen) {
+      panel.style.display = 'none';
+      if (icon) icon.textContent = '▼';
+      return;
+    }
+    panel.style.display = 'block';
+    if (icon) icon.textContent = '▲';
+    if (eventsCache[gameId] !== undefined) {
+      renderGameEventsPanel(panel, eventsCache[gameId]);
+      return;
+    }
+    panel.innerHTML = '<div style="padding:12px; text-align:center;"><div class="spinner" style="display:inline-block;width:16px;height:16px;border-width:2px;vertical-align:middle;"></div></div>';
+    try {
+      const events = await pubFetch('/api/games/' + gameId + '/events');
+      eventsCache[gameId] = events || [];
+      renderGameEventsPanel(panel, eventsCache[gameId]);
+    } catch (e) {
+      panel.innerHTML = '<div style="padding:12px; color:var(--text-secondary); font-size:12px; text-align:center;">Erro ao carregar eventos.</div>';
+    }
+  }
+
+  function renderGameEventsPanel(panel, events) {
+    const homeId   = panel.dataset.homeId ? Number(panel.dataset.homeId) : null;
+    const awayId   = panel.dataset.awayId ? Number(panel.dataset.awayId) : null;
+    const homeName = panel.dataset.homeName || 'Mandante';
+    const awayName = panel.dataset.awayName || 'Visitante';
+    const iconMap  = { goal: '⚽', yellow_card: '🟨', red_card: '🟥', foul: '🔴' };
+    if (!events.length) {
+      panel.innerHTML = '<div style="padding:12px 0; color:var(--text-secondary); font-size:12px; text-align:center;">Nenhum evento registrado</div>';
+      return;
+    }
+    const homeEvts = events.filter(e => homeId && e.team_id === homeId);
+    const awayEvts = events.filter(e => awayId && e.team_id === awayId);
+    const createdBy = (events.find(e => e.created_by_name) || {}).created_by_name;
+    function evtLine(e) {
+      const ico  = iconMap[e.event_type] || '•';
+      const name = e.athlete_name || e.description || '—';
+      const min  = e.minute != null ? ` ${e.minute}'` : '';
+      return `<div class="game-event-item">${ico} ${name}${min}</div>`;
+    }
+    const homeHtml = homeEvts.length
+      ? homeEvts.map(evtLine).join('')
+      : '<div style="font-size:12px; color:var(--text-secondary); padding:2px 0;">—</div>';
+    const awayHtml = awayEvts.length
+      ? awayEvts.map(evtLine).join('')
+      : '<div style="font-size:12px; color:var(--text-secondary); padding:2px 0; text-align:right;">—</div>';
+    panel.innerHTML = `
+      <div class="game-events-cols">
+        <div class="game-events-col">
+          <div class="game-events-col-hdr">${homeName}</div>
+          ${homeHtml}
+        </div>
+        <div class="game-events-col" style="text-align:right;">
+          <div class="game-events-col-hdr" style="text-align:right;">${awayName}</div>
+          ${awayHtml}
+        </div>
+      </div>
+      ${createdBy ? `<div class="game-events-footer">Registrado por: ${createdBy}</div>` : ''}`;
   }
 
   async function renderPubBgStandings(el) {
