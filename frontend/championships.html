@@ -385,6 +385,55 @@
                   </div>
                 </div>
               </div>
+              <!-- Tênis de Mesa -->
+              <div id="cfg-bg-tenis_mesa" class="card" style="margin-bottom:12px; display:none;">
+                <div class="card-body">
+                  <h3 style="margin-bottom:14px; font-size:15px;">🏓 Configurações de Tênis de Mesa</h3>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group" style="margin:0;">
+                      <label>Melhor de</label>
+                      <select id="cfg-tm-best-of" class="form-control" onchange="updateTenisMesaScoringLabels()">
+                        <option value="3">Melhor de 3</option>
+                        <option value="5" selected>Melhor de 5</option>
+                        <option value="7">Melhor de 7</option>
+                      </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Pontos por set (padrão)</label>
+                      <input type="number" id="cfg-tm-pts-per-set" class="form-control" value="11" min="1">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label id="cfg-tm-win-straight-lbl">Vitória 3×0 (pts)</label>
+                      <input type="number" id="cfg-tm-win-straight" class="form-control" value="3" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label id="cfg-tm-win-one-loss-lbl">Vitória 3×1 (pts)</label>
+                      <input type="number" id="cfg-tm-win-one-loss" class="form-control" value="3" min="0">
+                    </div>
+                    <div id="cfg-tm-win-two-loss-row" class="form-group" style="margin:0;">
+                      <label id="cfg-tm-win-two-loss-lbl">Vitória 3×2 (pts)</label>
+                      <input type="number" id="cfg-tm-win-two-loss" class="form-control" value="2" min="0">
+                    </div>
+                    <div id="cfg-tm-loss-two-row" class="form-group" style="margin:0;">
+                      <label id="cfg-tm-loss-two-wins-lbl">Derrota 2×3 (pts)</label>
+                      <input type="number" id="cfg-tm-loss-two-wins" class="form-control" value="1" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label id="cfg-tm-loss-lbl">Derrota 0-1×3 (pts)</label>
+                      <input type="number" id="cfg-tm-loss" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                      <label>Classificados por grupo</label>
+                      <input type="number" id="cfg-tm-classifieds" class="form-control" value="2" min="1">
+                    </div>
+                  </div>
+                  <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Critérios de Desempate</div>
+                    <p style="color:var(--text-secondary); font-size:11px; margin-bottom:8px;">Use ↑ ↓ para reordenar.</p>
+                    <div id="bg-tb-list-tenis_mesa"></div>
+                  </div>
+                </div>
+              </div>
               <div class="card" style="margin-bottom:16px;">
                 <div class="card-body" style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
                   <button class="btn btn-primary" id="btn-save-config-boardgame">Salvar Configurações</button>
@@ -911,9 +960,10 @@
 
     let tiebreakerOrder = ['points', 'wins', 'goal_difference', 'goals_scored', 'head_to_head'];
     // Desempate por tipo de tabuleiro
-    let bgDominoTiebreakers = ['pontos', 'vitorias', 'confronto_direto', 'sorteio'];
-    let bgDamaTiebreakers   = ['pontos', 'vitorias', 'empates', 'confronto_direto', 'sorteio'];
-    let bgXadrezTiebreakers = ['confronto_direto', 'buchholz', 'vitorias', 'sorteio'];
+    let bgDominoTiebreakers   = ['pontos', 'vitorias', 'confronto_direto', 'sorteio'];
+    let bgDamaTiebreakers     = ['pontos', 'vitorias', 'empates', 'confronto_direto', 'sorteio'];
+    let bgXadrezTiebreakers   = ['confronto_direto', 'buchholz', 'vitorias', 'sorteio'];
+    let bgTenisMesaTiebreakers = ['pontos', 'vitorias', 'saldo_sets', 'set_average', 'pontos_average', 'confronto_direto'];
     const TIEBREAKER_LABELS = {
       points: 'Pontos', wins: 'Vitórias', draws: 'Empates', losses: 'Derrotas',
       goal_difference: 'Saldo de Gols', goals_scored: 'Gols Pró', head_to_head: 'Confronto Direto',
@@ -926,6 +976,8 @@
       // Tabuleiro
       pontos: 'Pontos', vitorias: 'Vitórias', empates: 'Empates',
       sorteio: 'Sorteio', buchholz: 'Buchholz',
+      // Tênis de mesa
+      saldo_sets: 'Saldo de Sets', pontos_average: 'Índice de Pontos',
     };
 
     function isVolleyball() {
@@ -941,11 +993,17 @@
     }
 
     function isBoardgame() {
-      return ['domino', 'dama', 'xadrez'].includes(currentChamp?.sport?.slug);
+      return ['domino', 'dama', 'xadrez', 'tenis_mesa'].includes(currentChamp?.sport?.slug);
     }
 
     function getBgGameType() {
       return currentChamp?.sport?.slug || '';
+    }
+
+    // Mapeia slug do jogo para prefixo da API (tenis_mesa usa /tenis/ no backend)
+    function getBgApiSlug() {
+      const t = getBgGameType();
+      return t === 'tenis_mesa' ? 'tenis' : t;
     }
 
     function isDomino()    { return currentChamp?.sport?.slug === 'domino'; }
@@ -1135,7 +1193,7 @@
         const isVball_    = sport?.slug === 'volleyball';
         const isBball_    = sport?.slug === 'basketball';
         const isRunning_  = sport?.slug === 'running';
-        const isBgame_    = ['domino', 'dama', 'xadrez'].includes(sport?.slug);
+        const isBgame_    = ['domino', 'dama', 'xadrez', 'tenis_mesa'].includes(sport?.slug);
         document.getElementById('vball-champ-config').style.display   = isVball_   ? '' : 'none';
         document.getElementById('bball-champ-config').style.display   = isBball_   ? '' : 'none';
         document.getElementById('running-champ-config').style.display = isRunning_ ? '' : 'none';
@@ -1315,7 +1373,7 @@
       // Controla visibilidade das abas por modalidade
       const slug = currentChamp.sport?.slug;
       const running    = slug === 'running';
-      const boardgame_ = ['domino', 'dama', 'xadrez'].includes(slug);
+      const boardgame_ = ['domino', 'dama', 'xadrez', 'tenis_mesa'].includes(slug);
       const bgType     = slug;
 
       const runningTabs  = ['participants', 'race-results', 'ranking'];
@@ -1340,7 +1398,7 @@
         });
       } else if (boardgame_) {
         // Tabs comuns a todos os subtipos de tabuleiro
-        ['bg-games', 'bg-groups', 'bg-knockout'].forEach(t => {
+        ['bg-games', 'bg-groups', 'bg-knockout', 'bg-stats'].forEach(t => {
           const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
           if (btn) btn.style.display = '';
         });
@@ -1459,13 +1517,14 @@
         let teamsCount = 0, gamesCount = 0;
         if (isBoardgame()) {
           const bgType_ = getBgGameType();
-          const gamesData = await apiFetch(`/api/championships/${c.id}/${bgType_ || 'domino'}/games`).catch(() => []);
+          const bgSlug_ = bgType_ === 'tenis_mesa' ? 'tenis' : (bgType_ || 'domino');
+          const gamesData = await apiFetch(`/api/championships/${c.id}/${bgSlug_}/games`).catch(() => []);
           gamesCount = gamesData.length;
           if (isDomino()) {
             const pairs = await apiFetch(`/api/championships/${c.id}/domino/teams`).catch(() => []);
             teamsCount = pairs.length;
           } else {
-            const parts = await apiFetch(`/api/championships/${c.id}/${bgType_}/participants`).catch(() => []);
+            const parts = await apiFetch(`/api/championships/${c.id}/${bgSlug_}/participants`).catch(() => []);
             teamsCount = parts.length;
           }
         } else {
@@ -1517,6 +1576,9 @@
         document.getElementById('tiebreaker-list').parentElement.parentElement.style.display = (running || bgame) ? 'none' : '';
         document.getElementById('cfg-classifieds').parentElement.parentElement.style.display = (running || bgame) ? 'none' : '';
         document.getElementById('btn-save-config').style.display         = (running || bgame) ? 'none' : '';
+        // Habilita critérios de desempate para vôlei
+        const vballTbParent = document.getElementById('tiebreaker-list')?.parentElement?.parentElement;
+        if (vball && vballTbParent) vballTbParent.style.display = '';
 
         if (running) {
           document.getElementById('cfg-running-distance').value   = cfg.distance   || '';
@@ -1527,9 +1589,10 @@
         if (bgame) {
           const bgType_ = getBgGameType();
           document.getElementById('cfg-boardgame-section').style.display = '';
-          document.getElementById('cfg-bg-domino').style.display  = bgType_ === 'domino'  ? '' : 'none';
-          document.getElementById('cfg-bg-dama').style.display    = bgType_ === 'dama'    ? '' : 'none';
-          document.getElementById('cfg-bg-xadrez').style.display  = bgType_ === 'xadrez'  ? '' : 'none';
+          document.getElementById('cfg-bg-domino').style.display     = bgType_ === 'domino'     ? '' : 'none';
+          document.getElementById('cfg-bg-dama').style.display       = bgType_ === 'dama'       ? '' : 'none';
+          document.getElementById('cfg-bg-xadrez').style.display     = bgType_ === 'xadrez'     ? '' : 'none';
+          document.getElementById('cfg-bg-tenis_mesa').style.display = bgType_ === 'tenis_mesa' ? '' : 'none';
           if (bgType_ === 'domino') {
             const bo = document.getElementById('cfg-domino-best-of');
             if (bo) { bo.value = cfg.best_of ?? 3; }
@@ -1554,6 +1617,18 @@
             const ecl = document.getElementById('cfg-xadrez-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
             bgXadrezTiebreakers = cfg.tiebreaker_order?.length ? cfg.tiebreaker_order : ['confronto_direto', 'buchholz', 'vitorias', 'sorteio'];
             renderBgTiebreakerList('xadrez');
+          } else if (bgType_ === 'tenis_mesa') {
+            const bo = document.getElementById('cfg-tm-best-of'); if (bo) bo.value = cfg.best_of ?? 5;
+            const pps = document.getElementById('cfg-tm-pts-per-set'); if (pps) pps.value = cfg.pts_per_set ?? 11;
+            const ws = document.getElementById('cfg-tm-win-straight'); if (ws) ws.value = cfg.pts_win_straight ?? 3;
+            const wo = document.getElementById('cfg-tm-win-one-loss'); if (wo) wo.value = cfg.pts_win_one_loss ?? 3;
+            const wt = document.getElementById('cfg-tm-win-two-loss'); if (wt) wt.value = cfg.pts_win_two_loss ?? 2;
+            const lt = document.getElementById('cfg-tm-loss-two-wins'); if (lt) lt.value = cfg.pts_loss_two_wins ?? 1;
+            const ls = document.getElementById('cfg-tm-loss'); if (ls) ls.value = cfg.pts_loss ?? 0;
+            const cl = document.getElementById('cfg-tm-classifieds'); if (cl) cl.value = cfg.classifieds_per_group ?? 2;
+            bgTenisMesaTiebreakers = cfg.tiebreaker_order?.length ? cfg.tiebreaker_order : ['pontos', 'vitorias', 'saldo_sets', 'set_average', 'pontos_average', 'confronto_direto'];
+            renderBgTiebreakerList('tenis_mesa');
+            updateTenisMesaScoringLabels();
           }
           return;
         }
@@ -3053,8 +3128,10 @@
     async function loadBgParticipants() {
       const container = document.getElementById('bg-participants-list');
       const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       const title = document.getElementById('bg-participants-title');
-      if (title) title.textContent = `👤 Inscrever Atleta (${bgType_ === 'xadrez' ? 'Xadrez' : 'Dama'})`;
+      const nameMap = { xadrez: 'Xadrez', dama: 'Dama', tenis_mesa: 'Tênis de Mesa' };
+      if (title) title.textContent = `👤 Inscrever Atleta (${nameMap[bgType_] || bgType_})`;
 
       if (!container) return;
       container.innerHTML = '<div class="page-loading" style="padding:20px;"><div class="spinner"></div><span>Carregando...</span></div>';
@@ -3063,7 +3140,7 @@
         if (!_bgAllAthletes.length) {
           _bgAllAthletes = await apiFetch('/api/athletes/').catch(() => []);
         }
-        const parts = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/participants`);
+        const parts = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/participants`);
         const enrolledIds = new Set(parts.map(p => p.athlete_id));
 
         const sel = document.getElementById('bg-enroll-athlete');
@@ -3095,11 +3172,11 @@
     }
 
     async function bgEnrollAthlete() {
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       const athleteId = Number(document.getElementById('bg-enroll-athlete').value);
       if (!athleteId) { showToast('Selecione um atleta.', 'error'); return; }
       try {
-        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/participants`, {
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/participants`, {
           method: 'POST',
           body: JSON.stringify({ athlete_id: athleteId }),
         });
@@ -3110,9 +3187,9 @@
 
     async function bgRemoveParticipant(partId) {
       if (!confirm('Remover participante?')) return;
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/participants/${partId}`, { method: 'DELETE' });
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/participants/${partId}`, { method: 'DELETE' });
         showToast('Participante removido.', 'success');
         loadBgParticipants();
       } catch (err) { showToast(err.message, 'error'); }
@@ -3135,8 +3212,9 @@
       if (roundSel) { roundSel.innerHTML = '<option value="">Todas as rodadas</option>'; }
 
       const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        _bgGamesList = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/games`);
+        _bgGamesList = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games`);
 
         if (!_bgGamesList.length) {
           container.innerHTML = '<div class="card"><div class="card-body" style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum jogo cadastrado ainda. Os jogos são gerados automaticamente ao configurar grupos ou mata-mata.</div></div>';
@@ -3157,6 +3235,8 @@
         const hp = g.home_score !== null ? (g.home_score / 10).toFixed(1) : '—';
         const ap = g.away_score !== null ? (g.away_score / 10).toFixed(1) : '—';
         scoreDisplay = `${hp} × ${ap}`;
+      } else if (bgType_ === 'tenis_mesa') {
+        scoreDisplay = g.home_score !== null ? `${g.home_score} × ${g.away_score} sets` : '— × —';
       } else {
         scoreDisplay = g.home_score !== null ? `${g.home_score/10}pt × ${g.away_score/10}pt` : '— × —';
       }
@@ -3262,6 +3342,8 @@
             </div>
             <button class="btn btn-primary btn-sm" onclick="saveDamaResult(${g.id})">Salvar</button>
           </div>`;
+      } else if (bgType_ === 'tenis_mesa') {
+        registerBtn = renderTenisMesaResult(g);
       }
 
       return `
@@ -3371,7 +3453,7 @@
     }
 
     async function createBgGame() {
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       const homeId = Number(document.getElementById('bg-game-home').value);
       const awayId = Number(document.getElementById('bg-game-away').value);
       const phase  = document.getElementById('bg-game-phase').value;
@@ -3379,7 +3461,7 @@
       if (!homeId || !awayId) { showToast('Selecione mandante e visitante.', 'error'); return; }
       if (homeId === awayId)  { showToast('Mandante e visitante devem ser diferentes.', 'error'); return; }
       try {
-        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/games`, {
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games`, {
           method: 'POST',
           body: JSON.stringify({ home_id: homeId, away_id: awayId, phase, round_number: round }),
         });
@@ -3390,9 +3472,9 @@
 
     async function deleteBgGame(gameId) {
       if (!confirm('Excluir este jogo?')) return;
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/games/${gameId}`, { method: 'DELETE' });
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games/${gameId}`, { method: 'DELETE' });
         showToast('Jogo excluído.', 'success');
         loadBgGames();
       } catch (err) { showToast(err.message, 'error'); }
@@ -3460,6 +3542,127 @@
     }
 
     // ================================================================
+    // TÊNIS DE MESA — RESULTADO POR SETS
+    // ================================================================
+
+    function updateTenisMesaScoringLabels() {
+      const bo = parseInt(document.getElementById('cfg-tm-best-of')?.value || 5);
+      const label = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+      const show  = (id, v)   => { const el = document.getElementById(id); if (el) el.style.display = v ? '' : 'none'; };
+      if (bo === 3) {
+        label('cfg-tm-win-straight-lbl',  'Vitória 2×0 (pts)');
+        label('cfg-tm-win-one-loss-lbl',  'Vitória 2×1 (pts)');
+        label('cfg-tm-loss-lbl',          'Derrota 0-1×2 (pts)');
+        show('cfg-tm-win-two-loss-row', false);
+        show('cfg-tm-loss-two-row', false);
+      } else if (bo === 5) {
+        label('cfg-tm-win-straight-lbl',  'Vitória 3×0 (pts)');
+        label('cfg-tm-win-one-loss-lbl',  'Vitória 3×1 (pts)');
+        label('cfg-tm-win-two-loss-lbl',  'Vitória 3×2 (pts)');
+        label('cfg-tm-loss-two-wins-lbl', 'Derrota 2×3 (pts)');
+        label('cfg-tm-loss-lbl',          'Derrota 0-1×3 (pts)');
+        show('cfg-tm-win-two-loss-row', true);
+        show('cfg-tm-loss-two-row', true);
+      } else {
+        label('cfg-tm-win-straight-lbl',  'Vitória 4×0 (pts)');
+        label('cfg-tm-win-one-loss-lbl',  'Vitória 4×1 (pts)');
+        label('cfg-tm-win-two-loss-lbl',  'Vitória 4×2 ou 4×3 (pts)');
+        label('cfg-tm-loss-two-wins-lbl', 'Derrota 2-3×4 (pts)');
+        label('cfg-tm-loss-lbl',          'Derrota 0-1×4 (pts)');
+        show('cfg-tm-win-two-loss-row', true);
+        show('cfg-tm-loss-two-row', true);
+      }
+    }
+
+    function renderTenisMesaResult(g) {
+      const existing = g.sets || [];
+      const bestOf = parseInt(currentChamp?.rules_config?.best_of || 5);
+      const winsNeeded = (bestOf >> 1) + 1;
+      const hName = g.home_name || 'Casa';
+      const aName = g.away_name || 'Fora';
+      let hSets = 0, aSets = 0;
+      existing.forEach(s => {
+        if ((s.home_points || 0) > (s.away_points || 0)) hSets++;
+        if ((s.away_points || 0) > (s.home_points || 0)) aSets++;
+      });
+      const setsHtml = existing.map((s, i) => `
+        <div class="tm-set-row tm-set-row-${g.id}" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <span style="color:var(--text-secondary);font-size:13px;min-width:45px;">Set ${i+1}:</span>
+          <input type="number" id="tm-h-${g.id}-${i}" class="form-control" style="width:70px;" value="${s.home_points||0}" min="0" oninput="updateTenisMesaCounter(${g.id})">
+          <span>×</span>
+          <input type="number" id="tm-a-${g.id}-${i}" class="form-control" style="width:70px;" value="${s.away_points||0}" min="0" oninput="updateTenisMesaCounter(${g.id})">
+          <button class="btn btn-ghost btn-sm" style="color:var(--error);padding:2px 6px;" onclick="this.closest('.tm-set-row').remove();updateTenisMesaCounter(${g.id})">✕</button>
+        </div>`).join('');
+      return `
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">
+            ${hName}: <span id="tm-h-count-${g.id}">${hSets}</span> sets &nbsp;×&nbsp;
+            ${aName}: <span id="tm-a-count-${g.id}">${aSets}</span> sets
+            <span style="color:var(--text-secondary);font-weight:400;"> — precisam de ${winsNeeded}</span>
+          </div>
+          <div id="tm-sets-container-${g.id}">${setsHtml}</div>
+          <button class="btn btn-secondary btn-sm" style="margin-bottom:12px;" onclick="addTenisMesaSet(${g.id})">+ Adicionar Set</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="saveTenisMesaSets(${g.id},false)">💾 Salvar Sets</button>
+            <button class="btn btn-primary btn-sm" onclick="saveTenisMesaSets(${g.id},true)">✅ Encerrar Partida</button>
+          </div>
+        </div>`;
+    }
+
+    function addTenisMesaSet(gameId) {
+      const container = document.getElementById(`tm-sets-container-${gameId}`);
+      if (!container) return;
+      const idx = container.querySelectorAll('.tm-set-row').length;
+      const div = document.createElement('div');
+      div.className = `tm-set-row tm-set-row-${gameId}`;
+      div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;';
+      div.innerHTML = `
+        <span style="color:var(--text-secondary);font-size:13px;min-width:45px;">Set ${idx+1}:</span>
+        <input type="number" id="tm-h-${gameId}-${idx}" class="form-control" style="width:70px;" value="0" min="0" oninput="updateTenisMesaCounter(${gameId})">
+        <span>×</span>
+        <input type="number" id="tm-a-${gameId}-${idx}" class="form-control" style="width:70px;" value="0" min="0" oninput="updateTenisMesaCounter(${gameId})">
+        <button class="btn btn-ghost btn-sm" style="color:var(--error);padding:2px 6px;" onclick="this.closest('.tm-set-row').remove();updateTenisMesaCounter(${gameId})">✕</button>`;
+      container.appendChild(div);
+      updateTenisMesaCounter(gameId);
+    }
+
+    function updateTenisMesaCounter(gameId) {
+      const container = document.getElementById(`tm-sets-container-${gameId}`);
+      if (!container) return;
+      let h = 0, a = 0;
+      container.querySelectorAll('.tm-set-row').forEach(row => {
+        const hv = Number(row.querySelector('[id^="tm-h-"]')?.value || 0);
+        const av = Number(row.querySelector('[id^="tm-a-"]')?.value || 0);
+        if (hv > av) h++;
+        if (av > hv) a++;
+      });
+      const hEl = document.getElementById(`tm-h-count-${gameId}`);
+      const aEl = document.getElementById(`tm-a-count-${gameId}`);
+      if (hEl) hEl.textContent = h;
+      if (aEl) aEl.textContent = a;
+    }
+
+    async function saveTenisMesaSets(gameId, finalize) {
+      const container = document.getElementById(`tm-sets-container-${gameId}`);
+      if (!container) return;
+      const sets = [];
+      container.querySelectorAll('.tm-set-row').forEach(row => {
+        sets.push({
+          home_points: Number(row.querySelector('[id^="tm-h-"]')?.value || 0),
+          away_points: Number(row.querySelector('[id^="tm-a-"]')?.value || 0),
+        });
+      });
+      try {
+        await apiFetch(`/api/championships/${currentChamp.id}/tenis/games/${gameId}/result`, {
+          method: 'PUT',
+          body: JSON.stringify({ sets, finalize }),
+        });
+        showToast(finalize ? 'Partida encerrada!' : 'Sets salvos!', 'success');
+        if (currentTab === 'bg-knockout') loadBgKnockout(); else loadBgGames();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // ================================================================
     // TABULEIRO — ESTATÍSTICAS
     // ================================================================
 
@@ -3469,8 +3672,9 @@
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
 
       const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        const standings = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/standings`);
+        const standings = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/standings`);
 
         if (!standings.length) {
           container.innerHTML = '<div class="card"><div class="card-body" style="color:var(--text-secondary); text-align:center; padding:24px;">Nenhum dado para exibir.</div></div>';
@@ -3529,6 +3733,25 @@
                 </tbody>
               </table>
             </div></div>`;
+        } else if (bgType_ === 'tenis_mesa') {
+          html = `
+            <div class="card"><div class="card-body" style="padding:0;">
+              <table class="standings-table">
+                <thead><tr><th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th>Pts</th></tr></thead>
+                <tbody>
+                  ${standings.map(s => `
+                    <tr>
+                      <td class="pos">${s.position}</td>
+                      <td style="text-align:left; font-weight:600;">${s.name}</td>
+                      <td>${s.j}</td><td>${s.v}</td><td>${s.d}</td>
+                      <td>${s.sets_won ?? 0}</td>
+                      <td>${s.sets_lost ?? 0}</td>
+                      <td style="color:${(s.saldo_sets ?? 0) >= 0 ? 'var(--accent-teal)' : '#f87171'};">${(s.saldo_sets ?? 0) >= 0 ? '+' : ''}${s.saldo_sets ?? 0}</td>
+                      <td class="pts">${s.pontos}</td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div></div>`;
         }
 
         container.innerHTML = html;
@@ -3567,6 +3790,16 @@
           data.pts_loss = Number(document.getElementById('cfg-xadrez-pts-loss')?.value || 0);
           data.classifieds_per_group = Number(document.getElementById('cfg-xadrez-classifieds')?.value || 2);
           data.tiebreaker_order     = bgXadrezTiebreakers;
+        } else if (bgType_ === 'tenis_mesa') {
+          data.best_of             = Number(document.getElementById('cfg-tm-best-of')?.value || 5);
+          data.pts_per_set         = Number(document.getElementById('cfg-tm-pts-per-set')?.value || 11);
+          data.pts_win_straight    = Number(document.getElementById('cfg-tm-win-straight')?.value ?? 3);
+          data.pts_win_one_loss    = Number(document.getElementById('cfg-tm-win-one-loss')?.value ?? 3);
+          data.pts_win_two_loss    = Number(document.getElementById('cfg-tm-win-two-loss')?.value ?? 2);
+          data.pts_loss_two_wins   = Number(document.getElementById('cfg-tm-loss-two-wins')?.value ?? 1);
+          data.pts_loss            = Number(document.getElementById('cfg-tm-loss')?.value ?? 0);
+          data.classifieds_per_group = Number(document.getElementById('cfg-tm-classifieds')?.value || 2);
+          data.tiebreaker_order    = bgTenisMesaTiebreakers;
         }
         await ChampAPI.updateConfig(currentChamp.id, data);
         currentChamp.rules_config = { ...currentChamp.rules_config, ...data };
@@ -3583,7 +3816,7 @@
     // ================================================================
 
     function renderBgTiebreakerList(type) {
-      const map = { domino: bgDominoTiebreakers, dama: bgDamaTiebreakers, xadrez: bgXadrezTiebreakers };
+      const map = { domino: bgDominoTiebreakers, dama: bgDamaTiebreakers, xadrez: bgXadrezTiebreakers, tenis_mesa: bgTenisMesaTiebreakers };
       const order = map[type] || [];
       const container = document.getElementById('bg-tb-list-' + type);
       if (!container) return;
@@ -3600,7 +3833,7 @@
     }
 
     function moveBgTiebreaker(type, idx, dir) {
-      const map = { domino: bgDominoTiebreakers, dama: bgDamaTiebreakers, xadrez: bgXadrezTiebreakers };
+      const map = { domino: bgDominoTiebreakers, dama: bgDamaTiebreakers, xadrez: bgXadrezTiebreakers, tenis_mesa: bgTenisMesaTiebreakers };
       const order = map[type];
       if (!order) return;
       const newIdx = idx + dir;
@@ -3618,8 +3851,9 @@
       if (!container) return;
       container.innerHTML = '<div class="page-loading" style="padding:20px;"><div class="spinner"></div><span>Carregando grupos...</span></div>';
       const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        const groups = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/groups`);
+        const groups = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/groups`);
         if (!groups.length) {
           container.innerHTML = '<div class="card"><div class="card-body" style="color:var(--text-secondary); text-align:center; padding:24px;">Nenhum grupo sorteado. Use o formulário acima para sortear grupos.</div></div>';
           return;
@@ -3632,9 +3866,9 @@
 
     async function bgDrawGroups() {
       const count = Number(document.getElementById('bg-group-count').value) || 2;
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/groups/draw`, {
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/groups/draw`, {
           method: 'POST', body: JSON.stringify({ group_count: count }),
         });
         showToast('Grupos sorteados!', 'success');
@@ -3643,18 +3877,19 @@
     }
 
     async function bgGenerateGroupGames(group) {
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/groups/${group}/games/generate`, { method: 'POST' });
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/groups/${group}/games/generate`, { method: 'POST' });
         showToast(`${games.length} jogo(s) gerado(s) para o Grupo ${group}!`, 'success');
         loadBgGroups();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
     function renderBgGroupCard(g, bgType_) {
-      const isXadrez = bgType_ === 'xadrez';
-      const isDomino_ = bgType_ === 'domino';
-      const isDama_ = bgType_ === 'dama';
+      const isXadrez   = bgType_ === 'xadrez';
+      const isDomino_  = bgType_ === 'domino';
+      const isDama_    = bgType_ === 'dama';
+      const isTenis_   = bgType_ === 'tenis_mesa';
       const members = isDomino_
         ? (g.teams || [])
         : (g.participants || []);
@@ -3671,6 +3906,12 @@
       } else if (isXadrez) {
         theadCols = '<th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th><th title="Buchholz = soma dos pontos dos adversários">Buchholz</th>';
         tbodyCols = s => `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.player_name||s.name}</td><td>${s.games_played||s.j||0}</td><td>${s.wins||s.v||0}</td><td>${s.draws||s.e||0}</td><td>${s.losses||s.d||0}</td><td class="pts">${s.points||s.pts||0}</td><td style="color:var(--accent-purple);">${(s.buchholz||0).toFixed(1)}</td>`;
+      } else if (isTenis_) {
+        theadCols = '<th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th>Pts</th>';
+        tbodyCols = s => {
+          const saldo = s.saldo_sets ?? 0;
+          return `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td>${s.j}</td><td>${s.v}</td><td>${s.d}</td><td>${s.sets_won??0}</td><td>${s.sets_lost??0}</td><td style="color:${saldo>=0?'var(--accent-teal)':'#f87171'};">${saldo>=0?'+':''}${saldo}</td><td class="pts">${s.pontos}</td>`;
+        };
       }
 
       const membersHtml = members.map(m => {
@@ -3714,8 +3955,9 @@
       if (!container) return;
       container.innerHTML = '<div class="page-loading" style="padding:20px;"><div class="spinner"></div><span>Carregando...</span></div>';
       const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/games`);
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games`);
         const koGames = games.filter(g => g.phase === 'knockout');
         if (setupArea) renderBgKoSetupArea(setupArea);
         if (!koGames.length) {
@@ -3764,9 +4006,9 @@
     }
 
     async function bgSetupKnockout() {
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/knockout/setup`, {
+        await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/knockout/setup`, {
           method: 'POST', body: JSON.stringify({ matches: _bgKoMatches }),
         });
         showToast('Cruzamentos salvos!', 'success');
@@ -3774,9 +4016,9 @@
     }
 
     async function bgGenerateKnockout() {
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/knockout/generate`, { method: 'POST' });
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/knockout/generate`, { method: 'POST' });
         showToast(`${games.length} jogo(s) de mata-mata gerado(s)!`, 'success');
         loadBgKnockout();
       } catch (err) { showToast(err.message, 'error'); }
@@ -3784,9 +4026,9 @@
 
     async function bgAdvanceKnockout() {
       if (!confirm('Avançar fase? Serão criados jogos para os vencedores da rodada atual.')) return;
-      const bgType_ = getBgGameType();
+      const bgSlug_ = getBgApiSlug();
       try {
-        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgType_}/knockout/advance`, { method: 'POST' });
+        const games = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/knockout/advance`, { method: 'POST' });
         showToast(`Fase avançada! ${games.length} novo(s) jogo(s) criado(s).`, 'success');
         loadBgKnockout();
       } catch (err) { showToast(err.message, 'error'); }
