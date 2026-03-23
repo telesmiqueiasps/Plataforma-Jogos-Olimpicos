@@ -9,7 +9,7 @@
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Campeonatos — Jogos Olímpicos Sinodal PB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
   <style>
@@ -78,9 +78,13 @@
   </div>
 </div>
 
-<footer class="pub-footer">
-  Powered by <a href="https://jogossinodal.netlify.app" target="_blank">Jogos Olímpicos Sinodal PB</a> ·
-  <a href="https://jogossinodal.netlify.app" target="_blank">Acesso para organizadores →</a>
+<footer class="pub-footer-grad">
+  <div class="pub-footer-logo">🏆</div>
+  <div class="pub-footer-brand">Jogos Olímpicos Sinodal PB</div>
+  <div class="pub-footer-sub">
+    Powered by <a href="https://jogossinodal.netlify.app" target="_blank">Sports Platform</a> ·
+    <a href="https://jogossinodal.netlify.app" target="_blank">Acesso para organizadores →</a>
+  </div>
 </footer>
 
 <div id="toast-container"></div>
@@ -158,23 +162,35 @@
         return;
       }
 
+      const slugHeaderBg = {
+        futsal:'#dbeafe',volleyball:'#d1fae5',basketball:'#fed7aa',
+        running:'#fce7f3',domino:'#ede9fe',dama:'#fef3c7',xadrez:'#f1f5f9',
+      };
       content.innerHTML = `
-        <h2 style="margin-bottom:20px; font-size:20px;">Campeonatos</h2>
-        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
-          ${active.map(c => `
-            <a href="public.html?championship=${c.id}" class="pub-champ-card">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                <div style="font-size:17px; font-weight:700;">${sportIcon(c.sport?.slug, 20)}${c.name}</div>
+        <h2 style="margin-bottom:20px;font-family:var(--font-display);font-size:22px;font-weight:800;">🏆 Campeonatos</h2>
+        <div class="champ-cards-grid">
+          ${active.map(c => {
+            const headerBg = slugHeaderBg[c.sport?.slug] || '#f1f5f9';
+            const borderClass = c.status === 'active' ? 'active-border' : 'draft-border';
+            return `
+            <a href="public.html?championship=${c.id}" class="champ-card ${borderClass}" style="text-decoration:none;color:inherit;">
+              <div class="champ-card-header" style="background:${headerBg};">
+                <div class="champ-card-icon">${sportIcon(c.sport?.slug, 36)}</div>
+                <div class="champ-card-info">
+                  <div class="champ-card-name" title="${c.name}">${c.name}</div>
+                  <div class="champ-card-sport">${c.sport?.name || '—'}</div>
+                </div>
                 ${pubStatusBadge(c.status)}
               </div>
-              <div style="font-size:13px; color:var(--text-secondary); margin-bottom:4px; display:flex; align-items:center;">
-                ${sportIcon(c.sport?.slug, 14)}${c.sport?.name || '—'}
+              <div class="champ-card-body">
+                ${c.start_date ? `<div class="champ-card-dates">📅 ${fmtDate(c.start_date)}${c.end_date ? ' – ' + fmtDate(c.end_date) : ''}</div>` : ''}
+                <div class="champ-card-dates">📋 ${({round_robin:'Pontos Corridos',elimination:'Eliminatório',hybrid:'Híbrido'})[c.format] || c.format || '—'}</div>
               </div>
-              <div style="font-size:12px; color:var(--text-secondary);">
-                ${c.start_date ? fmtDate(c.start_date) : ''}${c.end_date ? ' – ' + fmtDate(c.end_date) : ''}
+              <div class="champ-card-footer">
+                <span class="btn btn-primary btn-sm" style="pointer-events:none;">Ver Campeonato →</span>
               </div>
-            </a>
-          `).join('')}
+            </a>`;
+          }).join('')}
         </div>`;
     } catch (err) {
       content.innerHTML = `<div class="alert alert-error" style="margin:24px 0;">${err.message}</div>`;
@@ -208,13 +224,43 @@
       document.getElementById('btn-back').style.display = 'flex';
       document.title = `${c.name} — Jogos Olímpicos Sinodal PB`;
 
+      // Hero section
+      const heroColors = {
+        futsal:'linear-gradient(135deg,#1d4ed8,#3b82f6)',
+        volleyball:'linear-gradient(135deg,#047857,#10b981)',
+        basketball:'linear-gradient(135deg,#b45309,#f59e0b)',
+        running:'linear-gradient(135deg,#b91c1c,#ef4444)',
+        domino:'linear-gradient(135deg,#5b21b6,#8b5cf6)',
+        dama:'linear-gradient(135deg,#9d174d,#ec4899)',
+        xadrez:'linear-gradient(135deg,#374151,#6b7280)',
+      };
+      const heroBg = heroColors[c.sport?.slug] || 'linear-gradient(135deg,#1e3a8a,#2563eb)';
+      const heroEmoji = {
+        futsal:'⚽',volleyball:'🏐',basketball:'🏀',running:'🏃',
+        domino:'🁣',dama:'♟',xadrez:'♟',
+      }[c.sport?.slug] || '🏆';
+      const statusMap = {active:'Ativo',finished:'Encerrado',draft:'Rascunho'};
+      const heroHtml = `
+        <div class="pub-hero" style="background:${heroBg};">
+          <div class="pub-hero-icon">${heroEmoji}</div>
+          <div class="pub-hero-content">
+            <div class="pub-hero-badge">${statusMap[c.status] || c.status}</div>
+            <h1 class="pub-hero-title">${c.name}</h1>
+            <div class="pub-hero-stats">
+              <div class="pub-hero-stat">🏅 ${c.sport?.name || '—'}</div>
+              ${c.start_date ? `<div class="pub-hero-stat">📅 ${fmtDate(c.start_date)}${c.end_date ? ' – ' + fmtDate(c.end_date) : ''}</div>` : ''}
+              ${c.format ? `<div class="pub-hero-stat">📋 ${({round_robin:'Pontos Corridos',elimination:'Eliminatório',hybrid:'Híbrido'})[c.format] || c.format}</div>` : ''}
+            </div>
+          </div>
+        </div>`;
+
       const isVball   = c.sport?.slug === 'volleyball';
       const isBball   = c.sport?.slug === 'basketball';
       const isRunning = c.sport?.slug === 'running';
 
       if (isRunning) {
         // Corrida: apenas aba de Ranking
-        content.innerHTML = `
+        content.innerHTML = heroHtml + `
           <div class="tab-nav">
             <button class="tab-btn active" data-pub-tab="race-ranking">🏆 Ranking</button>
           </div>
@@ -233,7 +279,7 @@
 
       if (isBoardgame()) {
         // Jogos de Tabuleiro: abas Classificação + Jogos
-        content.innerHTML = `
+        content.innerHTML = heroHtml + `
           <div class="tab-nav">
             <button class="tab-btn active" data-pub-tab="bg-standings">🏆 Classificação</button>
             <button class="tab-btn" data-pub-tab="bg-games">🎮 Jogos</button>
@@ -264,7 +310,7 @@
         ? `<button class="tab-btn" data-pub-tab="scorers">🏀 Cestinhas</button>`
         : `<button class="tab-btn" data-pub-tab="scorers">Artilharia</button>
            <button class="tab-btn" data-pub-tab="cards">Cartões</button>`;
-      content.innerHTML = `
+      content.innerHTML = heroHtml + `
         <div class="tab-nav">
           <button class="tab-btn active" data-pub-tab="standings">Classificação</button>
           ${extraTabs}
@@ -364,43 +410,61 @@
     if (!rows.length) return `<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>`;
     const isVball = currentChamp?.sport?.slug === 'volleyball';
     const isBball = currentChamp?.sport?.slug === 'basketball';
+    const medals = ['🥇','🥈','🥉'];
+    const avatarColors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#0891b2','#6b7280'];
     return `
-      <table class="standings-table">
+      <table class="standings-table standings-enhanced">
         <thead>
           <tr>
-            <th style="text-align:center;width:36px;">#</th>
-            <th>Equipe</th>
+            <th style="text-align:center;width:44px;">#</th>
+            <th style="text-align:left;">Equipe</th>
             ${isVball
-              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Saldo</th><th>S.Avg</th><th class="pts">Pts</th>'
+              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th>Avg</th><th class="pts-col">Pts</th>'
               : isBball
-                ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
-                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
+                ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts-col">Tab</th>'
+                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts-col">Pts</th>'}
           </tr>
         </thead>
         <tbody>
-          ${rows.map((s, i) => `
-            <tr class="${classifiedPerGroup > 0 && i < classifiedPerGroup ? 'classified-row' : ''}">
-              <td style="text-align:center; color:var(--text-secondary);">${s.position}</td>
-              <td style="font-weight:500;">
-                ${s.team_name}
-                ${classifiedPerGroup > 0 && i < classifiedPerGroup ? '<span class="badge-classified">Classificado</span>' : ''}
+          ${rows.map((s, i) => {
+            const isLeader = i === 0;
+            const isClassified = classifiedPerGroup > 0 && i < classifiedPerGroup;
+            const medal = medals[i] || '';
+            const initials = (s.team_name || '?').substring(0, 2).toUpperCase();
+            const avatarColor = avatarColors[i % avatarColors.length];
+            const rowClass = isLeader ? 'leader-row' : (isClassified ? 'classified-row' : '');
+            return `
+            <tr class="${rowClass}">
+              <td style="text-align:center;">
+                ${medal
+                  ? `<span style="font-size:18px;" title="${s.team_name}">${medal}</span>`
+                  : `<span class="standings-pos">${s.position}</span>`}
+              </td>
+              <td>
+                <div class="standings-team-cell">
+                  <div class="standings-avatar" style="background:${avatarColor};">${initials}</div>
+                  <div>
+                    <div style="font-weight:600;font-size:14px;">${s.team_name}</div>
+                    ${isClassified ? '<span class="badge-classified">Classificado ✓</span>' : ''}
+                  </div>
+                </div>
               </td>
               ${isVball
                 ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                    <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
                    <td>${(s.set_difference ?? 0) >= 0 ? '+' : ''}${s.set_difference ?? 0}</td>
                    <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
-                   <td class="pts">${s.points}</td>`
+                   <td class="pts-col">${s.points}</td>`
                 : isBball
                   ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                      <td>${s.goals_for}</td><td>${s.goals_against}</td>
                      <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                     <td class="pts">${s.points}</td>`
+                     <td class="pts-col">${s.points}</td>`
                   : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
                      <td>${s.goals_for}</td><td>${s.goals_against}</td>
                      <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                     <td class="pts">${s.points}</td>`}
-            </tr>`).join('')}
+                     <td class="pts-col">${s.points}</td>`}
+            </tr>`}).join('')}
         </tbody>
       </table>`;
   }

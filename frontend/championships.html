@@ -10,7 +10,7 @@
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Campeonatos — Jogos Olímpicos Sinodal PB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
   <style>
@@ -1002,43 +1002,45 @@
         return;
       }
 
+      const slugHeaderBg = {
+        futsal:'#dbeafe', volleyball:'#d1fae5', basketball:'#fed7aa',
+        running:'#fce7f3', domino:'#ede9fe', dama:'#fef3c7', xadrez:'#f1f5f9',
+      };
+
       container.innerHTML = `
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Modalidade</th>
-                <th>Formato</th>
-                <th>Status</th>
-                <th>Início</th>
-                <th>Fim</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${state.items.map(c => `
-                <tr>
-                  <td><div style="font-weight:600;">${c.name}</div></td>
-                  <td><span style="display:inline-flex;align-items:center;">${sportIcon(c.sport?.slug, 18)}${c.sport?.name || '—'}</span></td>
-                  <td>${formatName(c.format)}</td>
-                  <td>${champStatusBadge(c.status)}</td>
-                  <td>${fmtDate(c.start_date)}</td>
-                  <td>${fmtDate(c.end_date)}</td>
-                  <td>
-                    <div class="actions">
-                      <button class="btn btn-sm btn-primary" onclick="openChampDetail(${c.id})">Gerenciar</button>
-                      <a href="games.html?championship_id=${c.id}" class="btn btn-sm btn-ghost">Jogos</a>
-                      ${c.status !== 'active' ? `<button class="btn btn-sm btn-teal" onclick="activateChamp(${c.id})">▶ Ativar</button>` : ''}
-                      <button class="btn btn-sm btn-ghost" onclick="copyPublicLink(${c.id})" title="Copiar link público">🔗 Link Público</button>
-                      <button class="btn btn-sm btn-secondary" onclick="openEditChampModal(${c.id})">✏️ Editar</button>
-                      <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="deleteChamp(${c.id}, '${c.name.replace(/'/g, "\\'")}')">🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div class="champ-cards-grid">
+          ${state.items.map(c => {
+            const headerBg = slugHeaderBg[c.sport?.slug] || '#f1f5f9';
+            const borderClass = c.status === 'active' ? 'active-border' : 'draft-border';
+            const safeName = (c.name || '').replace(/'/g, "\\'");
+            return `
+            <div class="champ-card ${borderClass}">
+              <div class="champ-card-header" style="background:${headerBg};">
+                <div class="champ-card-icon">${sportIcon(c.sport?.slug, 36)}</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="champ-card-name" title="${c.name}">${c.name}</div>
+                  <div class="champ-card-sport">${c.sport?.name || '—'} · ${formatName(c.format)}</div>
+                </div>
+                ${champStatusBadge(c.status)}
+              </div>
+              <div class="champ-card-body">
+                <div class="champ-card-dates">
+                  📅 ${fmtDate(c.start_date)}${c.end_date ? ' – ' + fmtDate(c.end_date) : ''}
+                </div>
+                <div class="champ-progress-bar">
+                  <div class="champ-progress-fill" style="width:${c.status==='finished'?'100':c.status==='active'?'60':'10'}%;"></div>
+                </div>
+                <div class="champ-progress-label">${c.status==='finished'?'Encerrado':c.status==='active'?'Em andamento':'Rascunho'}</div>
+              </div>
+              <div class="champ-card-footer">
+                <button class="btn btn-sm btn-primary" onclick="openChampDetail(${c.id})">Gerenciar</button>
+                ${c.status !== 'active' ? `<button class="btn btn-sm btn-teal" onclick="activateChamp(${c.id})">▶ Ativar</button>` : ''}
+                <button class="btn btn-sm btn-ghost" onclick="copyPublicLink(${c.id})" title="Link público">🔗</button>
+                <button class="btn btn-sm btn-secondary" onclick="openEditChampModal(${c.id})" title="Editar">✏️</button>
+                <button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="deleteChamp(${c.id}, '${safeName}')" title="Excluir">🗑️</button>
+              </div>
+            </div>`;
+          }).join('')}
         </div>`;
 
       renderPagination('champ-pagination', state, (page) => { currentPage = page; renderTable(); });

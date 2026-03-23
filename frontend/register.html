@@ -9,58 +9,98 @@
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Criar Conta — Jogos Olímpicos Sinodal PB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-  <div class="auth-wrapper">
-    <div class="auth-card">
-      <div class="auth-logo">
-        <span style="font-size:48px;">🏆</span>
-        <h1 class="auth-title">Criar Conta</h1>
-        <p class="auth-subtitle">Crie sua conta de organizador gratuitamente</p>
-      </div>
+  <div class="auth-split">
 
-      <div id="alert" class="alert alert-error" style="display:none;"></div>
-      <div id="success" class="alert alert-success" style="display:none;"></div>
-
-      <form id="register-form" autocomplete="off">
-        <div class="form-group">
-          <label for="name">Nome completo</label>
-          <input type="text" id="name" class="form-control" placeholder="João Silva" required autocomplete="name">
+    <!-- Painel decorativo esquerdo -->
+    <div class="auth-panel">
+      <div class="auth-panel-bg"></div>
+      <div class="auth-panel-content">
+        <span class="auth-panel-logo">🏅</span>
+        <h1 class="auth-panel-title">Junte-se a nós</h1>
+        <p class="auth-panel-tagline">Crie sua conta e organize campeonatos incríveis</p>
+        <div class="auth-panel-stats">
+          <div class="auth-stat-card">
+            <div class="auth-stat-value">100%</div>
+            <div class="auth-stat-label">Gratuito</div>
+          </div>
+          <div class="auth-stat-card">
+            <div class="auth-stat-value">∞</div>
+            <div class="auth-stat-label">Campeon.</div>
+          </div>
+          <div class="auth-stat-card">
+            <div class="auth-stat-value">7+</div>
+            <div class="auth-stat-label">Modali.</div>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="email">E-mail</label>
-          <input type="email" id="email" class="form-control" placeholder="seu@email.com" required autocomplete="email">
-        </div>
-        <div class="form-group">
-          <label for="password">Senha</label>
-          <input type="password" id="password" class="form-control" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
-          <span class="form-hint">Use pelo menos 6 caracteres</span>
-        </div>
-        <div class="form-group">
-          <label for="confirm">Confirmar senha</label>
-          <input type="password" id="confirm" class="form-control" placeholder="Repita a senha" required autocomplete="new-password">
-        </div>
-        <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%; justify-content:center; margin-top:8px;">
-          Criar Conta
-        </button>
-      </form>
-
-      <hr class="divider">
-
-      <div class="auth-footer">
-        <a href="dashboard.html" style="color:#8b8da0; font-size:13px;">← Voltar ao Dashboard</a>
       </div>
     </div>
+
+    <!-- Formulário direito -->
+    <div class="auth-form-side">
+      <div class="auth-form-card">
+        <div class="auth-logo">
+          <span style="font-size:48px;">🏆</span>
+          <h1 class="auth-title">Criar Conta</h1>
+          <p class="auth-subtitle">Crie sua conta de organizador gratuitamente</p>
+        </div>
+
+        <div id="alert" class="alert alert-error" style="display:none;"></div>
+        <div id="success" class="alert alert-success" style="display:none;"></div>
+
+        <form id="register-form" autocomplete="off">
+          <div class="form-group">
+            <label for="name">Nome completo</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">👤</span>
+              <input type="text" id="name" class="form-control input-with-icon" placeholder="João Silva" required autocomplete="name">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email">E-mail</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">📧</span>
+              <input type="email" id="email" class="form-control input-with-icon" placeholder="seu@email.com" required autocomplete="email">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="password">Senha</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="password" class="form-control input-with-icon" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+            </div>
+            <span class="form-hint">Use pelo menos 6 caracteres</span>
+          </div>
+          <div class="form-group">
+            <label for="confirm">Confirmar senha</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="confirm" class="form-control input-with-icon" placeholder="Repita a senha" required autocomplete="new-password">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary auth-submit-btn" id="submit-btn">
+            Criar Conta
+          </button>
+        </form>
+
+        <hr class="divider">
+
+        <div class="auth-footer">
+          <a href="dashboard.html" style="color:var(--text-muted);font-size:13px;">← Voltar ao Dashboard</a>
+        </div>
+      </div>
+    </div>
+
   </div>
   <div id="toast-container"></div>
 
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script>
-    // Only allow access if authenticated
     if (!isAuthenticated()) {
       window.location.replace('login.html');
     }
@@ -101,7 +141,7 @@
 
       try {
         await AuthAPI.register({ name, email, password, role: 'organizer' });
-        successEl.textContent = 'Conta criada com sucesso! Redirecionando para o login...';
+        successEl.textContent = 'Conta criada com sucesso! Redirecionando...';
         successEl.style.display = 'flex';
         form.reset();
         setTimeout(() => window.location.href = 'login.html', 2000);

@@ -9,7 +9,7 @@
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Dashboard — Jogos Olímpicos Sinodal PB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
@@ -55,25 +55,26 @@
             <div class="user-role" id="user-role">Organizador</div>
           </div>
         </div>
-        <a href="register.html" class="btn btn-secondary btn-sm" style="width:100%; margin-top:12px; justify-content:center;">
+        <a href="register.html" class="btn btn-secondary btn-sm" style="width:100%;margin-top:12px;justify-content:center;">
           Criar novo usuário
         </a>
-        <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%; margin-top:8px; justify-content:center;">👤 Meu Perfil</a>
-        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%; margin-top:8px; justify-content:center;">
-          Sair
-        </button>
+        <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">👤 Meu Perfil</a>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">Sair</button>
       </div>
     </aside>
 
-    <!-- Overlay for mobile -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <!-- Main -->
     <div class="main-wrapper">
       <header class="topbar">
         <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
-        <span class="topbar-title">Dashboard</span>
+        <div class="topbar-greeting">
+          <div class="topbar-greeting-main" id="topbar-greeting-main">Olá! 👋</div>
+          <div class="topbar-greeting-date" id="topbar-greeting-date"></div>
+        </div>
         <div class="topbar-actions">
+          <button class="btn-notif" title="Notificações" id="btn-notif">🔔</button>
           <button id="theme-toggle" onclick="if(typeof toggleTheme==='function')toggleTheme();else{const t=localStorage.getItem('sp_theme')==='dark'?'light':'dark';localStorage.setItem('sp_theme',t);document.documentElement.setAttribute('data-theme',t);this.innerHTML=t==='dark'?'☀️':'🌙';}" title="Alternar tema">🌙</button>
           <a href="championships.html" class="btn btn-primary btn-sm">+ Novo Campeonato</a>
         </div>
@@ -87,37 +88,62 @@
           </div>
         </div>
 
-        <!-- Stats -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:28px;height:28px;object-fit:contain;"></span>
-            <div class="stat-value" id="stat-total-champs">—</div>
-            <div class="stat-label">Total de Campeonatos</div>
+        <!-- Stats cards coloridos -->
+        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+          <div class="stat-card stat-card-row">
+            <div class="stat-icon-circle blue">🏆</div>
+            <div class="stat-body">
+              <div class="stat-value" id="stat-active-champs" style="color:var(--accent-blue);">—</div>
+              <div class="stat-label">Campeonatos Ativos</div>
+              <div class="stat-trend">↑ em andamento</div>
+            </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-icon"><img src="img/check.png" alt="Ativos" style="width:28px;height:28px;object-fit:contain;"></span>
-            <div class="stat-value" id="stat-active-champs" style="color:var(--accent-teal);">—</div>
-            <div class="stat-label">Campeonatos Ativos</div>
+          <div class="stat-card stat-card-row">
+            <div class="stat-icon-circle green">👥</div>
+            <div class="stat-body">
+              <div class="stat-value" id="stat-teams" style="color:var(--accent-green);">—</div>
+              <div class="stat-label">Equipes Cadastradas</div>
+              <div class="stat-trend">↑ crescimento</div>
+            </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-icon"><img src="img/bola.png" alt="Modalidades" style="width:28px;height:28px;object-fit:contain;"></span>
-            <div class="stat-value" id="stat-sports">—</div>
-            <div class="stat-label">Modalidades</div>
+          <div class="stat-card stat-card-row">
+            <div class="stat-icon-circle purple">🏃</div>
+            <div class="stat-body">
+              <div class="stat-value" id="stat-athletes" style="color:#7c3aed;">—</div>
+              <div class="stat-label">Atletas</div>
+              <div class="stat-trend">↑ cadastrados</div>
+            </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-icon"><img src="img/equipe.png" alt="Equipes" style="width:28px;height:28px;object-fit:contain;"></span>
-            <div class="stat-value" id="stat-teams" style="color:var(--warning);">—</div>
-            <div class="stat-label">Equipes</div>
+          <div class="stat-card stat-card-row">
+            <div class="stat-icon-circle orange">📋</div>
+            <div class="stat-body">
+              <div class="stat-value" id="stat-total-champs" style="color:#ea580c;">—</div>
+              <div class="stat-label">Total de Campeonatos</div>
+              <div class="stat-trend" style="color:var(--text-muted);">histórico</div>
+            </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-icon"><img src="img/medalha.png" alt="Atletas" style="width:28px;height:28px;object-fit:contain;"></span>
-            <div class="stat-value" id="stat-athletes" style="color:#a78bfa;">—</div>
-            <div class="stat-label">Atletas</div>
+          <div class="stat-card stat-card-row">
+            <div class="stat-icon-circle teal">⚽</div>
+            <div class="stat-body">
+              <div class="stat-value" id="stat-sports" style="color:var(--accent-teal);">—</div>
+              <div class="stat-label">Modalidades</div>
+              <div class="stat-trend" style="color:var(--text-muted);">disponíveis</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico Chart.js -->
+        <div class="card section" style="margin-bottom:24px;">
+          <div class="card-header">
+            <span class="card-title">📊 Campeonatos por Modalidade</span>
+          </div>
+          <div class="card-body" style="height:260px;position:relative;">
+            <canvas id="chart-sports"></canvas>
           </div>
         </div>
 
         <div class="content-grid">
-          <!-- Active championships -->
+          <!-- Campeonatos ativos -->
           <div class="card section">
             <div class="card-header">
               <span class="card-title"><img src="img/campeonatos.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;">Campeonatos Ativos</span>
@@ -128,7 +154,7 @@
             </div>
           </div>
 
-          <!-- Sports -->
+          <!-- Modalidades -->
           <div class="card section">
             <div class="card-header">
               <span class="card-title"><img src="img/bola.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;">Modalidades</span>
@@ -140,7 +166,7 @@
           </div>
         </div>
 
-        <!-- Recent championships table -->
+        <!-- Últimos campeonatos -->
         <div class="card">
           <div class="card-header">
             <span class="card-title">📋 Últimos Campeonatos</span>
@@ -184,21 +210,34 @@
 
   <div id="toast-container"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
   <script>
     if (!requireAuth()) { /* redirect handled by requireAuth */ }
 
-    // Welcome message
-    const user = getUser();
-    if (user) {
-      const firstName = (user.name || user.email || 'Usuário').split(' ')[0];
-      document.getElementById('welcome-msg').textContent = `Bem-vindo de volta, ${firstName}!`;
-    }
+    // Greeting dinâmico
+    (function() {
+      const user = getUser();
+      const firstName = user ? (user.name || user.email || 'Usuário').split(' ')[0] : 'Usuário';
+      const h = new Date().getHours();
+      const greeting = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+      document.getElementById('topbar-greeting-main').textContent = `${greeting}, ${firstName}! 👋`;
+      document.getElementById('welcome-msg').textContent = `${greeting} de volta, ${firstName}!`;
+      const now = new Date();
+      document.getElementById('topbar-greeting-date').textContent =
+        now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      if (user) {
+        document.getElementById('user-name').textContent = user.name || user.email;
+        if (document.getElementById('user-avatar'))
+          document.getElementById('user-avatar').textContent = (user.name || user.email || 'U')[0].toUpperCase();
+      }
+    })();
 
     let allChamps = [];
     let allSports = [];
+    let chartInstance = null;
 
     function statusBadge(status) {
       const map = {
@@ -215,27 +254,103 @@
       return map[status] || (status ? status.replace('_', ' ') : '—');
     }
 
+    function animateCount(el, target) {
+      if (!el || isNaN(target)) return;
+      const duration = 800;
+      const start = performance.now();
+      const from = 0;
+      function step(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(from + (target - from) * ease);
+        if (progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function renderChart(champs, sports) {
+      const ctx = document.getElementById('chart-sports');
+      if (!ctx) return;
+
+      // Contar campeonatos por slug de esporte
+      const slugColorMap = {
+        futsal:     { label: 'Futsal',     color: '#3b82f6' },
+        volleyball: { label: 'Vôlei',      color: '#10b981' },
+        basketball: { label: 'Basquete',   color: '#f59e0b' },
+        running:    { label: 'Corrida',    color: '#ef4444' },
+        domino:     { label: 'Dominó',     color: '#8b5cf6' },
+        dama:       { label: 'Dama',       color: '#ec4899' },
+        xadrez:     { label: 'Xadrez',     color: '#6b7280' },
+      };
+
+      const counts = {};
+      champs.forEach(c => {
+        const slug = c.sport?.slug || 'outro';
+        counts[slug] = (counts[slug] || 0) + 1;
+      });
+
+      const labels = [], data = [], colors = [];
+      Object.entries(counts).forEach(([slug, cnt]) => {
+        const info = slugColorMap[slug] || { label: slug, color: '#9ca3af' };
+        labels.push(info.label);
+        data.push(cnt);
+        colors.push(info.color);
+      });
+
+      if (chartInstance) chartInstance.destroy();
+
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+      const textColor = isDark ? '#9ba3bf' : '#4a5068';
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Campeonatos',
+            data,
+            backgroundColor: colors.map(c => c + 'cc'),
+            borderColor: colors,
+            borderWidth: 2,
+            borderRadius: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} campeonato(s)` } }
+          },
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { color: textColor } },
+            y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
     async function loadDashboard() {
-      // Load sports
       try {
         allSports = await SportsAPI.list();
-        document.getElementById('stat-sports').textContent = allSports.length;
+        animateCount(document.getElementById('stat-sports'), allSports.length);
         renderSports();
-      } catch (err) {
+      } catch {
         document.getElementById('stat-sports').textContent = '—';
         document.getElementById('sports-list').innerHTML =
           '<div class="alert alert-error">Não foi possível carregar as modalidades.</div>';
       }
 
-      // Load championships
       try {
         allChamps = await ChampAPI.list();
         const active = allChamps.filter(c => c.status === 'active');
-        document.getElementById('stat-total-champs').textContent = allChamps.length;
-        document.getElementById('stat-active-champs').textContent = active.length;
+        animateCount(document.getElementById('stat-total-champs'), allChamps.length);
+        animateCount(document.getElementById('stat-active-champs'), active.length);
         renderActiveChamps(active);
         renderRecentChamps(allChamps);
-      } catch (err) {
+        renderChart(allChamps, allSports);
+      } catch {
         document.getElementById('stat-total-champs').textContent = '—';
         document.getElementById('stat-active-champs').textContent = '—';
         document.getElementById('active-champs-list').innerHTML =
@@ -244,19 +359,17 @@
           '<div class="alert alert-error" style="margin:16px;">Não foi possível carregar os campeonatos.</div>';
       }
 
-      // Load teams count
       try {
         const teams = await TeamsAPI.list();
-        document.getElementById('stat-teams').textContent = Array.isArray(teams) ? teams.length : '—';
+        animateCount(document.getElementById('stat-teams'), Array.isArray(teams) ? teams.length : 0);
       } catch {
         document.getElementById('stat-teams').textContent = '—';
       }
 
-      // Load athletes count
       try {
         const athletes = await AthletesAPI.list();
         const statEl = document.getElementById('stat-athletes');
-        if (statEl) statEl.textContent = Array.isArray(athletes) ? athletes.length : '—';
+        if (statEl) animateCount(statEl, Array.isArray(athletes) ? athletes.length : 0);
       } catch {
         const statEl = document.getElementById('stat-athletes');
         if (statEl) statEl.textContent = '—';
@@ -269,13 +382,13 @@
         container.innerHTML = '<div class="empty-state"><img src="img/bola.png" alt="" style="width:48px;height:48px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><p>Nenhuma modalidade cadastrada.</p></div>';
         return;
       }
-      container.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px;">
+      container.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
         ${allSports.map(s => `
-          <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-tertiary); border-radius:8px; border:1px solid var(--border);">
-            <span style="font-size:22px;">${s.icon || '🏅'}</span>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border);">
+            <span style="font-size:20px;">${sportIcon(s.slug, 20)}</span>
             <div>
-              <div style="font-weight:600; font-size:14px;">${s.name}</div>
-              ${s.description ? `<div style="font-size:12px; color:var(--text-secondary);">${s.description}</div>` : ''}
+              <div style="font-weight:600;font-size:14px;">${s.name}</div>
+              <div style="font-size:11px;color:var(--text-muted);">${s.slug}</div>
             </div>
           </div>
         `).join('')}
@@ -288,17 +401,17 @@
         container.innerHTML = '<div class="empty-state"><img src="img/campeonatos.png" alt="" style="width:48px;height:48px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><p>Nenhum campeonato ativo.</p><a href="championships.html" class="btn btn-primary btn-sm">Criar Campeonato</a></div>';
         return;
       }
-      container.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px;">
+      container.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
         ${active.slice(0, 5).map(c => `
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--bg-tertiary); border-radius:8px; border:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border);border-left:3px solid var(--accent-green);">
             <div>
-              <div style="font-weight:600; font-size:14px;">${c.name}</div>
-              <div style="font-size:12px; color:var(--text-secondary); display:flex; align-items:center;">${sportIcon(c.sport?.slug, 14)}${c.sport?.name || '—'} &middot; ${formatName(c.format)}</div>
+              <div style="font-weight:600;font-size:14px;">${c.name}</div>
+              <div style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;">${sportIcon(c.sport?.slug, 13)}${c.sport?.name || '—'} · ${formatName(c.format)}</div>
             </div>
-            <span class="badge badge-active">Ativo</span>
+            <a href="championships.html?id=${c.id}" class="btn btn-sm btn-secondary">Gerenciar</a>
           </div>
         `).join('')}
-        ${active.length > 5 ? `<p style="text-align:center; font-size:12px; color:var(--text-secondary); padding-top:4px;">+${active.length - 5} mais</p>` : ''}
+        ${active.length > 5 ? `<p style="text-align:center;font-size:12px;color:var(--text-secondary);padding-top:4px;">+${active.length - 5} mais</p>` : ''}
       </div>`;
     }
 
@@ -306,7 +419,7 @@
       const container = document.getElementById('recent-champs-card');
       const recent = champs.slice(0, 8);
       if (!recent.length) {
-        container.innerHTML = '<div class="empty-state"><img src="img/campeonatos.png" alt="" style="width:48px;height:48px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><p>Nenhum campeonato encontrado.</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>Nenhum campeonato encontrado.</p></div>';
         return;
       }
       container.innerHTML = `
@@ -326,7 +439,7 @@
               ${recent.map(c => `
                 <tr>
                   <td><strong>${c.name}</strong></td>
-                  <td><span style="display:inline-flex;align-items:center;">${sportIcon(c.sport?.slug, 16)}${c.sport?.name || c.sport_name || '—'}</span></td>
+                  <td><span style="display:inline-flex;align-items:center;">${sportIcon(c.sport?.slug, 16)}${c.sport?.name || '—'}</span></td>
                   <td>${formatName(c.format)}</td>
                   <td>${statusBadge(c.status)}</td>
                   <td>${fmtDate(c.start_date)}</td>
@@ -342,7 +455,6 @@
         </div>`;
     }
 
-    // Gera slug a partir do nome da modalidade
     function generateSlug(name) {
       const map = {
         'futsal': 'futsal', 'futebol': 'futsal',
@@ -355,7 +467,6 @@
       return map[key] || key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     }
 
-    // Add sport
     document.getElementById('btn-add-sport').addEventListener('click', () => {
       document.getElementById('sport-form').reset();
       document.getElementById('sport-alert').style.display = 'none';
@@ -363,8 +474,7 @@
     });
 
     document.getElementById('sport-name').addEventListener('input', function () {
-      const slugEl = document.getElementById('sport-slug');
-      slugEl.value = generateSlug(this.value.trim());
+      document.getElementById('sport-slug').value = generateSlug(this.value.trim());
     });
 
     async function saveSport() {
@@ -380,11 +490,9 @@
       }
 
       const slug = document.getElementById('sport-slug').value.trim() || generateSlug(name);
-      const data = { name, slug };
-
       btnLoading(btn, true, 'Salvando...');
       try {
-        await SportsAPI.create(data);
+        await SportsAPI.create({ name, slug });
         closeModal('modal-sport');
         showToast('Modalidade criada com sucesso!', 'success');
         allSports = await SportsAPI.list();

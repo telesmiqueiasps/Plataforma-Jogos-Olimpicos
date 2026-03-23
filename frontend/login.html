@@ -9,39 +9,74 @@
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Jogos Olímpicos Sinodal PB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-  <div class="auth-wrapper">
-    <div class="auth-card">
-      <div class="auth-logo">
-        <img src="img/logo.png" alt="Jogos Olímpicos Sinodal PB" style="width:120px; height:auto; object-fit:contain; margin-bottom:4px;">
-        <h1 class="auth-title">Jogos Olímpicos Sinodal PB</h1>
-        <p class="auth-subtitle">Entre na sua conta para continuar</p>
-      </div>
+  <div class="auth-split">
 
-      <div id="alert" class="alert alert-error" style="display:none;"></div>
-
-      <form id="login-form" autocomplete="on">
-        <div class="form-group">
-          <label for="email">E-mail</label>
-          <input type="email" id="email" class="form-control" placeholder="seu@email.com" required autocomplete="username">
+    <!-- Painel decorativo esquerdo -->
+    <div class="auth-panel">
+      <div class="auth-panel-bg"></div>
+      <div class="auth-panel-content">
+        <span class="auth-panel-logo">🏆</span>
+        <h1 class="auth-panel-title">Sports Platform</h1>
+        <p class="auth-panel-tagline">Gerencie seus campeonatos com excelência</p>
+        <div class="auth-panel-stats">
+          <div class="auth-stat-card">
+            <div class="auth-stat-value">1.2k</div>
+            <div class="auth-stat-label">Atletas</div>
+          </div>
+          <div class="auth-stat-card">
+            <div class="auth-stat-value">48</div>
+            <div class="auth-stat-label">Campeona.</div>
+          </div>
+          <div class="auth-stat-card">
+            <div class="auth-stat-value">320</div>
+            <div class="auth-stat-label">Jogos</div>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="password">Senha</label>
-          <input type="password" id="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
-        </div>
-        <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%; justify-content:center; margin-top:8px;">
-          Entrar
-        </button>
-      </form>
-
-      <div style="text-align:center; margin-top:20px; color:#8b8da0; font-size:12px;">
-        Desenvolvido por <strong style="color:#a0a2b8;">Miquéias Teles</strong>
       </div>
     </div>
+
+    <!-- Formulário direito -->
+    <div class="auth-form-side">
+      <div class="auth-form-card">
+        <div class="auth-logo">
+          <img src="img/logo.png" alt="Logo" style="width:80px;height:auto;object-fit:contain;margin-bottom:8px;">
+          <h1 class="auth-title">Jogos Olímpicos Sinodal PB</h1>
+          <p class="auth-subtitle">Entre na sua conta para continuar</p>
+        </div>
+
+        <div id="alert" class="alert alert-error" style="display:none;"></div>
+
+        <form id="login-form" autocomplete="on">
+          <div class="form-group">
+            <label for="email">E-mail</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">📧</span>
+              <input type="email" id="email" class="form-control input-with-icon" placeholder="seu@email.com" required autocomplete="username">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="password">Senha</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="password" class="form-control input-with-icon" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary auth-submit-btn" id="submit-btn">
+            Entrar
+          </button>
+        </form>
+
+        <div class="auth-credit">
+          Desenvolvido por <strong>Miquéias Teles</strong>
+        </div>
+      </div>
+    </div>
+
   </div>
   <div id="toast-container"></div>
 
@@ -73,12 +108,10 @@
       try {
         const data = await AuthAPI.login(email, password);
         localStorage.setItem('sp_token', data.access_token);
-        // Fetch user info
         try {
           const user = await AuthAPI.me();
           setAuth(data.access_token, user);
         } catch {
-          // If me() fails, still store the token with basic info
           localStorage.setItem('sp_token', data.access_token);
         }
         window.location.href = 'dashboard.html';
