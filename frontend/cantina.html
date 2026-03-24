@@ -578,6 +578,10 @@
       renderProductGrid(cat);
     }
 
+    function handleProdImgError(el) {
+      el.outerHTML = '<div class="prod-thumb-placeholder">🛒</div>';
+    }
+
     function renderProductGrid(cat) {
       var filtered = cat ? allProducts.filter(function(p){ return p.category === cat; }) : allProducts;
       var grid = document.getElementById('product-grid');
@@ -591,7 +595,7 @@
         var lowBadge = (p.stock > 0 && p.stock <= p.min_stock) ? '<span class="low-badge">⚠️</span>' : '';
         var thumb = '';
         if (p.image_url) {
-          thumb = '<img class="prod-thumb" src="' + escHtml(p.image_url) + '" alt="" onerror="this.outerHTML=\'<div class=\\\"prod-thumb-placeholder\\\">🛒</div>\'">';
+          thumb = '<img class="prod-thumb" src="' + escHtml(p.image_url) + '" alt="" onerror="handleProdImgError(this)">';
         } else {
           thumb = '<div class="prod-thumb-placeholder">🍽️</div>';
         }
@@ -1151,6 +1155,22 @@
           CantinAPI.cashFlow(),
         ]);
 
+        // Movimentações manuais — excluir registros antigos de estorno (já contabilizados nos pedidos)
+        var filteredFlows = (flows || []).filter(function(f) {
+          return !(f.type === 'saida' && f.description && f.description.indexOf('Estorno') !== -1);
+        });
+
+        // Calcular totais reais para o resumo do PDF
+        var pdfTotals = { total_vendas: 0, total_estornos: 0, total_entradas: 0, total_saidas: 0 };
+        (orders || []).forEach(function(o) {
+          if (o.status === 'paid')     pdfTotals.total_vendas   += parseFloat(o.total);
+          if (o.status === 'refunded') pdfTotals.total_estornos += parseFloat(o.total);
+        });
+        filteredFlows.forEach(function(f) {
+          if (f.type === 'entrada') pdfTotals.total_entradas += parseFloat(f.amount);
+          else                      pdfTotals.total_saidas   += parseFloat(f.amount);
+        });
+
         // Montar lista unificada de movimentações
         var movements = [];
 
@@ -1181,8 +1201,8 @@
           }
         });
 
-        // Movimentações manuais
-        (flows || []).forEach(function(f) {
+        // Movimentações manuais (sem registros antigos de estorno)
+        filteredFlows.forEach(function(f) {
           movements.push({
             time: f.created_at,
             type: f.type === 'entrada' ? 'ENTRADA' : 'SAÍDA',
@@ -1204,7 +1224,7 @@
           m.balance = running;
         });
 
-        var html = buildExtratoPDFHTML(summary, movements);
+        var html = buildExtratoPDFHTML(pdfTotals, movements);
         var area = document.getElementById('pdf-render-area');
         area.innerHTML = html;
         await new Promise(function(r){ setTimeout(r, 500); });
@@ -1229,7 +1249,7 @@
       }
     }
 
-    function buildExtratoPDFHTML(summary, movements) {
+    function buildExtratoPDFHTML(pdfTotals, movements) {
       var styles = '<style>* { box-sizing:border-box; margin:0; padding:0; } body { font-family:Arial,sans-serif; font-size:11px; color:#1a1d2e; background:#fff; } table { border-collapse:collapse; width:100%; } th { background:#2563eb; color:#fff; padding:7px 10px; text-align:left; font-size:10px; text-transform:uppercase; } td { padding:6px 10px; border-bottom:1px solid #e2e6ef; font-size:11px; } tr:nth-child(even) td { background:#f8f9fc; } .entrada { color:#065f46; font-weight:700; } .saida { color:#991b1b; font-weight:700; } .estorno { color:#7f1d1d; font-weight:700; }</style>';
 
       var now = new Date();
@@ -1238,14 +1258,18 @@
         '<div style="font-size:11px;opacity:.85;">Jogos Olímpicos Sinodal PB &nbsp;·&nbsp; ' + now.toLocaleDateString('pt-BR') + ' &nbsp;·&nbsp; Gerado em ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) + '</div>' +
         '</div>';
 
-      // Resumo
-      var saldo = (summary.total_vendas || 0) - (summary.total_refunded || 0) + (summary.total_entradas || 0) - (summary.total_saidas || 0);
+      // Resumo — totais calculados a partir dos dados reais (sem dupla contagem)
+      var totalVendas     = pdfTotals.total_vendas   || 0;
+      var totalEstornos   = pdfTotals.total_estornos || 0;
+      var totalEntradas   = pdfTotals.total_entradas || 0;
+      var totalSaidas     = pdfTotals.total_saidas   || 0;
+      var saldo = totalVendas - totalEstornos + totalEntradas - totalSaidas;
       var summaryHtml = '<div style="display:flex;background:#f8f9fc;border-bottom:2px solid #2563eb;">' +
-        pdfSumCard('Entradas (Vendas)', 'R$ ' + formatMoney(summary.total_vendas || 0)) +
-        pdfSumCard('Dinheiro', 'R$ ' + formatMoney(summary.total_dinheiro || 0)) +
-        pdfSumCard('PIX', 'R$ ' + formatMoney(summary.total_pix || 0)) +
-        pdfSumCard('Estornos', '<span style="color:#dc2626;">R$ ' + formatMoney(summary.total_refunded || 0) + '</span>') +
-        pdfSumCard('Saldo Final', '<span style="color:' + (saldo >= 0 ? '#065f46' : '#dc2626') + ';">R$ ' + formatMoney(saldo) + '</span>') +
+        pdfSumCard('Total Vendas', 'R$ ' + formatMoney(totalVendas)) +
+        pdfSumCard('Estornos', '<span style="color:#dc2626;">- R$ ' + formatMoney(totalEstornos) + '</span>') +
+        pdfSumCard('Entradas Manuais', '<span style="color:#065f46;">R$ ' + formatMoney(totalEntradas) + '</span>') +
+        pdfSumCard('Sa&iacute;das Manuais', '<span style="color:#991b1b;">- R$ ' + formatMoney(totalSaidas) + '</span>') +
+        pdfSumCard('Saldo Final', '<span style="color:' + (saldo >= 0 ? '#065f46' : '#dc2626') + ';font-weight:900;">R$ ' + formatMoney(saldo) + '</span>') +
         '</div>';
 
       // Tabela de movimentações
