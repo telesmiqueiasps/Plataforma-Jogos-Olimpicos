@@ -510,7 +510,7 @@ class CantinProduct(Base):
     stock       = Column(Integer, default=0)
     min_stock   = Column(Integer, default=5)
     active      = Column(Boolean, default=True)
-    image_url   = Column(String(500), nullable=True)
+    image_url   = Column(String(2000), nullable=True)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
 
     order_items = relationship("CantinOrderItem", back_populates="product")

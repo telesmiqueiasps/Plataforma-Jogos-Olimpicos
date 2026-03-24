@@ -358,9 +358,11 @@
         <div class="form-group">
           <label>URL da Imagem</label>
           <div class="img-preview-wrap">
-            <input type="url" id="product-image-url" class="form-control" placeholder="https://exemplo.com/imagem.jpg" oninput="previewProductImage(this.value)">
+            <input type="text" id="product-image-url" class="form-control" placeholder="https://exemplo.com/imagem.jpg" oninput="previewProductImage(this.value)">
             <div id="product-img-preview" class="img-preview-thumb">🛒</div>
           </div>
+          <span class="form-hint">Cole aqui o link direto de uma imagem da internet (ex: https://site.com/imagem.jpg)</span>
+          <div id="product-image-url-error" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
         </div>
         <div class="form-group">
           <label>Descrição</label>
@@ -795,11 +797,22 @@
 
     function previewProductImage(url) {
       var preview = document.getElementById('product-img-preview');
+      var errEl = document.getElementById('product-image-url-error');
       if (!url) {
         preview.innerHTML = '🛒';
-        preview.style.backgroundImage = '';
+        if (errEl) errEl.style.display = 'none';
         return;
       }
+      if (url.trim().startsWith('data:')) {
+        document.getElementById('product-image-url').value = '';
+        preview.innerHTML = '🛒';
+        if (errEl) {
+          errEl.textContent = 'Por favor cole uma URL de imagem da internet, não faça upload de arquivo.';
+          errEl.style.display = 'block';
+        }
+        return;
+      }
+      if (errEl) errEl.style.display = 'none';
       preview.innerHTML = '<img src="' + escHtml(url) + '" style="width:60px;height:60px;border-radius:8px;object-fit:cover;" onerror="this.parentElement.innerHTML=\'🛒\'">';
     }
 
@@ -822,6 +835,12 @@
     async function saveProduct() {
       var id = document.getElementById('product-id').value;
       var imageUrl = document.getElementById('product-image-url').value.trim();
+      if (imageUrl && imageUrl.startsWith('data:')) {
+        showToast('Por favor cole uma URL de imagem da internet, não faça upload de arquivo.', 'error', 5000);
+        document.getElementById('product-image-url').value = '';
+        previewProductImage('');
+        return;
+      }
       var data = {
         name: document.getElementById('product-name').value.trim(),
         category: document.getElementById('product-category').value.trim() || null,
@@ -1220,7 +1239,7 @@
         '</div>';
 
       // Resumo
-      var saldo = (summary.total_vendas || 0) + (summary.total_entradas || 0) - (summary.total_saidas || 0);
+      var saldo = (summary.total_vendas || 0) - (summary.total_refunded || 0) + (summary.total_entradas || 0) - (summary.total_saidas || 0);
       var summaryHtml = '<div style="display:flex;background:#f8f9fc;border-bottom:2px solid #2563eb;">' +
         pdfSumCard('Entradas (Vendas)', 'R$ ' + formatMoney(summary.total_vendas || 0)) +
         pdfSumCard('Dinheiro', 'R$ ' + formatMoney(summary.total_dinheiro || 0)) +

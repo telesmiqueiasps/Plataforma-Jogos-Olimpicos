@@ -377,16 +377,6 @@ def refund_order(
     order.refunded_by = current_user.id
     order.refund_reason = data.reason
 
-    # Registrar saída no caixa
-    flow = CantinCashFlow(
-        type="saida",
-        amount=float(order.total),
-        description=f"Estorno Pedido #{order.order_number} — {data.reason}",
-        payment_method=order.payment_method,
-        created_by=current_user.id,
-    )
-    db.add(flow)
-
     db.commit()
     db.refresh(order)
     users = _users_map(db, {order.created_by}, {order.refunded_by})
@@ -440,7 +430,11 @@ def get_cash_summary(
 
     flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).all()
     total_entradas = sum(float(f.amount) for f in flows if f.type == "entrada")
-    total_saidas = sum(float(f.amount) for f in flows if f.type == "saida")
+    # Exclui cashflows de estorno (gerados por versões antigas) para não contar duplo
+    total_saidas = sum(
+        float(f.amount) for f in flows
+        if f.type == "saida" and "Estorno" not in (f.description or "")
+    )
 
     all_today = db.query(CantinOrder).filter(CantinOrder.created_at >= today).all()
     pending = sum(1 for o in all_today if o.status == "pending")
@@ -453,7 +447,7 @@ def get_cash_summary(
         "total_entradas": total_entradas,
         "total_saidas": total_saidas,
         "total_refunded": total_refunded,
-        "saldo": total_vendas + total_entradas - total_saidas,
+        "saldo": total_vendas - total_refunded + total_entradas - total_saidas,
         "orders_count": len(all_today),
         "orders_paid": len(paid_orders),
         "orders_pending": pending,
