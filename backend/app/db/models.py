@@ -6,6 +6,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
 )
@@ -19,7 +20,7 @@ from app.db.session import Base
 # Enums
 # ---------------------------------------------------------------------------
 
-UserRole = Enum("admin", "organizer", name="user_role")
+UserRole = Enum("admin", "organizer", "cantina", name="user_role")
 
 SportSlug = Enum(
     "futsal",
@@ -492,3 +493,65 @@ class BoardgameGame(Base):
         Index("ix_boardgame_games_championship_id", "championship_id"),
         Index("ix_boardgame_games_game_type",       "game_type"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Cantina
+# ---------------------------------------------------------------------------
+
+class CantinProduct(Base):
+    __tablename__ = "cantin_products"
+
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String(100), nullable=False)
+    description = Column(String(300), nullable=True)
+    price       = Column(Numeric(10, 2), nullable=False)
+    category    = Column(String(50), nullable=True)
+    stock       = Column(Integer, default=0)
+    min_stock   = Column(Integer, default=5)
+    active      = Column(Boolean, default=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    order_items = relationship("CantinOrderItem", back_populates="product")
+
+
+class CantinOrder(Base):
+    __tablename__ = "cantin_orders"
+
+    id             = Column(Integer, primary_key=True)
+    order_number   = Column(Integer, nullable=False)
+    status         = Column(String(20), default="pending")   # pending, paid, cancelled
+    payment_method = Column(String(20), nullable=True)       # dinheiro, pix
+    total          = Column(Numeric(10, 2), nullable=False, default=0)
+    notes          = Column(String(300), nullable=True)
+    created_by     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+
+    items = relationship("CantinOrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+class CantinOrderItem(Base):
+    __tablename__ = "cantin_order_items"
+
+    id           = Column(Integer, primary_key=True)
+    order_id     = Column(Integer, ForeignKey("cantin_orders.id", ondelete="CASCADE"), nullable=False)
+    product_id   = Column(Integer, ForeignKey("cantin_products.id", ondelete="SET NULL"), nullable=True)
+    product_name = Column(String(100), nullable=False)
+    unit_price   = Column(Numeric(10, 2), nullable=False)
+    quantity     = Column(Integer, nullable=False, default=1)
+    subtotal     = Column(Numeric(10, 2), nullable=False)
+
+    order   = relationship("CantinOrder", back_populates="items")
+    product = relationship("CantinProduct", back_populates="order_items")
+
+
+class CantinCashFlow(Base):
+    __tablename__ = "cantin_cash_flow"
+
+    id             = Column(Integer, primary_key=True)
+    type           = Column(String(10), nullable=False)       # entrada, saida
+    amount         = Column(Numeric(10, 2), nullable=False)
+    description    = Column(String(300), nullable=False)
+    payment_method = Column(String(20), nullable=True)
+    created_by     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())

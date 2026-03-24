@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
+  <title>Cantina — Jogos Olímpicos Sinodal PB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    /* ---- Tab nav ---- */
+    .tab-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:0; }
+    .tab-btn { padding:10px 18px; border:none; background:none; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; border-radius:0; font-family:inherit; }
+    .tab-btn:hover { color:var(--text-primary); }
+    .tab-btn.active { color:var(--accent-blue,#2563eb); border-bottom-color:var(--accent-blue,#2563eb); }
+
+    /* ---- PDV layout ---- */
+    .pdv-layout { display:grid; grid-template-columns:1fr 380px; gap:16px; align-items:start; }
+    @media(max-width:900px){ .pdv-layout { grid-template-columns:1fr; } }
+
+    /* ---- Product card ---- */
+    .product-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+    .product-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:14px 12px; cursor:pointer; transition:box-shadow .15s,border-color .15s; text-align:center; position:relative; }
+    .product-card:hover:not(.disabled) { box-shadow:var(--shadow-md); border-color:var(--accent-blue,#2563eb); }
+    .product-card.disabled { opacity:.5; cursor:not-allowed; }
+    .product-card .p-name { font-weight:600; font-size:13px; margin-bottom:4px; }
+    .product-card .p-price { font-size:16px; font-weight:800; color:var(--accent-blue,#2563eb); }
+    .product-card .p-stock { font-size:11px; color:var(--text-muted); margin-top:3px; }
+    .product-card .low-badge { position:absolute; top:6px; right:6px; background:#fef3c7; color:#92400e; font-size:10px; font-weight:700; border-radius:4px; padding:2px 5px; }
+
+    /* ---- Cart ---- */
+    .cart-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; position:sticky; top:80px; }
+    .cart-item { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-light,#f0f2f7); font-size:13px; }
+    .cart-item:last-child { border-bottom:none; }
+    .cart-item-name { flex:1; font-weight:500; }
+    .cart-qty-btn { width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:var(--bg-secondary); cursor:pointer; font-weight:700; display:flex; align-items:center; justify-content:center; font-size:14px; line-height:1; }
+    .cart-qty { width:28px; text-align:center; font-weight:700; font-size:13px; }
+    .cart-subtotal { min-width:60px; text-align:right; font-weight:600; color:var(--accent-blue,#2563eb); font-size:13px; }
+    .cart-total-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0 0; margin-top:4px; border-top:2px solid var(--border); }
+    .cart-total-label { font-size:14px; font-weight:600; color:var(--text-secondary); }
+    .cart-total-value { font-size:26px; font-weight:900; color:var(--accent-blue,#2563eb); }
+    .pay-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+
+    /* ---- Order card ---- */
+    .order-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+    .order-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+    .order-num { font-weight:800; font-size:15px; color:var(--accent-blue,#2563eb); }
+    .order-items-list { font-size:12px; color:var(--text-secondary); margin-bottom:6px; }
+    .order-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+    .order-total { font-weight:800; font-size:16px; }
+    .order-time { font-size:11px; color:var(--text-muted); }
+
+    /* ---- Cash summary cards ---- */
+    .cash-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+    .cash-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; }
+    .cash-card .c-icon { font-size:28px; margin-bottom:6px; }
+    .cash-card .c-value { font-size:22px; font-weight:800; color:var(--accent-blue,#2563eb); }
+    .cash-card .c-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
+
+    /* ---- Table ---- */
+    .prod-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .prod-table th { padding:10px 12px; text-align:left; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; border-bottom:2px solid var(--border); }
+    .prod-table td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .prod-table tr:hover td { background:var(--bg-secondary); }
+    .prod-table tr.low-stock td { background:#fef3c7; }
+    .prod-table tr.zero-stock td { background:#fee2e2; }
+
+    /* Status badges */
+    .badge-paid { background:#d1fae5; color:#065f46; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-pending { background:#fef3c7; color:#92400e; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-cancelled { background:#fee2e2; color:#991b1b; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-entrada { background:#d1fae5; color:#065f46; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
+    .badge-saida { background:#fee2e2; color:#991b1b; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="cantina.html" class="sidebar-logo">
+          <img src="img/logo.png" alt="Logo" style="width:50px;height:50px;object-fit:contain;flex-shrink:0;">
+          <span>Jogos Olímpicos<br>Sinodal PB</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Jogos</span>
+        </a>
+        <a href="reports.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/relatorio.png" alt="Relatórios" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Relatórios</span>
+        </a>
+        <a href="cantina.html" class="nav-item active" data-role="cantina">
+          <span class="nav-icon"><span style="font-size:18px;">🏪</span></span>
+          <span>Cantina</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Atletas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Cantina</div>
+          </div>
+        </div>
+        <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">👤 Meu Perfil</a>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">Sair</button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">🏪 Cantina</span>
+        <div class="topbar-actions">
+          <button id="theme-toggle" onclick="if(typeof toggleTheme==='function')toggleTheme();else{const t=localStorage.getItem('sp_theme')==='dark'?'light':'dark';localStorage.setItem('sp_theme',t);document.documentElement.setAttribute('data-theme',t);this.innerHTML=t==='dark'?'☀️':'🌙';}" title="Alternar tema">🌙</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- Tab nav -->
+        <div class="tab-nav">
+          <button class="tab-btn active" data-tab="pdv">🛒 PDV</button>
+          <button class="tab-btn" data-tab="produtos">📦 Produtos</button>
+          <button class="tab-btn" data-tab="caixa">💰 Caixa</button>
+          <button class="tab-btn" data-tab="relatorio">📊 Relatório</button>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ABA: PDV                                                 -->
+        <!-- ======================================================= -->
+        <div id="tab-pdv">
+          <div class="pdv-layout">
+            <!-- Catálogo -->
+            <div>
+              <!-- Filtros de categoria -->
+              <div id="cat-filters" class="filter-tabs" style="margin-bottom:12px;"></div>
+              <!-- Grid de produtos -->
+              <div id="product-grid" class="product-grid">
+                <div class="page-loading"><div class="spinner"></div><span>Carregando...</span></div>
+              </div>
+            </div>
+
+            <!-- Carrinho -->
+            <div class="cart-panel">
+              <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                🛒 Carrinho
+                <button onclick="clearCart()" style="margin-left:auto;font-size:11px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;">Limpar</button>
+              </h3>
+              <div id="cart-items">
+                <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;">Nenhum item adicionado</div>
+              </div>
+              <div class="cart-total-row">
+                <span class="cart-total-label">Total</span>
+                <span class="cart-total-value" id="cart-total">R$ 0,00</span>
+              </div>
+              <div class="pay-btns">
+                <button class="btn btn-primary" onclick="confirmOrder('dinheiro')" id="btn-pay-cash">💵 Dinheiro</button>
+                <button class="btn btn-primary" onclick="confirmOrder('pix')" id="btn-pay-pix">📱 PIX</button>
+              </div>
+              <div id="cart-note" style="margin-top:10px;">
+                <input type="text" id="order-notes" class="form-control" placeholder="Observação (opcional)" style="font-size:12px;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ABA: PRODUTOS                                            -->
+        <!-- ======================================================= -->
+        <div id="tab-produtos" style="display:none;">
+          <div class="table-actions" style="margin-bottom:16px;">
+            <h2 style="font-size:16px;font-weight:700;margin:0;">Produtos</h2>
+            <button class="btn btn-primary" onclick="openProductModal()">+ Novo Produto</button>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table class="prod-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Categoria</th>
+                      <th style="text-align:right;">Preço</th>
+                      <th style="text-align:center;">Estoque</th>
+                      <th style="text-align:center;">Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="products-tbody">
+                    <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ABA: CAIXA                                               -->
+        <!-- ======================================================= -->
+        <div id="tab-caixa" style="display:none;">
+          <!-- Resumo -->
+          <div id="cash-summary" class="cash-grid"></div>
+
+          <!-- Filtros de pedidos -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div class="filter-tabs" style="margin:0;">
+              <button class="filter-tab active" data-status="">Todos</button>
+              <button class="filter-tab" data-status="paid">Pagos</button>
+              <button class="filter-tab" data-status="pending">Pendentes</button>
+              <button class="filter-tab" data-status="cancelled">Cancelados</button>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="openCashFlowModal('entrada')">➕ Entrada</button>
+              <button class="btn btn-danger btn-sm" onclick="openCashFlowModal('saida')">➖ Saída</button>
+              <button class="btn btn-secondary btn-sm" onclick="loadCashTab()">↻ Atualizar</button>
+            </div>
+          </div>
+
+          <div id="orders-list"></div>
+
+          <!-- Movimentações manuais -->
+          <div style="margin-top:20px;">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;">Movimentações Manuais</h3>
+            <div id="cash-flow-list"></div>
+          </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ABA: RELATÓRIO                                           -->
+        <!-- ======================================================= -->
+        <div id="tab-relatorio" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <h2 style="font-size:16px;font-weight:700;margin:0;">Relatório do Dia</h2>
+            <button class="btn btn-primary" id="btn-export-pdf" onclick="exportCantinaPDF()">📄 Exportar PDF</button>
+          </div>
+
+          <div id="report-summary" class="cash-grid"></div>
+
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header"><span class="card-title">🏆 Produtos Mais Vendidos</span></div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table class="prod-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Produto</th>
+                      <th style="text-align:center;">Qtd Vendida</th>
+                      <th style="text-align:right;">Total Arrecadado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="top-products-tbody">
+                    <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAIS                                                          -->
+  <!-- ============================================================== -->
+
+  <!-- Modal: Produto -->
+  <div class="modal-overlay" id="modal-product">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-product-title">Novo Produto</span>
+        <button class="modal-close" onclick="closeModal('modal-product')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="product-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nome *</label>
+            <input type="text" id="product-name" class="form-control" placeholder="Ex: Coxinha" required>
+          </div>
+          <div class="form-group">
+            <label>Categoria</label>
+            <input type="text" id="product-category" class="form-control" placeholder="Ex: Lanche">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Preço (R$) *</label>
+            <input type="number" id="product-price" class="form-control" placeholder="5.00" step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label>Estoque inicial</label>
+            <input type="number" id="product-stock" class="form-control" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estoque mínimo (alerta)</label>
+            <input type="number" id="product-min-stock" class="form-control" placeholder="5" min="0">
+          </div>
+          <div class="form-group" style="justify-content:flex-end;flex-direction:row;align-items:center;gap:10px;padding-top:24px;">
+            <input type="checkbox" id="product-active" checked style="width:16px;height:16px;">
+            <label for="product-active" style="margin:0;cursor:pointer;">Ativo</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <input type="text" id="product-desc" class="form-control" placeholder="Descrição opcional">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-product')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-product" onclick="saveProduct()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ajustar estoque -->
+  <div class="modal-overlay" id="modal-stock">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <span class="modal-title">Ajustar Estoque</span>
+        <button class="modal-close" onclick="closeModal('modal-stock')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="stock-product-name" style="font-weight:600;margin-bottom:12px;"></p>
+        <div class="form-group">
+          <label>Novo estoque</label>
+          <input type="number" id="new-stock-value" class="form-control" min="0">
+        </div>
+        <input type="hidden" id="stock-product-id">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-stock')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-stock" onclick="saveStock()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Fluxo de caixa -->
+  <div class="modal-overlay" id="modal-cashflow">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <span class="modal-title" id="cashflow-modal-title">Registrar Entrada</span>
+        <button class="modal-close" onclick="closeModal('modal-cashflow')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cashflow-type">
+        <div class="form-group">
+          <label>Valor (R$) *</label>
+          <input type="number" id="cashflow-amount" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+        </div>
+        <div class="form-group">
+          <label>Descrição *</label>
+          <input type="text" id="cashflow-desc" class="form-control" placeholder="Ex: Abertura de caixa">
+        </div>
+        <div class="form-group">
+          <label>Método</label>
+          <select id="cashflow-method" class="form-control">
+            <option value="">— Selecione —</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="pix">PIX</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-cashflow')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-cashflow" onclick="saveCashFlow()">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <!-- Hidden PDF area -->
+  <div id="pdf-render-area"
+    style="position:absolute;left:-9999px;top:0;width:794px;background:#fff;font-family:Arial,sans-serif;color:#1a1d2e;font-size:12px;line-height:1.4;">
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // ================================================================
+    //  State
+    // ================================================================
+    var allProducts = [];
+    var cart = [];         // [{product, quantity}]
+    var currentTab = 'pdv';
+    var currentOrderFilter = '';
+    var currentCategoryFilter = '';
+
+    // ================================================================
+    //  Init
+    // ================================================================
+    document.addEventListener('DOMContentLoaded', function() {
+      requireCantinaAccess();
+      initTabNav();
+      loadPDV();
+    });
+
+    // ================================================================
+    //  Tab navigation
+    // ================================================================
+    function initTabNav() {
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var tab = btn.dataset.tab;
+          document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+          ['pdv','produtos','caixa','relatorio'].forEach(function(t){
+            document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+          });
+          currentTab = tab;
+          if (tab === 'produtos') loadProductsTable();
+          if (tab === 'caixa') loadCashTab();
+          if (tab === 'relatorio') loadReport();
+        });
+      });
+
+      // Order filter tabs
+      document.querySelectorAll('[data-status]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('[data-status]').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+          currentOrderFilter = btn.dataset.status;
+          renderOrdersList(btn.dataset.status);
+        });
+      });
+    }
+
+    // ================================================================
+    //  PDV
+    // ================================================================
+    async function loadPDV() {
+      try {
+        var products = await CantinAPI.products({ active: 'true' });
+        allProducts = products || [];
+        buildCategoryFilters();
+        renderProductGrid('');
+      } catch(e) {
+        document.getElementById('product-grid').innerHTML =
+          '<p style="color:var(--text-muted);padding:20px;">Erro ao carregar produtos: ' + e.message + '</p>';
+      }
+    }
+
+    function buildCategoryFilters() {
+      var cats = [''];
+      allProducts.forEach(function(p) {
+        if (p.category && cats.indexOf(p.category) === -1) cats.push(p.category);
+      });
+      var container = document.getElementById('cat-filters');
+      var html = '';
+      cats.forEach(function(cat) {
+        html += '<button class="filter-tab' + (cat === '' ? ' active' : '') + '" onclick="filterCategory(\'' + cat + '\')">' +
+          (cat || 'Todos') + '</button>';
+      });
+      container.innerHTML = html;
+    }
+
+    function filterCategory(cat) {
+      currentCategoryFilter = cat;
+      document.querySelectorAll('#cat-filters .filter-tab').forEach(function(b){
+        b.classList.toggle('active', b.textContent === (cat || 'Todos'));
+      });
+      renderProductGrid(cat);
+    }
+
+    function renderProductGrid(cat) {
+      var filtered = cat ? allProducts.filter(function(p){ return p.category === cat; }) : allProducts;
+      var grid = document.getElementById('product-grid');
+      if (filtered.length === 0) {
+        grid.innerHTML = '<p style="color:var(--text-muted);padding:20px;">Nenhum produto nesta categoria.</p>';
+        return;
+      }
+      var html = '';
+      filtered.forEach(function(p) {
+        var disabled = p.stock <= 0 ? ' disabled' : '';
+        var lowBadge = (p.stock > 0 && p.stock <= p.min_stock) ? '<span class="low-badge">⚠️</span>' : '';
+        html += '<div class="product-card' + disabled + '" onclick="addToCart(' + p.id + ')">' +
+          lowBadge +
+          '<div style="font-size:28px;margin-bottom:8px;">🍽️</div>' +
+          '<div class="p-name">' + escHtml(p.name) + '</div>' +
+          '<div class="p-price">R$ ' + formatMoney(p.price) + '</div>' +
+          '<div class="p-stock">' + (p.stock <= 0 ? '❌ Sem estoque' : 'Estoque: ' + p.stock) + '</div>' +
+          '</div>';
+      });
+      grid.innerHTML = html;
+    }
+
+    function addToCart(productId) {
+      var product = null;
+      for (var i = 0; i < allProducts.length; i++) {
+        if (allProducts[i].id === productId) { product = allProducts[i]; break; }
+      }
+      if (!product || product.stock <= 0) return;
+
+      var existing = null;
+      for (var j = 0; j < cart.length; j++) {
+        if (cart[j].product.id === productId) { existing = cart[j]; break; }
+      }
+      if (existing) {
+        if (existing.quantity >= product.stock) {
+          showToast('Estoque máximo atingido: ' + product.stock, 'error'); return;
+        }
+        existing.quantity++;
+      } else {
+        cart.push({ product: product, quantity: 1 });
+      }
+      renderCart();
+    }
+
+    function changeQty(productId, delta) {
+      for (var i = 0; i < cart.length; i++) {
+        if (cart[i].product.id === productId) {
+          cart[i].quantity += delta;
+          if (cart[i].quantity <= 0) {
+            cart.splice(i, 1);
+          }
+          break;
+        }
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      var container = document.getElementById('cart-items');
+      if (cart.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;">Nenhum item adicionado</div>';
+        document.getElementById('cart-total').textContent = 'R$ 0,00';
+        return;
+      }
+      var total = 0;
+      var html = '';
+      cart.forEach(function(ci) {
+        var sub = ci.product.price * ci.quantity;
+        total += sub;
+        html += '<div class="cart-item">' +
+          '<span class="cart-item-name">' + escHtml(ci.product.name) + '</span>' +
+          '<button class="cart-qty-btn" onclick="changeQty(' + ci.product.id + ', -1)">−</button>' +
+          '<span class="cart-qty">' + ci.quantity + '</span>' +
+          '<button class="cart-qty-btn" onclick="changeQty(' + ci.product.id + ', 1)">+</button>' +
+          '<span class="cart-subtotal">R$ ' + formatMoney(sub) + '</span>' +
+          '</div>';
+      });
+      container.innerHTML = html;
+      document.getElementById('cart-total').textContent = 'R$ ' + formatMoney(total);
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+      document.getElementById('order-notes').value = '';
+    }
+
+    async function confirmOrder(paymentMethod) {
+      if (cart.length === 0) { showToast('Adicione itens ao carrinho primeiro.', 'error'); return; }
+      var items = cart.map(function(ci) {
+        return { product_id: ci.product.id, quantity: ci.quantity };
+      });
+      var notes = document.getElementById('order-notes').value.trim();
+      var btn = document.getElementById('btn-pay-' + (paymentMethod === 'dinheiro' ? 'cash' : 'pix'));
+      if (btn) btnLoading(btn, true, 'Registrando...');
+      try {
+        var order = await CantinAPI.createOrder({ items: items, payment_method: paymentMethod, notes: notes || null });
+        var total = 'R$ ' + formatMoney(order.total);
+        showToast('✅ Pedido #' + order.order_number + ' registrado! Total: ' + total, 'success', 4000);
+        clearCart();
+        await loadPDV();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      } finally {
+        if (btn) btnLoading(btn, false);
+      }
+    }
+
+    // ================================================================
+    //  Produtos (table)
+    // ================================================================
+    async function loadProductsTable() {
+      try {
+        var products = await CantinAPI.products();
+        allProducts = products || [];
+        renderProductsTable(products);
+      } catch(e) {
+        showToast('Erro ao carregar produtos: ' + e.message, 'error');
+      }
+    }
+
+    function renderProductsTable(products) {
+      var tbody = document.getElementById('products-tbody');
+      if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum produto cadastrado. Clique em "+ Novo Produto".</td></tr>';
+        return;
+      }
+      var html = '';
+      products.forEach(function(p) {
+        var rowClass = p.stock === 0 ? 'zero-stock' : (p.stock <= p.min_stock ? 'low-stock' : '');
+        html += '<tr class="' + rowClass + '">' +
+          '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+          '<td><span style="background:var(--bg-tertiary,#f0f2f7);padding:2px 8px;border-radius:10px;font-size:11px;">' + escHtml(p.category || '—') + '</span></td>' +
+          '<td style="text-align:right;font-weight:700;">R$ ' + formatMoney(p.price) + '</td>' +
+          '<td style="text-align:center;">' +
+            (p.stock === 0 ? '<span style="color:#dc2626;font-weight:700;">0</span>' :
+             p.stock <= p.min_stock ? '<span style="color:#d97706;font-weight:700;">' + p.stock + ' ⚠️</span>' :
+             '<span style="font-weight:600;">' + p.stock + '</span>') +
+          '</td>' +
+          '<td style="text-align:center;">' + (p.active ? '<span class="badge-paid">Ativo</span>' : '<span class="badge-cancelled">Inativo</span>') + '</td>' +
+          '<td>' +
+            '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
+            '<button class="btn btn-ghost btn-sm" onclick="openStockModal(' + p.id + ',\'' + escHtml(p.name).replace(/'/g,"\\'")+'\''  + ',' + p.stock + ')">📦</button>' +
+            '<button class="btn btn-ghost btn-sm" onclick="openProductModal(' + JSON.stringify(p).replace(/"/g,'&quot;') + ')">✏️</button>' +
+            '<button class="btn btn-ghost btn-sm" onclick="deleteProduct(' + p.id + ')" style="color:var(--accent-red,#dc2626);">🗑️</button>' +
+            '</div>' +
+          '</td>' +
+          '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function openProductModal(product) {
+      document.getElementById('modal-product-title').textContent = product && product.id ? 'Editar Produto' : 'Novo Produto';
+      document.getElementById('product-id').value = product && product.id ? product.id : '';
+      document.getElementById('product-name').value = product ? product.name : '';
+      document.getElementById('product-category').value = product ? (product.category || '') : '';
+      document.getElementById('product-price').value = product ? product.price : '';
+      document.getElementById('product-stock').value = product ? product.stock : '0';
+      document.getElementById('product-min-stock').value = product ? product.min_stock : '5';
+      document.getElementById('product-active').checked = product ? product.active : true;
+      document.getElementById('product-desc').value = product ? (product.description || '') : '';
+      openModal('modal-product');
+    }
+
+    async function saveProduct() {
+      var id = document.getElementById('product-id').value;
+      var data = {
+        name: document.getElementById('product-name').value.trim(),
+        category: document.getElementById('product-category').value.trim() || null,
+        price: parseFloat(document.getElementById('product-price').value),
+        stock: parseInt(document.getElementById('product-stock').value) || 0,
+        min_stock: parseInt(document.getElementById('product-min-stock').value) || 5,
+        active: document.getElementById('product-active').checked,
+        description: document.getElementById('product-desc').value.trim() || null,
+      };
+      if (!data.name || isNaN(data.price)) { showToast('Preencha nome e preço.', 'error'); return; }
+      var btn = document.getElementById('btn-save-product');
+      btnLoading(btn, true);
+      try {
+        if (id) {
+          await CantinAPI.updateProduct(id, data);
+          showToast('Produto atualizado!', 'success');
+        } else {
+          await CantinAPI.createProduct(data);
+          showToast('Produto criado!', 'success');
+        }
+        closeModal('modal-product');
+        loadProductsTable();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    function openStockModal(id, name, currentStock) {
+      document.getElementById('stock-product-id').value = id;
+      document.getElementById('stock-product-name').textContent = 'Produto: ' + name;
+      document.getElementById('new-stock-value').value = currentStock;
+      openModal('modal-stock');
+    }
+
+    async function saveStock() {
+      var id = document.getElementById('stock-product-id').value;
+      var stock = parseInt(document.getElementById('new-stock-value').value);
+      if (isNaN(stock) || stock < 0) { showToast('Informe uma quantidade válida.', 'error'); return; }
+      var btn = document.getElementById('btn-save-stock');
+      btnLoading(btn, true);
+      try {
+        await CantinAPI.updateStock(id, { stock: stock });
+        showToast('Estoque atualizado!', 'success');
+        closeModal('modal-stock');
+        loadProductsTable();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('Excluir este produto?')) return;
+      try {
+        await CantinAPI.deleteProduct(id);
+        showToast('Produto excluído.', 'success');
+        loadProductsTable();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      }
+    }
+
+    // ================================================================
+    //  Caixa
+    // ================================================================
+    var ordersCache = [];
+
+    async function loadCashTab() {
+      try {
+        var [summary, orders, flows] = await Promise.all([
+          CantinAPI.cash(),
+          CantinAPI.orders(),
+          CantinAPI.cashFlow(),
+        ]);
+        renderCashSummary(summary);
+        ordersCache = orders || [];
+        renderOrdersList(currentOrderFilter);
+        renderCashFlowList(flows || []);
+      } catch(e) {
+        showToast('Erro ao carregar caixa: ' + e.message, 'error');
+      }
+    }
+
+    function renderCashSummary(s) {
+      var container = document.getElementById('cash-summary');
+      container.innerHTML =
+        cashCard('💵', 'R$ ' + formatMoney(s.total_dinheiro || 0), 'Dinheiro') +
+        cashCard('📱', 'R$ ' + formatMoney(s.total_pix || 0), 'PIX') +
+        cashCard('💰', 'R$ ' + formatMoney(s.total_vendas || 0), 'Total Vendas') +
+        cashCard('📈', 'R$ ' + formatMoney(s.saldo || 0), 'Saldo') +
+        cashCard('🧾', s.orders_paid + '/' + s.orders_count, 'Pedidos Pagos/Total');
+    }
+
+    function cashCard(icon, value, label) {
+      return '<div class="cash-card"><div class="c-icon">' + icon + '</div>' +
+        '<div class="c-value">' + value + '</div><div class="c-label">' + label + '</div></div>';
+    }
+
+    function renderOrdersList(statusFilter) {
+      var container = document.getElementById('orders-list');
+      var filtered = statusFilter
+        ? ordersCache.filter(function(o){ return o.status === statusFilter; })
+        : ordersCache;
+      if (!filtered.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:24px;">Nenhum pedido encontrado.</p>';
+        return;
+      }
+      var html = '';
+      filtered.forEach(function(o) {
+        var itemsText = (o.items || []).map(function(i){ return i.quantity + 'x ' + i.product_name; }).join(', ');
+        var badgeClass = o.status === 'paid' ? 'badge-paid' : o.status === 'cancelled' ? 'badge-cancelled' : 'badge-pending';
+        var badgeLabel = o.status === 'paid' ? 'Pago' : o.status === 'cancelled' ? 'Cancelado' : 'Pendente';
+        html += '<div class="order-card">' +
+          '<div class="order-header">' +
+            '<span class="order-num">#' + o.order_number + '</span>' +
+            '<span class="' + badgeClass + '">' + badgeLabel + '</span>' +
+          '</div>' +
+          '<div class="order-items-list">' + escHtml(itemsText || 'Sem itens') + '</div>' +
+          '<div class="order-footer">' +
+            '<span class="order-total">R$ ' + formatMoney(o.total) + '</span>' +
+            '<span style="font-size:12px;color:var(--text-muted);">' + (o.payment_method ? '💳 ' + o.payment_method : '') + '</span>' +
+            '<span class="order-time">' + fmtTime(o.created_at) + '</span>' +
+            '<div style="display:flex;gap:6px;">' +
+              (o.status === 'pending' ? '<button class="btn btn-primary btn-sm" onclick="updateOrderStatus(' + o.id + ',\'paid\')">✅ Pago</button>' : '') +
+              (o.status === 'pending' ? '<button class="btn btn-secondary btn-sm" onclick="updateOrderStatus(' + o.id + ',\'cancelled\')">❌ Cancelar</button>' : '') +
+            '</div>' +
+          '</div>' +
+          '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    async function updateOrderStatus(orderId, status) {
+      try {
+        await CantinAPI.updateOrderStatus(orderId, status);
+        showToast('Pedido atualizado!', 'success');
+        loadCashTab();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      }
+    }
+
+    function renderCashFlowList(flows) {
+      var container = document.getElementById('cash-flow-list');
+      if (!flows.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Nenhuma movimentação manual hoje.</p>';
+        return;
+      }
+      var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+      flows.forEach(function(f) {
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;font-size:13px;">' +
+          '<span class="badge-' + f.type + '">' + (f.type === 'entrada' ? '➕' : '➖') + ' ' + f.type + '</span>' +
+          '<span style="font-weight:700;">R$ ' + formatMoney(f.amount) + '</span>' +
+          '<span style="flex:1;color:var(--text-secondary);">' + escHtml(f.description) + '</span>' +
+          '<span style="color:var(--text-muted);font-size:11px;">' + fmtTime(f.created_at) + '</span>' +
+          '</div>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function openCashFlowModal(type) {
+      document.getElementById('cashflow-type').value = type;
+      document.getElementById('cashflow-modal-title').textContent = type === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída';
+      document.getElementById('cashflow-amount').value = '';
+      document.getElementById('cashflow-desc').value = '';
+      document.getElementById('cashflow-method').value = '';
+      openModal('modal-cashflow');
+    }
+
+    async function saveCashFlow() {
+      var type = document.getElementById('cashflow-type').value;
+      var amount = parseFloat(document.getElementById('cashflow-amount').value);
+      var desc = document.getElementById('cashflow-desc').value.trim();
+      var method = document.getElementById('cashflow-method').value;
+      if (!desc || isNaN(amount) || amount <= 0) { showToast('Preencha valor e descrição.', 'error'); return; }
+      var btn = document.getElementById('btn-save-cashflow');
+      btnLoading(btn, true);
+      try {
+        await CantinAPI.addCashFlow({ type: type, amount: amount, description: desc, payment_method: method || null });
+        showToast('Movimentação registrada!', 'success');
+        closeModal('modal-cashflow');
+        if (currentTab === 'caixa') loadCashTab();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    // ================================================================
+    //  Relatório
+    // ================================================================
+    var reportData = null;
+
+    async function loadReport() {
+      try {
+        reportData = await CantinAPI.report();
+        renderReportSummary(reportData);
+        renderTopProducts(reportData.top_products || []);
+      } catch(e) {
+        showToast('Erro ao carregar relatório: ' + e.message, 'error');
+      }
+    }
+
+    function renderReportSummary(r) {
+      document.getElementById('report-summary').innerHTML =
+        cashCard('💰', 'R$ ' + formatMoney(r.total_vendas || 0), 'Total Arrecadado') +
+        cashCard('💵', 'R$ ' + formatMoney(r.total_dinheiro || 0), 'Dinheiro') +
+        cashCard('📱', 'R$ ' + formatMoney(r.total_pix || 0), 'PIX') +
+        cashCard('🧾', r.orders_paid || 0, 'Pedidos Finalizados');
+    }
+
+    function renderTopProducts(products) {
+      var tbody = document.getElementById('top-products-tbody');
+      if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhuma venda registrada hoje.</td></tr>';
+        return;
+      }
+      var html = '';
+      products.forEach(function(p, i) {
+        html += '<tr>' +
+          '<td style="text-align:center;font-weight:700;color:var(--text-muted);">' + (i + 1) + '</td>' +
+          '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+          '<td style="text-align:center;font-weight:700;">' + p.qty + '</td>' +
+          '<td style="text-align:right;font-weight:700;color:var(--accent-blue,#2563eb);">R$ ' + formatMoney(p.total) + '</td>' +
+          '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    async function exportCantinaPDF() {
+      if (!reportData) { showToast('Carregando relatório...', 'info'); await loadReport(); }
+      var btn = document.getElementById('btn-export-pdf');
+      btnLoading(btn, true, 'Gerando PDF...');
+      showToast('⏳ Gerando PDF...', 'info', 8000);
+      try {
+        var html = buildCantinaPDFHTML(reportData);
+        var area = document.getElementById('pdf-render-area');
+        area.innerHTML = html;
+        await new Promise(function(r){ setTimeout(r, 400); });
+        var canvas = await html2canvas(area, { scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false, windowWidth:794 });
+        var jspdf = window.jspdf;
+        var doc = new jspdf.jsPDF({ orientation:'p', unit:'mm', format:'a4' });
+        var imgW = 210, imgH = (canvas.height * 210) / canvas.width;
+        var imgData = canvas.toDataURL('image/png');
+        var posY = 0, remaining = imgH, pageNum = 0;
+        while (remaining > 0) {
+          if (pageNum > 0) doc.addPage();
+          doc.addImage(imgData, 'PNG', 0, -posY, imgW, imgH);
+          posY += 297; remaining -= 297; pageNum++;
+        }
+        doc.save('cantina-' + new Date().toISOString().slice(0,10) + '.pdf');
+        area.innerHTML = '';
+        showToast('✅ PDF baixado!', 'success');
+      } catch(e) {
+        showToast('Erro ao gerar PDF: ' + e.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    function buildCantinaPDFHTML(r) {
+      var styles = '<style>* { box-sizing:border-box; margin:0; padding:0; } body { font-family:Arial,sans-serif; font-size:12px; color:#1a1d2e; background:#fff; } table { border-collapse:collapse; width:100%; } th { background:#2563eb; color:#fff; padding:8px 12px; text-align:left; font-size:11px; text-transform:uppercase; } td { padding:7px 12px; border-bottom:1px solid #e2e6ef; } tr:nth-child(even) td { background:#f8f9fc; }</style>';
+      var header = '<div style="background:#2563eb;color:#fff;padding:24px 32px 18px;">' +
+        '<div style="font-size:32px;margin-bottom:8px;">🏪</div>' +
+        '<h1 style="font-size:20px;font-weight:700;margin-bottom:4px;">Relatório da Cantina</h1>' +
+        '<div style="font-size:12px;opacity:.85;">Jogos Olímpicos Sinodal PB &nbsp;·&nbsp; ' + new Date().toLocaleDateString('pt-BR') + '</div>' +
+        '</div>';
+      var summary = '<div style="display:flex;background:#f8f9fc;border-bottom:2px solid #2563eb;">' +
+        pdfSumCard('Total Vendas', 'R$ ' + formatMoney(r.total_vendas || 0)) +
+        pdfSumCard('Dinheiro', 'R$ ' + formatMoney(r.total_dinheiro || 0)) +
+        pdfSumCard('PIX', 'R$ ' + formatMoney(r.total_pix || 0)) +
+        pdfSumCard('Pedidos Finalizados', r.orders_paid || 0) +
+        '</div>';
+      var topTable = '<div style="padding:14px 32px 8px;font-size:14px;font-weight:700;border-top:2px solid #e2e6ef;margin-top:8px;">Produtos Mais Vendidos</div>' +
+        '<div style="padding:0 32px 16px;"><table><tr><th>#</th><th>Produto</th><th style="text-align:center;">Qtd</th><th style="text-align:right;">Total</th></tr>';
+      (r.top_products || []).forEach(function(p, i) {
+        topTable += '<tr><td style="text-align:center;color:#4a5068;">' + (i+1) + '</td><td>' + escHtml(p.name) + '</td><td style="text-align:center;font-weight:700;">' + p.qty + '</td><td style="text-align:right;font-weight:700;color:#2563eb;">R$ ' + formatMoney(p.total) + '</td></tr>';
+      });
+      topTable += '</table></div>';
+      var flowTable = '';
+      if ((r.cash_flow || []).length > 0) {
+        flowTable = '<div style="padding:14px 32px 8px;font-size:14px;font-weight:700;border-top:2px solid #e2e6ef;">Movimentações de Caixa</div>' +
+          '<div style="padding:0 32px 16px;"><table><tr><th>Tipo</th><th>Descrição</th><th>Método</th><th style="text-align:right;">Valor</th></tr>';
+        r.cash_flow.forEach(function(f) {
+          flowTable += '<tr><td>' + f.type + '</td><td>' + escHtml(f.description) + '</td><td>' + (f.payment_method || '—') + '</td><td style="text-align:right;font-weight:700;">' + (f.type === 'saida' ? '- ' : '+ ') + 'R$ ' + formatMoney(f.amount) + '</td></tr>';
+        });
+        flowTable += '</table></div>';
+      }
+      var footer = '<div style="margin-top:32px;padding:14px 32px;border-top:1px solid #e2e6ef;font-size:10px;color:#8b92a9;text-align:center;">Gerado em ' + new Date().toLocaleString('pt-BR') + '</div>';
+      return '<div style="width:794px;background:#fff;">' + styles + header + summary + topTable + flowTable + footer + '</div>';
+    }
+
+    function pdfSumCard(label, value) {
+      return '<div style="flex:1;padding:14px 12px;text-align:center;border-right:1px solid #e2e6ef;">' +
+        '<div style="font-size:20px;font-weight:800;color:#2563eb;">' + value + '</div>' +
+        '<div style="font-size:10px;color:#4a5068;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;">' + label + '</div>' +
+        '</div>';
+    }
+
+    // ================================================================
+    //  Helpers
+    // ================================================================
+    function escHtml(s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatMoney(n) {
+      return parseFloat(n || 0).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '—';
+      try { return new Date(iso).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); }
+      catch(e) { return ''; }
+    }
+  </script>
+</body>
+</html>

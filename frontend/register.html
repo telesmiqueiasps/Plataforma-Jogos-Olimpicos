@@ -25,7 +25,7 @@
       <!-- Conteúdo sobre as fotos -->
       <div class="auth-panel-content">
         <div class="auth-panel-top">
-          <img src="img/logo.png" class="auth-panel-logo-img" alt="Sports Platform">
+          <img src="img/logo.png" class="auth-panel-logo-img" alt="Jogos Olímpicos Sinodal PB">
           <h1 class="auth-panel-title">Junte-se a nós</h1>
           <p class="auth-panel-tagline">Crie sua conta e organize campeonatos incríveis</p>
         </div>
@@ -84,6 +84,14 @@
               <span class="input-icon">🔒</span>
               <input type="password" id="confirm" class="form-control input-with-icon" placeholder="Repita a senha" required autocomplete="new-password">
             </div>
+          </div>
+          <div class="form-group">
+            <label for="role">Papel</label>
+            <select id="role" class="form-control">
+              <option value="organizer">Organizador de Jogos</option>
+              <option value="cantina">Equipe da Cantina</option>
+              <option value="admin">Administrador</option>
+            </select>
           </div>
           <button type="submit" class="btn btn-primary auth-submit-btn" id="submit-btn">
             Criar Conta
@@ -172,7 +180,8 @@
       btn.disabled = true;
 
       try {
-        await AuthAPI.register({ name, email, password, role: 'organizer' });
+        const role = document.getElementById('role').value || 'organizer';
+        await AuthAPI.register({ name, email, password, role });
         successEl.textContent = 'Conta criada com sucesso! Redirecionando...';
         successEl.style.display = 'flex';
         form.reset();

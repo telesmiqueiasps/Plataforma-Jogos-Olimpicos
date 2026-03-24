@@ -150,6 +150,23 @@ const SuspensionsAPI = {
   delete: (id) => apiFetch(`/api/suspensions/${id}`, { method: 'DELETE' }),
 };
 
+// --- Cantina ---
+const CantinAPI = {
+  products: (params) => apiFetch('/api/cantina/products' + (params ? '?' + new URLSearchParams(params) : '')),
+  createProduct: (data) => apiFetch('/api/cantina/products', { method: 'POST', body: JSON.stringify(data) }),
+  updateProduct: (id, data) => apiFetch(`/api/cantina/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProduct: (id) => apiFetch(`/api/cantina/products/${id}`, { method: 'DELETE' }),
+  updateStock: (id, data) => apiFetch(`/api/cantina/products/${id}/stock`, { method: 'PUT', body: JSON.stringify(data) }),
+  orders: (params) => apiFetch('/api/cantina/orders' + (params ? '?' + new URLSearchParams(params) : '')),
+  createOrder: (data) => apiFetch('/api/cantina/orders', { method: 'POST', body: JSON.stringify(data) }),
+  updateOrderStatus: (id, status) => apiFetch(`/api/cantina/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  deleteOrder: (id) => apiFetch(`/api/cantina/orders/${id}`, { method: 'DELETE' }),
+  cash: () => apiFetch('/api/cantina/cash'),
+  cashFlow: () => apiFetch('/api/cantina/cash/flow'),
+  addCashFlow: (data) => apiFetch('/api/cantina/cash/flow', { method: 'POST', body: JSON.stringify(data) }),
+  report: () => apiFetch('/api/cantina/report'),
+};
+
 // --- Games ---
 const GamesAPI = {
   get: (id) => apiFetch(`/api/games/${id}`),

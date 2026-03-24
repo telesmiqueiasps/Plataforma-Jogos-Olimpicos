@@ -31,17 +31,21 @@
           <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Dashboard</span>
         </a>
-        <a href="championships.html" class="nav-item">
+        <a href="championships.html" class="nav-item" data-role="games">
           <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Campeonatos</span>
         </a>
-        <a href="games.html" class="nav-item">
+        <a href="games.html" class="nav-item" data-role="games">
           <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Jogos</span>
         </a>
         <a href="reports.html" class="nav-item active">
           <span class="nav-icon"><img src="img/relatorio.png" alt="Relatórios" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Relatórios</span>
+        </a>
+                <a href="cantina.html" class="nav-item" data-role="cantina">
+          <span class="nav-icon"><span style="font-size:18px;">🏪</span></span>
+          <span>Cantina</span>
         </a>
         <span class="nav-section-label">Gestão</span>
         <a href="teams.html" class="nav-item">
@@ -331,7 +335,10 @@
           opt.value = g.id;
           var home = (g.home_team && g.home_team.name) || g.home_name || 'Time A';
           var away = (g.away_team && g.away_team.name) || g.away_name || 'Time B';
-          var score = g.status === 'finished' ? (' — ' + g.home_score + 'x' + g.away_score) : '';
+          var sc = getScore(g);
+          var score = g.status === 'finished' && sc.home !== null
+            ? (' — ' + sc.home + 'x' + sc.away)
+            : (g.status !== 'finished' ? ' (sem resultado)' : '');
           var phase = g.phase ? ' [' + g.phase + ']' : '';
           var round = g.round ? ' R' + g.round : '';
           opt.textContent = home + ' x ' + away + score + phase + round;
@@ -529,6 +536,19 @@
       try { return new Date(d).toLocaleString('pt-BR'); } catch (e) { return String(d); }
     }
 
+    function getScore(game) {
+      var r = game.result;
+      if (r && r.home_score !== null && r.home_score !== undefined &&
+              r.away_score !== null && r.away_score !== undefined) {
+        return { home: r.home_score, away: r.away_score };
+      }
+      if (game.home_score !== null && game.home_score !== undefined &&
+          game.away_score !== null && game.away_score !== undefined) {
+        return { home: game.home_score, away: game.away_score };
+      }
+      return { home: null, away: null };
+    }
+
     function pdfStyles() {
       return '<style>' +
         '* { box-sizing: border-box; margin: 0; padding: 0; }' +
@@ -573,7 +593,7 @@
 
     function pdfFooter() {
       return '<div style="margin-top:32px;padding:14px 32px;border-top:1px solid #e2e6ef;font-size:10px;color:#8b92a9;text-align:center;">' +
-        'Gerado em ' + new Date().toLocaleString('pt-BR') + ' · Sports Platform — Jogos Olímpicos Sinodal PB' +
+        'Gerado em ' + new Date().toLocaleString('pt-BR') +
         '</div>';
     }
 
@@ -728,10 +748,13 @@
             var away = (g.away_team && g.away_team.name) || g.away_name || '—';
             var score = '—';
             if (g.status === 'finished') {
-              if (isBg && (slug === 'xadrez' || slug === 'dama')) {
-                score = (g.home_score / 10).toFixed(1) + ' × ' + (g.away_score / 10).toFixed(1);
-              } else {
-                score = g.home_score + ' × ' + g.away_score;
+              var sc = getScore(g);
+              if (sc.home !== null) {
+                if (isBg && (slug === 'xadrez' || slug === 'dama')) {
+                  score = (sc.home / 10).toFixed(1) + ' × ' + (sc.away / 10).toFixed(1);
+                } else {
+                  score = sc.home + ' × ' + sc.away;
+                }
               }
             }
             html += '<tr>' +
@@ -805,14 +828,13 @@
       var away = (game.away_team && game.away_team.name) || game.away_name || 'Visitante';
       var slug = champ.sport ? champ.sport.slug : '';
       var isBg = ['domino', 'dama', 'xadrez'].indexOf(slug) !== -1;
-      var homeScore = game.home_score != null ? game.home_score : null;
-      var awayScore = game.away_score != null ? game.away_score : null;
+      var sc = getScore(game);
       var scoreDisplay = '—';
-      if (game.status === 'finished' && homeScore != null) {
+      if (game.status === 'finished' && sc.home !== null) {
         if (isBg && (slug === 'xadrez' || slug === 'dama')) {
-          scoreDisplay = (homeScore / 10).toFixed(1) + ' × ' + (awayScore / 10).toFixed(1);
+          scoreDisplay = (sc.home / 10).toFixed(1) + ' × ' + (sc.away / 10).toFixed(1);
         } else {
-          scoreDisplay = homeScore + ' × ' + awayScore;
+          scoreDisplay = sc.home + ' × ' + sc.away;
         }
       }
 

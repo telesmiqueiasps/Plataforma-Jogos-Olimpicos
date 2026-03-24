@@ -142,10 +142,11 @@
         try {
           const user = await AuthAPI.me();
           setAuth(data.access_token, user);
+          window.location.href = user.role === 'cantina' ? 'cantina.html' : 'dashboard.html';
         } catch {
           localStorage.setItem('sp_token', data.access_token);
+          window.location.href = 'dashboard.html';
         }
-        window.location.href = 'dashboard.html';
       } catch (err) {
         alertEl.textContent = err.message;
         alertEl.style.display = 'flex';

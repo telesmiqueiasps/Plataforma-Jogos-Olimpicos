@@ -43,3 +43,21 @@ def require_organizer(current_user: User = Depends(get_current_user)) -> User:
             detail="Acesso restrito a organizadores e administradores",
         )
     return current_user
+
+
+def require_cantina(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in ("admin", "cantina"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito à equipe da cantina",
+        )
+    return current_user
+
+
+def require_games(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in ("admin", "organizer"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito aos organizadores de jogos",
+        )
+    return current_user
