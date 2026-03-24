@@ -34,6 +34,8 @@
     .product-card .p-price { font-size:16px; font-weight:800; color:var(--accent-blue,#2563eb); }
     .product-card .p-stock { font-size:11px; color:var(--text-muted); margin-top:3px; }
     .product-card .low-badge { position:absolute; top:6px; right:6px; background:#fef3c7; color:#92400e; font-size:10px; font-weight:700; border-radius:4px; padding:2px 5px; }
+    .prod-thumb { width:60px; height:60px; border-radius:8px; object-fit:cover; margin:0 auto 8px; display:block; }
+    .prod-thumb-placeholder { width:60px; height:60px; border-radius:8px; background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 8px; }
 
     /* ---- Cart ---- */
     .cart-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; position:sticky; top:80px; }
@@ -50,18 +52,21 @@
 
     /* ---- Order card ---- */
     .order-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+    .order-card.refunded { border-color:#fca5a5; background:#fff5f5; }
     .order-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
     .order-num { font-weight:800; font-size:15px; color:var(--accent-blue,#2563eb); }
     .order-items-list { font-size:12px; color:var(--text-secondary); margin-bottom:6px; }
     .order-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
     .order-total { font-weight:800; font-size:16px; }
     .order-time { font-size:11px; color:var(--text-muted); }
+    .order-refund-info { font-size:11px; color:#991b1b; margin-top:6px; padding-top:6px; border-top:1px dashed #fca5a5; }
 
     /* ---- Cash summary cards ---- */
     .cash-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
     .cash-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; }
     .cash-card .c-icon { font-size:28px; margin-bottom:6px; }
     .cash-card .c-value { font-size:22px; font-weight:800; color:var(--accent-blue,#2563eb); }
+    .cash-card .c-value.danger { color:#dc2626; }
     .cash-card .c-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
 
     /* ---- Table ---- */
@@ -72,10 +77,24 @@
     .prod-table tr.low-stock td { background:#fef3c7; }
     .prod-table tr.zero-stock td { background:#fee2e2; }
 
+    /* ---- Image preview ---- */
+    .img-preview-wrap { display:flex; align-items:center; gap:10px; }
+    .img-preview-wrap input { flex:1; }
+    .img-preview-thumb { width:60px; height:60px; border-radius:8px; object-fit:cover; border:1px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:24px; background:var(--bg-secondary); }
+
+    /* ---- Troco modal ---- */
+    .note-btns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .note-btn { padding:6px 12px; border:1px solid var(--border); border-radius:6px; background:var(--bg-secondary); cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; transition:background .1s; }
+    .note-btn:hover { background:var(--accent-blue,#2563eb); color:#fff; border-color:var(--accent-blue,#2563eb); }
+    .troco-result { margin-top:12px; font-size:18px; font-weight:700; text-align:center; padding:10px; border-radius:8px; }
+    .troco-ok { background:#d1fae5; color:#065f46; }
+    .troco-fail { background:#fee2e2; color:#991b1b; }
+
     /* Status badges */
     .badge-paid { background:#d1fae5; color:#065f46; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
     .badge-pending { background:#fef3c7; color:#92400e; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
     .badge-cancelled { background:#fee2e2; color:#991b1b; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-refunded { background:#fecaca; color:#7f1d1d; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
     .badge-entrada { background:#d1fae5; color:#065f46; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
     .badge-saida { background:#fee2e2; color:#991b1b; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
   </style>
@@ -184,7 +203,7 @@
                 <span class="cart-total-value" id="cart-total">R$ 0,00</span>
               </div>
               <div class="pay-btns">
-                <button class="btn btn-primary" onclick="confirmOrder('dinheiro')" id="btn-pay-cash">💵 Dinheiro</button>
+                <button class="btn btn-primary" onclick="openTrocoModal()" id="btn-pay-cash">💵 Dinheiro</button>
                 <button class="btn btn-primary" onclick="confirmOrder('pix')" id="btn-pay-pix">📱 PIX</button>
               </div>
               <div id="cart-note" style="margin-top:10px;">
@@ -239,6 +258,7 @@
               <button class="filter-tab" data-status="paid">Pagos</button>
               <button class="filter-tab" data-status="pending">Pendentes</button>
               <button class="filter-tab" data-status="cancelled">Cancelados</button>
+              <button class="filter-tab" data-status="refunded">Estornados</button>
             </div>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-secondary btn-sm" onclick="openCashFlowModal('entrada')">➕ Entrada</button>
@@ -262,7 +282,7 @@
         <div id="tab-relatorio" style="display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
             <h2 style="font-size:16px;font-weight:700;margin:0;">Relatório do Dia</h2>
-            <button class="btn btn-primary" id="btn-export-pdf" onclick="exportCantinaPDF()">📄 Exportar PDF</button>
+            <button class="btn btn-primary" id="btn-export-pdf" onclick="exportExtratoPDF()">📄 Exportar Extrato</button>
           </div>
 
           <div id="report-summary" class="cash-grid"></div>
@@ -336,6 +356,13 @@
           </div>
         </div>
         <div class="form-group">
+          <label>URL da Imagem</label>
+          <div class="img-preview-wrap">
+            <input type="url" id="product-image-url" class="form-control" placeholder="https://exemplo.com/imagem.jpg" oninput="previewProductImage(this.value)">
+            <div id="product-img-preview" class="img-preview-thumb">🛒</div>
+          </div>
+        </div>
+        <div class="form-group">
           <label>Descrição</label>
           <input type="text" id="product-desc" class="form-control" placeholder="Descrição opcional">
         </div>
@@ -402,6 +429,57 @@
     </div>
   </div>
 
+  <!-- Modal: Troco (pagamento em dinheiro) -->
+  <div class="modal-overlay" id="modal-troco">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <span class="modal-title">💵 Pagamento em Dinheiro</span>
+        <button class="modal-close" onclick="closeModal('modal-troco')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Total a pagar</div>
+          <div id="troco-total" style="font-size:36px;font-weight:900;color:var(--accent-blue,#2563eb);">R$ 0,00</div>
+        </div>
+        <div class="form-group">
+          <label>Valor recebido (R$)</label>
+          <input type="number" id="troco-received" class="form-control" placeholder="0,00" step="0.01" min="0" oninput="calcTroco()">
+          <div class="note-btns" id="note-btns"></div>
+        </div>
+        <div id="troco-result" class="troco-result" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-troco')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-confirm-troco" onclick="confirmWithChange()" disabled>✅ Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Estorno -->
+  <div class="modal-overlay" id="modal-refund">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <span class="modal-title">↩️ Estornar Venda</span>
+        <button class="modal-close" onclick="closeModal('modal-refund')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;">
+          ⚠️ Esta ação não pode ser desfeita. O valor será registrado como saída no caixa e o estoque dos itens será devolvido.
+        </div>
+        <div id="refund-order-info" style="font-size:13px;margin-bottom:12px;color:var(--text-secondary);"></div>
+        <input type="hidden" id="refund-order-id">
+        <div class="form-group">
+          <label>Motivo do estorno *</label>
+          <textarea id="refund-reason" class="form-control" rows="3" placeholder="Ex: Produto com defeito, cliente desistiu..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-refund')">Cancelar</button>
+        <button class="btn btn-danger" id="btn-confirm-refund" onclick="confirmRefund()">Confirmar Estorno</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
   <!-- Hidden PDF area -->
   <div id="pdf-render-area"
@@ -420,6 +498,7 @@
     var currentTab = 'pdv';
     var currentOrderFilter = '';
     var currentCategoryFilter = '';
+    var _pendingPaymentMethod = null;
 
     // ================================================================
     //  Init
@@ -508,9 +587,14 @@
       filtered.forEach(function(p) {
         var disabled = p.stock <= 0 ? ' disabled' : '';
         var lowBadge = (p.stock > 0 && p.stock <= p.min_stock) ? '<span class="low-badge">⚠️</span>' : '';
+        var thumb = '';
+        if (p.image_url) {
+          thumb = '<img class="prod-thumb" src="' + escHtml(p.image_url) + '" alt="" onerror="this.outerHTML=\'<div class=\\\"prod-thumb-placeholder\\\">🛒</div>\'">';
+        } else {
+          thumb = '<div class="prod-thumb-placeholder">🍽️</div>';
+        }
         html += '<div class="product-card' + disabled + '" onclick="addToCart(' + p.id + ')">' +
-          lowBadge +
-          '<div style="font-size:28px;margin-bottom:8px;">🍽️</div>' +
+          lowBadge + thumb +
           '<div class="p-name">' + escHtml(p.name) + '</div>' +
           '<div class="p-price">R$ ' + formatMoney(p.price) + '</div>' +
           '<div class="p-stock">' + (p.stock <= 0 ? '❌ Sem estoque' : 'Estoque: ' + p.stock) + '</div>' +
@@ -584,6 +668,66 @@
       document.getElementById('order-notes').value = '';
     }
 
+    // ================================================================
+    //  Modal de troco
+    // ================================================================
+    function openTrocoModal() {
+      if (cart.length === 0) { showToast('Adicione itens ao carrinho primeiro.', 'error'); return; }
+      var total = cart.reduce(function(s, ci){ return s + ci.product.price * ci.quantity; }, 0);
+      document.getElementById('troco-total').textContent = 'R$ ' + formatMoney(total);
+      document.getElementById('troco-received').value = '';
+      document.getElementById('troco-result').style.display = 'none';
+      document.getElementById('btn-confirm-troco').disabled = true;
+
+      // Sugestões de notas
+      var notes = [5, 10, 20, 50, 100];
+      var html = '';
+      notes.forEach(function(n) {
+        if (n >= total) {
+          html += '<button class="note-btn" onclick="setNoteValue(' + n + ')">R$ ' + n + '</button>';
+        }
+      });
+      // Adicionar também o exato se não for uma nota comum
+      html += '<button class="note-btn" onclick="setNoteValue(' + total.toFixed(2) + ')">Exato</button>';
+      document.getElementById('note-btns').innerHTML = html;
+      openModal('modal-troco');
+    }
+
+    function setNoteValue(value) {
+      document.getElementById('troco-received').value = parseFloat(value).toFixed(2);
+      calcTroco();
+    }
+
+    function calcTroco() {
+      var totalEl = document.getElementById('troco-total').textContent.replace('R$ ', '').replace(',', '.');
+      var total = parseFloat(totalEl) || 0;
+      var received = parseFloat(document.getElementById('troco-received').value) || 0;
+      var resultEl = document.getElementById('troco-result');
+      var confirmBtn = document.getElementById('btn-confirm-troco');
+
+      if (!received) {
+        resultEl.style.display = 'none';
+        confirmBtn.disabled = true;
+        return;
+      }
+      resultEl.style.display = 'block';
+      if (received >= total) {
+        var troco = received - total;
+        resultEl.className = 'troco-result troco-ok';
+        resultEl.textContent = 'Troco: R$ ' + formatMoney(troco);
+        confirmBtn.disabled = false;
+      } else {
+        resultEl.className = 'troco-result troco-fail';
+        resultEl.textContent = 'Valor insuficiente (falta R$ ' + formatMoney(total - received) + ')';
+        confirmBtn.disabled = true;
+      }
+    }
+
+    async function confirmWithChange() {
+      closeModal('modal-troco');
+      await confirmOrder('dinheiro');
+    }
+
     async function confirmOrder(paymentMethod) {
       if (cart.length === 0) { showToast('Adicione itens ao carrinho primeiro.', 'error'); return; }
       var items = cart.map(function(ci) {
@@ -649,6 +793,16 @@
       tbody.innerHTML = html;
     }
 
+    function previewProductImage(url) {
+      var preview = document.getElementById('product-img-preview');
+      if (!url) {
+        preview.innerHTML = '🛒';
+        preview.style.backgroundImage = '';
+        return;
+      }
+      preview.innerHTML = '<img src="' + escHtml(url) + '" style="width:60px;height:60px;border-radius:8px;object-fit:cover;" onerror="this.parentElement.innerHTML=\'🛒\'">';
+    }
+
     function openProductModal(product) {
       document.getElementById('modal-product-title').textContent = product && product.id ? 'Editar Produto' : 'Novo Produto';
       document.getElementById('product-id').value = product && product.id ? product.id : '';
@@ -659,11 +813,15 @@
       document.getElementById('product-min-stock').value = product ? product.min_stock : '5';
       document.getElementById('product-active').checked = product ? product.active : true;
       document.getElementById('product-desc').value = product ? (product.description || '') : '';
+      var imageUrl = product ? (product.image_url || '') : '';
+      document.getElementById('product-image-url').value = imageUrl;
+      previewProductImage(imageUrl);
       openModal('modal-product');
     }
 
     async function saveProduct() {
       var id = document.getElementById('product-id').value;
+      var imageUrl = document.getElementById('product-image-url').value.trim();
       var data = {
         name: document.getElementById('product-name').value.trim(),
         category: document.getElementById('product-category').value.trim() || null,
@@ -672,6 +830,7 @@
         min_stock: parseInt(document.getElementById('product-min-stock').value) || 5,
         active: document.getElementById('product-active').checked,
         description: document.getElementById('product-desc').value.trim() || null,
+        image_url: imageUrl || null,
       };
       if (!data.name || isNaN(data.price)) { showToast('Preencha nome e preço.', 'error'); return; }
       var btn = document.getElementById('btn-save-product');
@@ -752,12 +911,19 @@
 
     function renderCashSummary(s) {
       var container = document.getElementById('cash-summary');
+      var estornosCard = '';
+      if (s.total_refunded > 0 || s.orders_refunded > 0) {
+        estornosCard = '<div class="cash-card"><div class="c-icon">↩️</div>' +
+          '<div class="c-value danger">R$ ' + formatMoney(s.total_refunded || 0) + '</div>' +
+          '<div class="c-label">Estornos (' + (s.orders_refunded || 0) + ')</div></div>';
+      }
       container.innerHTML =
         cashCard('💵', 'R$ ' + formatMoney(s.total_dinheiro || 0), 'Dinheiro') +
         cashCard('📱', 'R$ ' + formatMoney(s.total_pix || 0), 'PIX') +
         cashCard('💰', 'R$ ' + formatMoney(s.total_vendas || 0), 'Total Vendas') +
         cashCard('📈', 'R$ ' + formatMoney(s.saldo || 0), 'Saldo') +
-        cashCard('🧾', s.orders_paid + '/' + s.orders_count, 'Pedidos Pagos/Total');
+        cashCard('🧾', s.orders_paid + '/' + s.orders_count, 'Pedidos Pagos/Total') +
+        estornosCard;
     }
 
     function cashCard(icon, value, label) {
@@ -777,22 +943,45 @@
       var html = '';
       filtered.forEach(function(o) {
         var itemsText = (o.items || []).map(function(i){ return i.quantity + 'x ' + i.product_name; }).join(', ');
-        var badgeClass = o.status === 'paid' ? 'badge-paid' : o.status === 'cancelled' ? 'badge-cancelled' : 'badge-pending';
-        var badgeLabel = o.status === 'paid' ? 'Pago' : o.status === 'cancelled' ? 'Cancelado' : 'Pendente';
-        html += '<div class="order-card">' +
+        var badgeClass, badgeLabel;
+        if (o.status === 'paid') { badgeClass = 'badge-paid'; badgeLabel = 'Pago'; }
+        else if (o.status === 'cancelled') { badgeClass = 'badge-cancelled'; badgeLabel = 'Cancelado'; }
+        else if (o.status === 'refunded') { badgeClass = 'badge-refunded'; badgeLabel = 'ESTORNADO'; }
+        else { badgeClass = 'badge-pending'; badgeLabel = 'Pendente'; }
+
+        var cardClass = o.status === 'refunded' ? 'order-card refunded' : 'order-card';
+        var refundInfo = '';
+        if (o.status === 'refunded') {
+          refundInfo = '<div class="order-refund-info">' +
+            '↩️ Estornado por <strong>' + escHtml(o.refunded_by_name || 'Desconhecido') + '</strong>' +
+            ' às ' + fmtTime(o.refunded_at) +
+            (o.refund_reason ? ' — ' + escHtml(o.refund_reason) : '') +
+            '</div>';
+        }
+
+        var actionBtns = '';
+        if (o.status === 'pending') {
+          actionBtns = '<button class="btn btn-primary btn-sm" onclick="updateOrderStatus(' + o.id + ',\'paid\')">✅ Pago</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="updateOrderStatus(' + o.id + ',\'cancelled\')">❌ Cancelar</button>';
+        } else if (o.status === 'paid') {
+          actionBtns = '<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;" onclick="openRefundModal(' + o.id + ',' + o.order_number + ',' + o.total + ')">↩️ Estornar</button>';
+        }
+
+        var byInfo = o.created_by_name ? '<span style="font-size:11px;color:var(--text-muted);">por ' + escHtml(o.created_by_name) + '</span>' : '';
+
+        html += '<div class="' + cardClass + '">' +
           '<div class="order-header">' +
             '<span class="order-num">#' + o.order_number + '</span>' +
             '<span class="' + badgeClass + '">' + badgeLabel + '</span>' +
           '</div>' +
           '<div class="order-items-list">' + escHtml(itemsText || 'Sem itens') + '</div>' +
+          refundInfo +
           '<div class="order-footer">' +
             '<span class="order-total">R$ ' + formatMoney(o.total) + '</span>' +
             '<span style="font-size:12px;color:var(--text-muted);">' + (o.payment_method ? '💳 ' + o.payment_method : '') + '</span>' +
+            byInfo +
             '<span class="order-time">' + fmtTime(o.created_at) + '</span>' +
-            '<div style="display:flex;gap:6px;">' +
-              (o.status === 'pending' ? '<button class="btn btn-primary btn-sm" onclick="updateOrderStatus(' + o.id + ',\'paid\')">✅ Pago</button>' : '') +
-              (o.status === 'pending' ? '<button class="btn btn-secondary btn-sm" onclick="updateOrderStatus(' + o.id + ',\'cancelled\')">❌ Cancelar</button>' : '') +
-            '</div>' +
+            '<div style="display:flex;gap:6px;">' + actionBtns + '</div>' +
           '</div>' +
           '</div>';
       });
@@ -809,6 +998,35 @@
       }
     }
 
+    // ================================================================
+    //  Estorno
+    // ================================================================
+    function openRefundModal(orderId, orderNumber, total) {
+      document.getElementById('refund-order-id').value = orderId;
+      document.getElementById('refund-order-info').textContent =
+        'Pedido #' + orderNumber + ' · Total: R$ ' + formatMoney(total);
+      document.getElementById('refund-reason').value = '';
+      openModal('modal-refund');
+    }
+
+    async function confirmRefund() {
+      var id = document.getElementById('refund-order-id').value;
+      var reason = document.getElementById('refund-reason').value.trim();
+      if (!reason) { showToast('Informe o motivo do estorno.', 'error'); return; }
+      var btn = document.getElementById('btn-confirm-refund');
+      btnLoading(btn, true, 'Estornando...');
+      try {
+        await CantinAPI.refundOrder(id, { reason: reason });
+        closeModal('modal-refund');
+        showToast('✅ Estorno registrado. Estoque devolvido.', 'success', 4000);
+        loadCashTab();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
     function renderCashFlowList(flows) {
       var container = document.getElementById('cash-flow-list');
       if (!flows.length) {
@@ -817,10 +1035,11 @@
       }
       var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
       flows.forEach(function(f) {
+        var byInfo = f.created_by_name ? ' · por <strong>' + escHtml(f.created_by_name) + '</strong>' : '';
         html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;font-size:13px;">' +
           '<span class="badge-' + f.type + '">' + (f.type === 'entrada' ? '➕' : '➖') + ' ' + f.type + '</span>' +
           '<span style="font-weight:700;">R$ ' + formatMoney(f.amount) + '</span>' +
-          '<span style="flex:1;color:var(--text-secondary);">' + escHtml(f.description) + '</span>' +
+          '<span style="flex:1;color:var(--text-secondary);">' + escHtml(f.description) + byInfo + '</span>' +
           '<span style="color:var(--text-muted);font-size:11px;">' + fmtTime(f.created_at) + '</span>' +
           '</div>';
       });
@@ -898,16 +1117,78 @@
       tbody.innerHTML = html;
     }
 
-    async function exportCantinaPDF() {
-      if (!reportData) { showToast('Carregando relatório...', 'info'); await loadReport(); }
+    // ================================================================
+    //  Extrato PDF com saldo acumulado e responsável
+    // ================================================================
+    async function exportExtratoPDF() {
       var btn = document.getElementById('btn-export-pdf');
       btnLoading(btn, true, 'Gerando PDF...');
-      showToast('⏳ Gerando PDF...', 'info', 8000);
+      showToast('⏳ Gerando extrato...', 'info', 8000);
       try {
-        var html = buildCantinaPDFHTML(reportData);
+        // Buscar todos os dados
+        var [summary, orders, flows] = await Promise.all([
+          CantinAPI.cash(),
+          CantinAPI.orders(),
+          CantinAPI.cashFlow(),
+        ]);
+
+        // Montar lista unificada de movimentações
+        var movements = [];
+
+        // Pedidos pagos como entradas
+        (orders || []).forEach(function(o) {
+          if (o.status === 'paid') {
+            movements.push({
+              time: o.created_at,
+              type: 'ENTRADA',
+              description: 'Pedido #' + o.order_number + (o.notes ? ' — ' + o.notes : ''),
+              method: o.payment_method || '—',
+              amount: parseFloat(o.total),
+              sign: 1,
+              responsible: o.created_by_name || '—',
+            });
+          }
+          // Estornos como saídas
+          if (o.status === 'refunded') {
+            movements.push({
+              time: o.refunded_at || o.created_at,
+              type: 'ESTORNO',
+              description: 'Estorno Pedido #' + o.order_number + (o.refund_reason ? ' — ' + o.refund_reason : ''),
+              method: o.payment_method || '—',
+              amount: parseFloat(o.total),
+              sign: -1,
+              responsible: o.refunded_by_name || '—',
+            });
+          }
+        });
+
+        // Movimentações manuais
+        (flows || []).forEach(function(f) {
+          movements.push({
+            time: f.created_at,
+            type: f.type === 'entrada' ? 'ENTRADA' : 'SAÍDA',
+            description: f.description,
+            method: f.payment_method || '—',
+            amount: parseFloat(f.amount),
+            sign: f.type === 'entrada' ? 1 : -1,
+            responsible: f.created_by_name || '—',
+          });
+        });
+
+        // Ordenar por hora
+        movements.sort(function(a, b) { return new Date(a.time) - new Date(b.time); });
+
+        // Calcular saldo progressivo
+        var running = 0;
+        movements.forEach(function(m) {
+          running += m.sign * m.amount;
+          m.balance = running;
+        });
+
+        var html = buildExtratoPDFHTML(summary, movements);
         var area = document.getElementById('pdf-render-area');
         area.innerHTML = html;
-        await new Promise(function(r){ setTimeout(r, 400); });
+        await new Promise(function(r){ setTimeout(r, 500); });
         var canvas = await html2canvas(area, { scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false, windowWidth:794 });
         var jspdf = window.jspdf;
         var doc = new jspdf.jsPDF({ orientation:'p', unit:'mm', format:'a4' });
@@ -919,9 +1200,9 @@
           doc.addImage(imgData, 'PNG', 0, -posY, imgW, imgH);
           posY += 297; remaining -= 297; pageNum++;
         }
-        doc.save('cantina-' + new Date().toISOString().slice(0,10) + '.pdf');
+        doc.save('extrato-cantina-' + new Date().toISOString().slice(0,10) + '.pdf');
         area.innerHTML = '';
-        showToast('✅ PDF baixado!', 'success');
+        showToast('✅ Extrato baixado!', 'success');
       } catch(e) {
         showToast('Erro ao gerar PDF: ' + e.message, 'error');
       } finally {
@@ -929,42 +1210,64 @@
       }
     }
 
-    function buildCantinaPDFHTML(r) {
-      var styles = '<style>* { box-sizing:border-box; margin:0; padding:0; } body { font-family:Arial,sans-serif; font-size:12px; color:#1a1d2e; background:#fff; } table { border-collapse:collapse; width:100%; } th { background:#2563eb; color:#fff; padding:8px 12px; text-align:left; font-size:11px; text-transform:uppercase; } td { padding:7px 12px; border-bottom:1px solid #e2e6ef; } tr:nth-child(even) td { background:#f8f9fc; }</style>';
-      var header = '<div style="background:#2563eb;color:#fff;padding:24px 32px 18px;">' +
-        '<div style="font-size:32px;margin-bottom:8px;">🏪</div>' +
-        '<h1 style="font-size:20px;font-weight:700;margin-bottom:4px;">Relatório da Cantina</h1>' +
-        '<div style="font-size:12px;opacity:.85;">Jogos Olímpicos Sinodal PB &nbsp;·&nbsp; ' + new Date().toLocaleDateString('pt-BR') + '</div>' +
+    function buildExtratoPDFHTML(summary, movements) {
+      var styles = '<style>* { box-sizing:border-box; margin:0; padding:0; } body { font-family:Arial,sans-serif; font-size:11px; color:#1a1d2e; background:#fff; } table { border-collapse:collapse; width:100%; } th { background:#2563eb; color:#fff; padding:7px 10px; text-align:left; font-size:10px; text-transform:uppercase; } td { padding:6px 10px; border-bottom:1px solid #e2e6ef; font-size:11px; } tr:nth-child(even) td { background:#f8f9fc; } .entrada { color:#065f46; font-weight:700; } .saida { color:#991b1b; font-weight:700; } .estorno { color:#7f1d1d; font-weight:700; }</style>';
+
+      var now = new Date();
+      var header = '<div style="background:#2563eb;color:#fff;padding:20px 28px 16px;">' +
+        '<h1 style="font-size:18px;font-weight:700;margin-bottom:4px;">Extrato de Caixa</h1>' +
+        '<div style="font-size:11px;opacity:.85;">Jogos Olímpicos Sinodal PB &nbsp;·&nbsp; ' + now.toLocaleDateString('pt-BR') + ' &nbsp;·&nbsp; Gerado em ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) + '</div>' +
         '</div>';
-      var summary = '<div style="display:flex;background:#f8f9fc;border-bottom:2px solid #2563eb;">' +
-        pdfSumCard('Total Vendas', 'R$ ' + formatMoney(r.total_vendas || 0)) +
-        pdfSumCard('Dinheiro', 'R$ ' + formatMoney(r.total_dinheiro || 0)) +
-        pdfSumCard('PIX', 'R$ ' + formatMoney(r.total_pix || 0)) +
-        pdfSumCard('Pedidos Finalizados', r.orders_paid || 0) +
+
+      // Resumo
+      var saldo = (summary.total_vendas || 0) + (summary.total_entradas || 0) - (summary.total_saidas || 0);
+      var summaryHtml = '<div style="display:flex;background:#f8f9fc;border-bottom:2px solid #2563eb;">' +
+        pdfSumCard('Entradas (Vendas)', 'R$ ' + formatMoney(summary.total_vendas || 0)) +
+        pdfSumCard('Dinheiro', 'R$ ' + formatMoney(summary.total_dinheiro || 0)) +
+        pdfSumCard('PIX', 'R$ ' + formatMoney(summary.total_pix || 0)) +
+        pdfSumCard('Estornos', '<span style="color:#dc2626;">R$ ' + formatMoney(summary.total_refunded || 0) + '</span>') +
+        pdfSumCard('Saldo Final', '<span style="color:' + (saldo >= 0 ? '#065f46' : '#dc2626') + ';">R$ ' + formatMoney(saldo) + '</span>') +
         '</div>';
-      var topTable = '<div style="padding:14px 32px 8px;font-size:14px;font-weight:700;border-top:2px solid #e2e6ef;margin-top:8px;">Produtos Mais Vendidos</div>' +
-        '<div style="padding:0 32px 16px;"><table><tr><th>#</th><th>Produto</th><th style="text-align:center;">Qtd</th><th style="text-align:right;">Total</th></tr>';
-      (r.top_products || []).forEach(function(p, i) {
-        topTable += '<tr><td style="text-align:center;color:#4a5068;">' + (i+1) + '</td><td>' + escHtml(p.name) + '</td><td style="text-align:center;font-weight:700;">' + p.qty + '</td><td style="text-align:right;font-weight:700;color:#2563eb;">R$ ' + formatMoney(p.total) + '</td></tr>';
-      });
-      topTable += '</table></div>';
-      var flowTable = '';
-      if ((r.cash_flow || []).length > 0) {
-        flowTable = '<div style="padding:14px 32px 8px;font-size:14px;font-weight:700;border-top:2px solid #e2e6ef;">Movimentações de Caixa</div>' +
-          '<div style="padding:0 32px 16px;"><table><tr><th>Tipo</th><th>Descrição</th><th>Método</th><th style="text-align:right;">Valor</th></tr>';
-        r.cash_flow.forEach(function(f) {
-          flowTable += '<tr><td>' + f.type + '</td><td>' + escHtml(f.description) + '</td><td>' + (f.payment_method || '—') + '</td><td style="text-align:right;font-weight:700;">' + (f.type === 'saida' ? '- ' : '+ ') + 'R$ ' + formatMoney(f.amount) + '</td></tr>';
+
+      // Tabela de movimentações
+      var tableHtml = '<div style="padding:12px 28px 6px;font-size:13px;font-weight:700;">Movimentações do Dia</div>' +
+        '<div style="padding:0 28px 16px;"><table>' +
+        '<tr><th>Hora</th><th>Tipo</th><th>Descrição</th><th>Método</th><th style="text-align:right;">Valor</th><th style="text-align:right;">Saldo</th><th>Responsável</th></tr>';
+
+      if (movements.length === 0) {
+        tableHtml += '<tr><td colspan="7" style="text-align:center;padding:16px;color:#8b92a9;">Nenhuma movimentação registrada.</td></tr>';
+      } else {
+        movements.forEach(function(m) {
+          var typeClass = m.type === 'ENTRADA' ? 'entrada' : (m.type === 'ESTORNO' ? 'estorno' : 'saida');
+          var valueSign = m.sign > 0 ? '+' : '-';
+          var valueColor = m.sign > 0 ? '#065f46' : '#991b1b';
+          tableHtml += '<tr>' +
+            '<td>' + fmtTime(m.time) + '</td>' +
+            '<td class="' + typeClass + '">' + m.type + '</td>' +
+            '<td>' + escHtml(m.description) + '</td>' +
+            '<td>' + escHtml(m.method) + '</td>' +
+            '<td style="text-align:right;color:' + valueColor + ';font-weight:700;">' + valueSign + 'R$ ' + formatMoney(m.amount) + '</td>' +
+            '<td style="text-align:right;font-weight:700;color:' + (m.balance >= 0 ? '#065f46' : '#dc2626') + ';">R$ ' + formatMoney(m.balance) + '</td>' +
+            '<td style="color:#4a5068;">' + escHtml(m.responsible) + '</td>' +
+            '</tr>';
         });
-        flowTable += '</table></div>';
       }
-      var footer = '<div style="margin-top:32px;padding:14px 32px;border-top:1px solid #e2e6ef;font-size:10px;color:#8b92a9;text-align:center;">Gerado em ' + new Date().toLocaleString('pt-BR') + '</div>';
-      return '<div style="width:794px;background:#fff;">' + styles + header + summary + topTable + flowTable + footer + '</div>';
+      tableHtml += '</table></div>';
+
+      var finalBalance = movements.length > 0 ? movements[movements.length - 1].balance : 0;
+      var footer = '<div style="margin-top:16px;padding:14px 28px;border-top:2px solid #2563eb;display:flex;align-items:center;justify-content:space-between;">' +
+        '<span style="font-size:10px;color:#8b92a9;">Gerado em ' + now.toLocaleString('pt-BR') + '</span>' +
+        '<div style="text-align:right;"><div style="font-size:11px;color:#4a5068;text-transform:uppercase;letter-spacing:.5px;">Saldo Final</div>' +
+        '<div style="font-size:22px;font-weight:900;color:' + (finalBalance >= 0 ? '#065f46' : '#dc2626') + ';">R$ ' + formatMoney(finalBalance) + '</div></div>' +
+        '</div>';
+
+      return '<div style="width:794px;background:#fff;">' + styles + header + summaryHtml + tableHtml + footer + '</div>';
     }
 
     function pdfSumCard(label, value) {
-      return '<div style="flex:1;padding:14px 12px;text-align:center;border-right:1px solid #e2e6ef;">' +
-        '<div style="font-size:20px;font-weight:800;color:#2563eb;">' + value + '</div>' +
-        '<div style="font-size:10px;color:#4a5068;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;">' + label + '</div>' +
+      return '<div style="flex:1;padding:12px 10px;text-align:center;border-right:1px solid #e2e6ef;">' +
+        '<div style="font-size:16px;font-weight:800;color:#2563eb;">' + value + '</div>' +
+        '<div style="font-size:9px;color:#4a5068;margin-top:3px;text-transform:uppercase;letter-spacing:.5px;">' + label + '</div>' +
         '</div>';
     }
 

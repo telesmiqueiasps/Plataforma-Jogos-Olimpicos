@@ -30,6 +30,7 @@ class ProductCreate(BaseModel):
     stock: int = 0
     min_stock: int = 5
     active: bool = True
+    image_url: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -40,6 +41,7 @@ class ProductUpdate(BaseModel):
     stock: Optional[int] = None
     min_stock: Optional[int] = None
     active: Optional[bool] = None
+    image_url: Optional[str] = None
 
 
 class StockAdjust(BaseModel):
@@ -68,9 +70,24 @@ class CashFlowCreate(BaseModel):
     payment_method: Optional[str] = None
 
 
+class RefundRequest(BaseModel):
+    reason: str
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _users_map(db: Session, *id_sets) -> dict:
+    """Retorna {user_id: user_name} para todos os IDs fornecidos."""
+    ids = set()
+    for s in id_sets:
+        ids.update(i for i in s if i)
+    if not ids:
+        return {}
+    users = db.query(User.id, User.name).filter(User.id.in_(ids)).all()
+    return {u.id: u.name for u in users}
+
 
 def _product_out(p: CantinProduct) -> dict:
     return {
@@ -82,6 +99,7 @@ def _product_out(p: CantinProduct) -> dict:
         "stock": p.stock,
         "min_stock": p.min_stock,
         "active": p.active,
+        "image_url": p.image_url,
         "created_at": p.created_at.isoformat() if p.created_at else None,
     }
 
@@ -97,7 +115,8 @@ def _item_out(i: CantinOrderItem) -> dict:
     }
 
 
-def _order_out(o: CantinOrder) -> dict:
+def _order_out(o: CantinOrder, users: dict = None) -> dict:
+    u = users or {}
     return {
         "id": o.id,
         "order_number": o.order_number,
@@ -106,12 +125,18 @@ def _order_out(o: CantinOrder) -> dict:
         "total": float(o.total),
         "notes": o.notes,
         "created_by": o.created_by,
+        "created_by_name": u.get(o.created_by),
         "created_at": o.created_at.isoformat() if o.created_at else None,
+        "refunded_at": o.refunded_at.isoformat() if o.refunded_at else None,
+        "refunded_by": o.refunded_by,
+        "refunded_by_name": u.get(o.refunded_by) if o.refunded_by else None,
+        "refund_reason": o.refund_reason,
         "items": [_item_out(i) for i in (o.items or [])],
     }
 
 
-def _cashflow_out(c: CantinCashFlow) -> dict:
+def _cashflow_out(c: CantinCashFlow, users: dict = None) -> dict:
+    u = users or {}
     return {
         "id": c.id,
         "type": c.type,
@@ -119,6 +144,7 @@ def _cashflow_out(c: CantinCashFlow) -> dict:
         "description": c.description,
         "payment_method": c.payment_method,
         "created_by": c.created_by,
+        "created_by_name": u.get(c.created_by),
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }
 
@@ -167,6 +193,7 @@ def create_product(
         stock=data.stock,
         min_stock=data.min_stock,
         active=data.active,
+        image_url=data.image_url,
     )
     db.add(p)
     db.commit()
@@ -234,7 +261,13 @@ def list_orders(
     q = db.query(CantinOrder).filter(CantinOrder.created_at >= today)
     if status:
         q = q.filter(CantinOrder.status == status)
-    return [_order_out(o) for o in q.order_by(CantinOrder.id.desc()).all()]
+    orders = q.order_by(CantinOrder.id.desc()).all()
+    uid_sets = (
+        {o.created_by for o in orders},
+        {o.refunded_by for o in orders},
+    )
+    users = _users_map(db, *uid_sets)
+    return [_order_out(o, users) for o in orders]
 
 
 @router.post("/orders", status_code=201)
@@ -316,6 +349,50 @@ def update_order_status(
     return _order_out(order)
 
 
+@router.post("/orders/{order_id}/refund")
+def refund_order(
+    order_id: int,
+    data: RefundRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_cantina),
+):
+    order = db.query(CantinOrder).filter(CantinOrder.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    if order.status != "paid":
+        raise HTTPException(status_code=400, detail="Apenas pedidos pagos podem ser estornados")
+    if order.status == "refunded":
+        raise HTTPException(status_code=400, detail="Pedido já foi estornado")
+
+    # Devolver estoque
+    for item in order.items:
+        if item.product_id:
+            product = db.query(CantinProduct).filter(CantinProduct.id == item.product_id).first()
+            if product:
+                product.stock += item.quantity
+
+    # Atualizar pedido
+    order.status = "refunded"
+    order.refunded_at = datetime.now(timezone.utc)
+    order.refunded_by = current_user.id
+    order.refund_reason = data.reason
+
+    # Registrar saída no caixa
+    flow = CantinCashFlow(
+        type="saida",
+        amount=float(order.total),
+        description=f"Estorno Pedido #{order.order_number} — {data.reason}",
+        payment_method=order.payment_method,
+        created_by=current_user.id,
+    )
+    db.add(flow)
+
+    db.commit()
+    db.refresh(order)
+    users = _users_map(db, {order.created_by}, {order.refunded_by})
+    return _order_out(order, users)
+
+
 @router.delete("/orders/{order_id}", status_code=204)
 def delete_order(
     order_id: int,
@@ -325,7 +402,7 @@ def delete_order(
     order = db.query(CantinOrder).filter(CantinOrder.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
-    if order.status != "cancelled":
+    if order.status not in ("cancelled", "refunded"):
         for item in order.items:
             if item.product_id:
                 product = db.query(CantinProduct).filter(CantinProduct.id == item.product_id).first()
@@ -351,9 +428,15 @@ def get_cash_summary(
         CantinOrder.status == "paid",
     ).all()
 
+    refunded_orders = db.query(CantinOrder).filter(
+        CantinOrder.created_at >= today,
+        CantinOrder.status == "refunded",
+    ).all()
+
     total_dinheiro = sum(float(o.total) for o in paid_orders if o.payment_method == "dinheiro")
     total_pix = sum(float(o.total) for o in paid_orders if o.payment_method == "pix")
     total_vendas = sum(float(o.total) for o in paid_orders)
+    total_refunded = sum(float(o.total) for o in refunded_orders)
 
     flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).all()
     total_entradas = sum(float(f.amount) for f in flows if f.type == "entrada")
@@ -369,11 +452,13 @@ def get_cash_summary(
         "total_pix": total_pix,
         "total_entradas": total_entradas,
         "total_saidas": total_saidas,
+        "total_refunded": total_refunded,
         "saldo": total_vendas + total_entradas - total_saidas,
         "orders_count": len(all_today),
         "orders_paid": len(paid_orders),
         "orders_pending": pending,
         "orders_cancelled": cancelled,
+        "orders_refunded": len(refunded_orders),
     }
 
 
@@ -383,8 +468,9 @@ def list_cash_flow(
     current_user: User = Depends(get_current_user),
 ):
     today = _today_start()
-    flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).order_by(CantinCashFlow.id.desc()).all()
-    return [_cashflow_out(f) for f in flows]
+    flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).order_by(CantinCashFlow.created_at).all()
+    users = _users_map(db, {f.created_by for f in flows})
+    return [_cashflow_out(f, users) for f in flows]
 
 
 @router.post("/cash/flow", status_code=201)
@@ -405,7 +491,8 @@ def add_cash_flow(
     db.add(flow)
     db.commit()
     db.refresh(flow)
-    return _cashflow_out(flow)
+    users = _users_map(db, {flow.created_by})
+    return _cashflow_out(flow, users)
 
 
 # ---------------------------------------------------------------------------
@@ -428,7 +515,7 @@ def get_report(
     total_dinheiro = sum(float(o.total) for o in paid_orders if o.payment_method == "dinheiro")
     total_pix = sum(float(o.total) for o in paid_orders if o.payment_method == "pix")
 
-    # Produtos mais vendidos
+    # Produtos mais vendidos (apenas pedidos pagos, excluindo estornados)
     product_sales: dict = {}
     for order in paid_orders:
         for item in order.items:
@@ -451,7 +538,8 @@ def get_report(
             category_sales[cat]["qty"] += item.quantity
             category_sales[cat]["total"] += float(item.subtotal)
 
-    flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).order_by(CantinCashFlow.id).all()
+    flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).order_by(CantinCashFlow.created_at).all()
+    users = _users_map(db, {f.created_by for f in flows})
 
     return {
         "date": today.date().isoformat(),
@@ -461,5 +549,5 @@ def get_report(
         "orders_paid": len(paid_orders),
         "top_products": top_products,
         "category_sales": list(category_sales.values()),
-        "cash_flow": [_cashflow_out(f) for f in flows],
+        "cash_flow": [_cashflow_out(f, users) for f in flows],
     }

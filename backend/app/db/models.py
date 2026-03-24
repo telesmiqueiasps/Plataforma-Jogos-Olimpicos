@@ -510,6 +510,7 @@ class CantinProduct(Base):
     stock       = Column(Integer, default=0)
     min_stock   = Column(Integer, default=5)
     active      = Column(Boolean, default=True)
+    image_url   = Column(String(500), nullable=True)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
 
     order_items = relationship("CantinOrderItem", back_populates="product")
@@ -526,6 +527,9 @@ class CantinOrder(Base):
     notes          = Column(String(300), nullable=True)
     created_by     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at     = Column(DateTime(timezone=True), server_default=func.now())
+    refunded_at    = Column(DateTime(timezone=True), nullable=True)
+    refunded_by    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    refund_reason  = Column(String(300), nullable=True)
 
     items = relationship("CantinOrderItem", back_populates="order", cascade="all, delete-orphan")
 

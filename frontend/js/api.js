@@ -161,6 +161,7 @@ const CantinAPI = {
   createOrder: (data) => apiFetch('/api/cantina/orders', { method: 'POST', body: JSON.stringify(data) }),
   updateOrderStatus: (id, status) => apiFetch(`/api/cantina/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   deleteOrder: (id) => apiFetch(`/api/cantina/orders/${id}`, { method: 'DELETE' }),
+  refundOrder: (id, data) => apiFetch(`/api/cantina/orders/${id}/refund`, { method: 'POST', body: JSON.stringify(data) }),
   cash: () => apiFetch('/api/cantina/cash'),
   cashFlow: () => apiFetch('/api/cantina/cash/flow'),
   addCashFlow: (data) => apiFetch('/api/cantina/cash/flow', { method: 'POST', body: JSON.stringify(data) }),
