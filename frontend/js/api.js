@@ -168,7 +168,7 @@ const CantinAPI = {
   cash: (params) => apiFetch('/api/cantina/cash' + (params ? '?' + new URLSearchParams(params) : '')),
   cashFlow: (params) => apiFetch('/api/cantina/cash/flow' + (params ? '?' + new URLSearchParams(params) : '')),
   addCashFlow: (data) => apiFetch('/api/cantina/cash/flow', { method: 'POST', body: JSON.stringify(data) }),
-  report: () => apiFetch('/api/cantina/report'),
+  report: (params) => apiFetch('/api/cantina/report' + (params ? '?' + new URLSearchParams(params) : '')),
 };
 
 // --- Games ---

@@ -1194,7 +1194,9 @@
 
     async function loadReport() {
       try {
-        reportData = await CantinAPI.report();
+        var dateParams = getDateParams();
+        var reportParams = Object.assign({}, dateParams || {}, { pdv_id: currentPdvId });
+        reportData = await CantinAPI.report(reportParams);
         renderReportSummary(reportData);
         renderTopProducts(reportData.top_products || []);
       } catch(e) {
@@ -1237,10 +1239,12 @@
       showToast('⏳ Gerando extrato...', 'info', 8000);
       try {
         // Buscar todos os dados
+        var dateParams = getDateParams();
+        var params = Object.assign({}, dateParams || {}, { pdv_id: currentPdvId });
         var [summary, orders, flows] = await Promise.all([
-          CantinAPI.cash(),
-          CantinAPI.orders(),
-          CantinAPI.cashFlow(),
+          CantinAPI.cash(params),
+          CantinAPI.orders(params),
+          CantinAPI.cashFlow(params),
         ]);
 
         // Movimentações manuais — excluir registros antigos de estorno (já contabilizados nos pedidos)

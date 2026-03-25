@@ -160,6 +160,11 @@ def _today_start():
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+def _today_end():
+    now = datetime.now(timezone.utc)
+    return now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+
 def _parse_date_range(date_from: Optional[str], date_to: Optional[str]):
     """Retorna (dt_from, dt_to) como datetime UTC ou (None, None) se não informado."""
     dt_from = dt_to = None
@@ -179,9 +184,8 @@ def _parse_date_range(date_from: Optional[str], date_to: Optional[str]):
 
 
 def _next_order_number(db: Session) -> int:
-    today = _today_start()
-    count = db.query(CantinOrder).filter(CantinOrder.created_at >= today).count()
-    return count + 1
+    max_number = db.query(func.max(CantinOrder.order_number)).scalar() or 0
+    return int(max_number) + 1
 
 
 # ---------------------------------------------------------------------------
@@ -289,13 +293,14 @@ def list_orders(
     current_user: User = Depends(get_current_user),
 ):
     dt_from, dt_to = _parse_date_range(date_from, date_to)
+    if not dt_from and not dt_to:
+        dt_from = _today_start()
+        dt_to = _today_end()
     q = db.query(CantinOrder)
     if dt_from:
         q = q.filter(CantinOrder.created_at >= dt_from)
     if dt_to:
         q = q.filter(CantinOrder.created_at <= dt_to)
-    if not dt_from and not dt_to:
-        q = q.filter(CantinOrder.created_at >= _today_start())
     if status:
         q = q.filter(CantinOrder.status == status)
     if pdv_id is not None:
@@ -457,6 +462,7 @@ def get_cash_summary(
     dt_from, dt_to = _parse_date_range(date_from, date_to)
     if not dt_from and not dt_to:
         dt_from = _today_start()
+        dt_to = _today_end()
 
     def _order_q():
         q = db.query(CantinOrder)
@@ -523,13 +529,14 @@ def list_cash_flow(
     current_user: User = Depends(get_current_user),
 ):
     dt_from, dt_to = _parse_date_range(date_from, date_to)
+    if not dt_from and not dt_to:
+        dt_from = _today_start()
+        dt_to = _today_end()
     q = db.query(CantinCashFlow)
     if dt_from:
         q = q.filter(CantinCashFlow.created_at >= dt_from)
     if dt_to:
         q = q.filter(CantinCashFlow.created_at <= dt_to)
-    if not dt_from and not dt_to:
-        q = q.filter(CantinCashFlow.created_at >= _today_start())
     if pdv_id is not None:
         q = q.filter(CantinCashFlow.pdv_id == pdv_id)
     flows = q.order_by(CantinCashFlow.created_at).all()
@@ -574,6 +581,7 @@ def get_cash_consolidated(
     dt_from, dt_to = _parse_date_range(date_from, date_to)
     if not dt_from and not dt_to:
         dt_from = _today_start()
+        dt_to = _today_end()
 
     def _summary_for_pdv(pdv: int) -> dict:
         def oq():
@@ -634,15 +642,28 @@ def get_cash_consolidated(
 
 @router.get("/report")
 def get_report(
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    pdv_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    today = _today_start()
+    dt_from, dt_to = _parse_date_range(date_from, date_to)
+    if not dt_from and not dt_to:
+        dt_from = _today_start()
+        dt_to = _today_end()
 
-    paid_orders = db.query(CantinOrder).filter(
-        CantinOrder.created_at >= today,
-        CantinOrder.status == "paid",
-    ).all()
+    def _order_q():
+        q = db.query(CantinOrder).filter(CantinOrder.status == "paid")
+        if dt_from:
+            q = q.filter(CantinOrder.created_at >= dt_from)
+        if dt_to:
+            q = q.filter(CantinOrder.created_at <= dt_to)
+        if pdv_id is not None:
+            q = q.filter(CantinOrder.pdv_id == pdv_id)
+        return q
+
+    paid_orders = _order_q().all()
 
     total_vendas = sum(float(o.total) for o in paid_orders)
     total_dinheiro = sum(float(o.total) for o in paid_orders if o.payment_method == "dinheiro")
@@ -671,11 +692,19 @@ def get_report(
             category_sales[cat]["qty"] += item.quantity
             category_sales[cat]["total"] += float(item.subtotal)
 
-    flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).order_by(CantinCashFlow.created_at).all()
+    flow_q = db.query(CantinCashFlow)
+    if dt_from:
+        flow_q = flow_q.filter(CantinCashFlow.created_at >= dt_from)
+    if dt_to:
+        flow_q = flow_q.filter(CantinCashFlow.created_at <= dt_to)
+    if pdv_id is not None:
+        flow_q = flow_q.filter(CantinCashFlow.pdv_id == pdv_id)
+    flows = flow_q.order_by(CantinCashFlow.created_at).all()
+
     users = _users_map(db, {f.created_by for f in flows})
 
     return {
-        "date": today.date().isoformat(),
+        "date": (dt_from.date().isoformat() if dt_from else None),
         "total_vendas": total_vendas,
         "total_dinheiro": total_dinheiro,
         "total_pix": total_pix,
