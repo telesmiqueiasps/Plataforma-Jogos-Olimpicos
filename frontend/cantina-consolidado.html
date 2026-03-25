@@ -270,6 +270,28 @@
         showToast('Erro ao exportar: ' + e.message, 'error');
       }
     }
+
+    // Helper functions
+    function escHtml(s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatMoney(n) {
+      return parseFloat(n || 0).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+    }
+
+    function fmtDatetime(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        var dateStr = d.toLocaleDateString('pt-BR');
+        var timeStr = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        return dateStr + ' ' + timeStr;
+      } catch(e) {
+        return '';
+      }
+    }
   </script>
 </body>
 </html>
