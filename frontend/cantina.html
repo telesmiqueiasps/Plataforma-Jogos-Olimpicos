@@ -334,6 +334,36 @@
               </div>
             </div>
           </div>
+
+          <!-- Relatório de Estoque -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <span style="font-size:15px;font-weight:700;">📦 Situação do Estoque</span>
+          </div>
+          <div id="stock-summary-cards" class="cash-grid" style="margin-bottom:14px;"></div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📦 Estoque Detalhado</span>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table class="prod-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Categoria</th>
+                      <th style="text-align:right;">Preço</th>
+                      <th style="text-align:center;">Atual</th>
+                      <th style="text-align:center;">Mín.</th>
+                      <th style="text-align:center;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stock-report-tbody">
+                    <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
@@ -1197,12 +1227,73 @@
       try {
         var dateParams = getDateParams();
         var reportParams = Object.assign({}, dateParams || {}, { pdv_id: currentPdvId });
-        reportData = await CantinAPI.report(reportParams);
+        var [reportResult, stockProducts] = await Promise.all([
+          CantinAPI.report(reportParams),
+          CantinAPI.products({ pdv_id: currentPdvId }),
+        ]);
+        reportData = reportResult;
         renderReportSummary(reportData);
         renderTopProducts(reportData.top_products || []);
+        renderStockReport(stockProducts || []);
       } catch(e) {
         showToast('Erro ao carregar relatório: ' + e.message, 'error');
       }
+    }
+
+    function renderStockReport(products) {
+      var total  = products.length;
+      var empty  = products.filter(function(p){ return p.stock === 0; }).length;
+      var low    = products.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length;
+      var normal = total - empty - low;
+
+      var emptyCard = empty > 0
+        ? '<div class="cash-card"><div class="c-icon">❌</div><div class="c-value danger">' + empty + '</div><div class="c-label">Sem Estoque</div></div>'
+        : cashCard('❌', empty, 'Sem Estoque');
+
+      document.getElementById('stock-summary-cards').innerHTML =
+        cashCard('📦', total, 'Produtos') +
+        cashCard('✅', normal, 'Normal') +
+        cashCard('⚠️', low, 'Estoque Baixo') +
+        emptyCard;
+
+      var tbody = document.getElementById('stock-report-tbody');
+      if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum produto cadastrado.</td></tr>';
+        return;
+      }
+
+      // Ordenar: sem estoque → baixo → normal
+      var sorted = products.slice().sort(function(a, b) {
+        var ra = a.stock === 0 ? 0 : (a.stock <= a.min_stock ? 1 : 2);
+        var rb = b.stock === 0 ? 0 : (b.stock <= b.min_stock ? 1 : 2);
+        return ra - rb || a.name.localeCompare(b.name);
+      });
+
+      var html = '';
+      sorted.forEach(function(p) {
+        var rowClass = p.stock === 0 ? 'zero-stock' : (p.stock <= p.min_stock ? 'low-stock' : '');
+        var statusBadge;
+        if (p.stock === 0)
+          statusBadge = '<span class="badge-cancelled" style="border-radius:20px;">Sem Estoque</span>';
+        else if (p.stock <= p.min_stock)
+          statusBadge = '<span class="badge-pending" style="border-radius:20px;">⚠️ Baixo</span>';
+        else
+          statusBadge = '<span class="badge-paid" style="border-radius:20px;">Normal</span>';
+
+        html += '<tr class="' + rowClass + '">' +
+          '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+          '<td><span style="background:var(--bg-tertiary,#f0f2f7);padding:2px 8px;border-radius:10px;font-size:11px;">' + escHtml(p.category || '—') + '</span></td>' +
+          '<td style="text-align:right;font-weight:700;">R$ ' + formatMoney(p.price) + '</td>' +
+          '<td style="text-align:center;font-weight:800;">' +
+            (p.stock === 0 ? '<span style="color:#dc2626;font-weight:800;">0</span>' :
+             p.stock <= p.min_stock ? '<span style="color:#d97706;font-weight:800;">' + p.stock + '</span>' :
+             p.stock) +
+          '</td>' +
+          '<td style="text-align:center;color:var(--text-muted);">' + p.min_stock + '</td>' +
+          '<td style="text-align:center;">' + statusBadge + '</td>' +
+          '</tr>';
+      });
+      tbody.innerHTML = html;
     }
 
     function renderReportSummary(r) {
@@ -1242,10 +1333,11 @@
         // Buscar todos os dados
         var dateParams = getDateParams();
         var params = Object.assign({}, dateParams || {}, { pdv_id: currentPdvId });
-        var [summary, orders, flows] = await Promise.all([
+        var [summary, orders, flows, stockProducts] = await Promise.all([
           CantinAPI.cash(params),
           CantinAPI.orders(params),
           CantinAPI.cashFlow(params),
+          CantinAPI.products({ pdv_id: currentPdvId }),
         ]);
 
         // Movimentações manuais — excluir registros antigos de estorno (já contabilizados nos pedidos)
@@ -1317,7 +1409,7 @@
           m.balance = running;
         });
 
-        var html = buildExtratoPDFHTML(pdfTotals, movements);
+        var html = buildExtratoPDFHTML(pdfTotals, movements, stockProducts || []);
         var area = document.getElementById('pdf-render-area');
         area.innerHTML = html;
         await new Promise(function(r){ setTimeout(r, 500); });
@@ -1342,8 +1434,8 @@
       }
     }
 
-    function buildExtratoPDFHTML(pdfTotals, movements) {
-      var styles = '<style>* { box-sizing:border-box; margin:0; padding:0; } body { font-family:Arial,sans-serif; font-size:11px; color:#1a1d2e; background:#fff; } table { border-collapse:collapse; width:100%; } th { background:#2563eb; color:#fff; padding:7px 10px; text-align:left; font-size:10px; text-transform:uppercase; } td { padding:6px 10px; border-bottom:1px solid #e2e6ef; font-size:11px; } tr:nth-child(even) td { background:#f8f9fc; } .entrada { color:#065f46; font-weight:700; } .saida { color:#991b1b; font-weight:700; } .estorno { color:#7f1d1d; font-weight:700; }</style>';
+    function buildExtratoPDFHTML(pdfTotals, movements, stockProducts) {
+      var styles = '<style>* { box-sizing:border-box; margin:0; padding:0; } body { font-family:Arial,sans-serif; font-size:11px; color:#1a1d2e; background:#fff; } table { border-collapse:collapse; width:100%; } th { background:#2563eb; color:#fff; padding:7px 10px; text-align:left; font-size:10px; text-transform:uppercase; } td { padding:6px 10px; border-bottom:1px solid #e2e6ef; font-size:11px; } tr:nth-child(even) td { background:#f8f9fc; } .entrada { color:#065f46; font-weight:700; } .saida { color:#991b1b; font-weight:700; } .estorno { color:#7f1d1d; font-weight:700; } .stock-empty td { background:#fff0f0; } .stock-low td { background:#fffbeb; }</style>';
 
       var now = new Date();
       var header = '<div style="background:#2563eb;color:#fff;padding:20px 28px 16px;">' +
@@ -1391,13 +1483,49 @@
       tableHtml += '</table></div>';
 
       var finalBalance = movements.length > 0 ? movements[movements.length - 1].balance : 0;
-      var footer = '<div style="margin-top:16px;padding:14px 28px;border-top:2px solid #2563eb;display:flex;align-items:center;justify-content:space-between;">' +
+      var footer = '<div style="padding:14px 28px;border-top:2px solid #2563eb;display:flex;align-items:center;justify-content:space-between;">' +
         '<span style="font-size:10px;color:#8b92a9;">Gerado em ' + now.toLocaleString('pt-BR') + '</span>' +
         '<div style="text-align:right;"><div style="font-size:11px;color:#4a5068;text-transform:uppercase;letter-spacing:.5px;">Saldo Final</div>' +
         '<div style="font-size:22px;font-weight:900;color:' + (finalBalance >= 0 ? '#065f46' : '#dc2626') + ';">R$ ' + formatMoney(finalBalance) + '</div></div>' +
         '</div>';
 
-      return '<div style="width:794px;background:#fff;">' + styles + header + summaryHtml + tableHtml + footer + '</div>';
+      // Tabela de estoque
+      var stockHtml = '';
+      if (stockProducts && stockProducts.length) {
+        var sortedStock = stockProducts.slice().sort(function(a, b) {
+          var ra = a.stock === 0 ? 0 : (a.stock <= a.min_stock ? 1 : 2);
+          var rb = b.stock === 0 ? 0 : (b.stock <= b.min_stock ? 1 : 2);
+          return ra - rb || a.name.localeCompare(b.name);
+        });
+        var emptyCount = stockProducts.filter(function(p){ return p.stock === 0; }).length;
+        var lowCount   = stockProducts.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length;
+        stockHtml = '<div style="margin-top:4px;padding:10px 28px 4px;font-size:13px;font-weight:700;border-top:2px solid #2563eb;">' +
+          'Situação do Estoque' +
+          '<span style="margin-left:12px;font-size:11px;font-weight:400;color:#4a5068;">' +
+            stockProducts.length + ' produtos' +
+            (emptyCount ? ' · <span style="color:#dc2626;font-weight:700;">' + emptyCount + ' sem estoque</span>' : '') +
+            (lowCount   ? ' · <span style="color:#d97706;font-weight:700;">' + lowCount + ' estoque baixo</span>' : '') +
+          '</span></div>' +
+          '<div style="padding:0 28px 16px;"><table>' +
+          '<tr><th>Produto</th><th>Categoria</th><th style="text-align:right;">Preço</th><th style="text-align:center;">Estoque Atual</th><th style="text-align:center;">Mínimo</th><th style="text-align:center;">Status</th></tr>';
+        sortedStock.forEach(function(p) {
+          var rowClass = p.stock === 0 ? 'stock-empty' : (p.stock <= p.min_stock ? 'stock-low' : '');
+          var status = p.stock === 0 ? '<span style="color:#991b1b;font-weight:700;">Sem Estoque</span>' :
+                       p.stock <= p.min_stock ? '<span style="color:#92400e;font-weight:700;">⚠️ Baixo</span>' :
+                       '<span style="color:#065f46;font-weight:600;">Normal</span>';
+          stockHtml += '<tr class="' + rowClass + '">' +
+            '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+            '<td style="color:#4a5068;">' + escHtml(p.category || '—') + '</td>' +
+            '<td style="text-align:right;">R$ ' + formatMoney(p.price) + '</td>' +
+            '<td style="text-align:center;font-weight:800;color:' + (p.stock === 0 ? '#dc2626' : p.stock <= p.min_stock ? '#d97706' : '#1a1d2e') + ';">' + p.stock + '</td>' +
+            '<td style="text-align:center;color:#8b92a9;">' + p.min_stock + '</td>' +
+            '<td style="text-align:center;">' + status + '</td>' +
+            '</tr>';
+        });
+        stockHtml += '</table></div>';
+      }
+
+      return '<div style="width:794px;background:#fff;">' + styles + header + summaryHtml + tableHtml + stockHtml + footer + '</div>';
     }
 
     function pdfSumCard(label, value) {
