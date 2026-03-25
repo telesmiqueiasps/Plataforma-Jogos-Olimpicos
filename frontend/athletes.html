@@ -334,10 +334,11 @@
       const teamFilter = document.getElementById('team-filter').value;
       const activeOnly = document.getElementById('active-only').checked;
       return allAthletes.filter(a => {
+        const linked = athleteTeamsMap[a.id] || [];
         const matchSearch = !search || a.name.toLowerCase().includes(search);
         const matchTeam = !teamFilter ? true :
-          teamFilter === 'free' ? !a.team_id :
-          String(a.team_id) === teamFilter;
+          teamFilter === 'free' ? (!a.team_id && !linked.length) :
+          String(a.team_id) === teamFilter || linked.some(link => String(link.team_id) === teamFilter);
         const matchActive = !activeOnly || a.active !== false;
         return matchSearch && matchTeam && matchActive;
       });
@@ -696,10 +697,10 @@
         var athlete = allAthletes.find(function(a){ return a.id === _atTeamsAthleteId; });
         if (athlete && !athlete.team_id) {
           athlete.team_id = teamId;
-          renderAthletes();
         }
         showToast('Equipe vinculada!', 'success');
         await refreshAthleteTeamsList();
+        renderAthletes();
       } catch(e) {
         alertEl.textContent = e.message;
         alertEl.style.display = 'flex';
@@ -714,10 +715,10 @@
         var athlete = allAthletes.find(function(a){ return a.id === _atTeamsAthleteId; });
         if (athlete && athlete.team_id === teamId) {
           athlete.team_id = null;
-          renderAthletes();
         }
         showToast('Desvinculado com sucesso.', 'success');
         await refreshAthleteTeamsList();
+        renderAthletes();
       } catch(e) {
         showToast('Erro: ' + e.message, 'error');
       }
