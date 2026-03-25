@@ -3,7 +3,7 @@ routes/cantina.py
 =================
 Módulo de cantina: produtos, pedidos e caixa.
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -155,14 +155,20 @@ def _cashflow_out(c: CantinCashFlow, users: dict = None) -> dict:
     }
 
 
+# Ajustar para fuso horário local (ex: Brasil, UTC-3).
+LOCAL_TZ = timezone(timedelta(hours=-3))
+
+
 def _today_start():
-    now = datetime.now(timezone.utc)
-    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+    now = datetime.now(LOCAL_TZ)
+    local_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return local_start.astimezone(timezone.utc)
 
 
 def _today_end():
-    now = datetime.now(timezone.utc)
-    return now.replace(hour=23, minute=59, second=59, microsecond=999999)
+    now = datetime.now(LOCAL_TZ)
+    local_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return local_end.astimezone(timezone.utc)
 
 
 def _parse_date_range(date_from: Optional[str], date_to: Optional[str]):
@@ -171,13 +177,15 @@ def _parse_date_range(date_from: Optional[str], date_to: Optional[str]):
     if date_from:
         try:
             d = date.fromisoformat(date_from)
-            dt_from = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc)
+            local_from = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=LOCAL_TZ)
+            dt_from = local_from.astimezone(timezone.utc)
         except ValueError:
             pass
     if date_to:
         try:
             d = date.fromisoformat(date_to)
-            dt_to = datetime(d.year, d.month, d.day, 23, 59, 59, tzinfo=timezone.utc)
+            local_to = datetime(d.year, d.month, d.day, 23, 59, 59, tzinfo=LOCAL_TZ)
+            dt_to = local_to.astimezone(timezone.utc)
         except ValueError:
             pass
     return dt_from, dt_to
