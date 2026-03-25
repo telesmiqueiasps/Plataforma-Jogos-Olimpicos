@@ -35,7 +35,7 @@
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://sports-platform-api.onrender.com https://lh3.googleusercontent.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; frame-ancestors 'none';"
 
     # Desativa funcionalidades desnecessárias do browser
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
 
     # Referrer seguro
     Referrer-Policy = "strict-origin-when-cross-origin"
@@ -44,6 +44,16 @@
     Cache-Control = "no-cache, no-store, must-revalidate"
     Pragma = "no-cache"
     Expires = "0"
+
+# ---------------------------------------------------------------------------
+# Headers específicos para secretaria.html — permite acesso à câmera
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/secretaria.html"
+
+  [headers.values]
+    Permissions-Policy = "camera=(*)"
+    Cache-Control = "no-cache, no-store, must-revalidate"
 
 # ---------------------------------------------------------------------------
 # Cache para assets estáticos
