@@ -162,6 +162,25 @@ class TeamSport(Base):
 # Athlete
 # ---------------------------------------------------------------------------
 
+class AthleteTeam(Base):
+    """Relação N:N entre atleta e equipe, com restrição de 1 equipe por modalidade."""
+    __tablename__ = "athlete_teams"
+
+    id         = Column(Integer, primary_key=True)
+    athlete_id = Column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), nullable=False)
+    team_id    = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    sport_id   = Column(Integer, ForeignKey("sports.id", ondelete="CASCADE"), nullable=False)
+
+    athlete = relationship("Athlete", back_populates="athlete_teams")
+    team    = relationship("Team")
+    sport   = relationship("Sport")
+
+    __table_args__ = (
+        Index("uq_athlete_sport", "athlete_id", "sport_id", unique=True),
+        Index("uq_athlete_team_link", "athlete_id", "team_id", unique=True),
+    )
+
+
 class Athlete(Base):
     __tablename__ = "athletes"
 
@@ -174,9 +193,10 @@ class Athlete(Base):
     active   = Column(Boolean, nullable=False, default=True)
 
     # relationships
-    team        = relationship("Team",       back_populates="athletes")
-    game_events = relationship("GameEvent",  back_populates="athlete")
-    suspensions = relationship("Suspension", back_populates="athlete")
+    team         = relationship("Team",        back_populates="athletes")
+    game_events  = relationship("GameEvent",   back_populates="athlete")
+    suspensions  = relationship("Suspension",  back_populates="athlete")
+    athlete_teams = relationship("AthleteTeam", back_populates="athlete", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_athletes_team_id", "team_id"),
@@ -512,6 +532,7 @@ class CantinProduct(Base):
     active      = Column(Boolean, default=True)
     image_url   = Column(String(2000), nullable=True)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    pdv_id      = Column(Integer, default=1, nullable=False)
 
     order_items = relationship("CantinOrderItem", back_populates="product")
 
@@ -530,6 +551,7 @@ class CantinOrder(Base):
     refunded_at    = Column(DateTime(timezone=True), nullable=True)
     refunded_by    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     refund_reason  = Column(String(300), nullable=True)
+    pdv_id         = Column(Integer, default=1, nullable=False)
 
     items = relationship("CantinOrderItem", back_populates="order", cascade="all, delete-orphan")
 
@@ -559,3 +581,4 @@ class CantinCashFlow(Base):
     payment_method = Column(String(20), nullable=True)
     created_by     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at     = Column(DateTime(timezone=True), server_default=func.now())
+    pdv_id         = Column(Integer, default=1, nullable=False)

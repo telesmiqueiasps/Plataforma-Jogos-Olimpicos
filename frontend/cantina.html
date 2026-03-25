@@ -97,6 +97,12 @@
     .badge-refunded { background:#fecaca; color:#7f1d1d; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
     .badge-entrada { background:#d1fae5; color:#065f46; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
     .badge-saida { background:#fee2e2; color:#991b1b; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
+    /* Date filter bar */
+    .date-filter-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; padding:12px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; }
+    .date-filter-bar label { font-size:12px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+    .date-filter-bar select, .date-filter-bar input[type=date] { font-size:13px; padding:5px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-secondary); color:var(--text-primary); font-family:inherit; cursor:pointer; }
+    .date-custom-range { display:none; align-items:center; gap:8px; flex-wrap:wrap; }
+    .date-custom-range.visible { display:flex; }
   </style>
 </head>
 <body>
@@ -159,8 +165,9 @@
     <div class="main-wrapper">
       <header class="topbar">
         <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
-        <span class="topbar-title">🏪 Cantina</span>
+        <span class="topbar-title" id="topbar-title">🏪 Cantina</span>
         <div class="topbar-actions">
+          <a href="cantina-select.html" class="btn btn-secondary btn-sm" style="font-size:12px;">🔀 Trocar PDV</a>
           <button id="theme-toggle" onclick="if(typeof toggleTheme==='function')toggleTheme();else{const t=localStorage.getItem('sp_theme')==='dark'?'light':'dark';localStorage.setItem('sp_theme',t);document.documentElement.setAttribute('data-theme',t);this.innerHTML=t==='dark'?'☀️':'🌙';}" title="Alternar tema">🌙</button>
         </div>
       </header>
@@ -248,6 +255,25 @@
         <!-- ABA: CAIXA                                               -->
         <!-- ======================================================= -->
         <div id="tab-caixa" style="display:none;">
+          <!-- Filtro de período -->
+          <div class="date-filter-bar">
+            <label>📅 Período:</label>
+            <select id="date-period" onchange="onDatePeriodChange()">
+              <option value="today">Hoje</option>
+              <option value="yesterday">Ontem</option>
+              <option value="last7">Últimos 7 dias</option>
+              <option value="month">Este mês</option>
+              <option value="custom">Período personalizado</option>
+              <option value="all">Tudo</option>
+            </select>
+            <div class="date-custom-range" id="date-custom-range">
+              <span style="font-size:12px;color:var(--text-secondary);">De:</span>
+              <input type="date" id="date-from" style="width:140px;">
+              <span style="font-size:12px;color:var(--text-secondary);">Até:</span>
+              <input type="date" id="date-to" style="width:140px;">
+              <button class="btn btn-primary btn-sm" onclick="loadCashTab()">Aplicar</button>
+            </div>
+          </div>
           <!-- Resumo -->
           <div id="cash-summary" class="cash-grid"></div>
 
@@ -502,11 +528,22 @@
     var currentCategoryFilter = '';
     var _pendingPaymentMethod = null;
 
+    // PDV atual lido da URL (?pdv=1 ou ?pdv=2)
+    var currentPdvId = (function() {
+      var params = new URLSearchParams(window.location.search);
+      var pdv = parseInt(params.get('pdv') || '1', 10);
+      return (pdv === 2) ? 2 : 1;
+    })();
+
     // ================================================================
     //  Init
     // ================================================================
     document.addEventListener('DOMContentLoaded', function() {
       requireCantinaAccess();
+      // Atualizar título com PDV atual
+      var titleEl = document.getElementById('topbar-title');
+      if (titleEl) titleEl.textContent = '🏪 Cantina — PDV ' + currentPdvId;
+      document.title = 'Cantina PDV ' + currentPdvId + ' — Jogos Olímpicos Sinodal PB';
       initTabNav();
       loadPDV();
     });
@@ -546,7 +583,7 @@
     // ================================================================
     async function loadPDV() {
       try {
-        var products = await CantinAPI.products({ active: 'true' });
+        var products = await CantinAPI.products({ active: 'true', pdv_id: currentPdvId });
         allProducts = products || [];
         buildCategoryFilters();
         renderProductGrid('');
@@ -743,7 +780,7 @@
       var btn = document.getElementById('btn-pay-' + (paymentMethod === 'dinheiro' ? 'cash' : 'pix'));
       if (btn) btnLoading(btn, true, 'Registrando...');
       try {
-        var order = await CantinAPI.createOrder({ items: items, payment_method: paymentMethod, notes: notes || null });
+        var order = await CantinAPI.createOrder({ items: items, payment_method: paymentMethod, notes: notes || null, pdv_id: currentPdvId });
         var total = 'R$ ' + formatMoney(order.total);
         showToast('✅ Pedido #' + order.order_number + ' registrado! Total: ' + total, 'success', 4000);
         clearCart();
@@ -760,7 +797,7 @@
     // ================================================================
     async function loadProductsTable() {
       try {
-        var products = await CantinAPI.products();
+        var products = await CantinAPI.products({ pdv_id: currentPdvId });
         allProducts = products || [];
         renderProductsTable(products);
       } catch(e) {
@@ -863,7 +900,7 @@
           await CantinAPI.updateProduct(id, data);
           showToast('Produto atualizado!', 'success');
         } else {
-          await CantinAPI.createProduct(data);
+          await CantinAPI.createProduct(Object.assign({}, data, { pdv_id: currentPdvId }));
           showToast('Produto criado!', 'success');
         }
         closeModal('modal-product');
@@ -916,12 +953,63 @@
     // ================================================================
     var ordersCache = [];
 
+    function onDatePeriodChange() {
+      var period = document.getElementById('date-period').value;
+      var customRange = document.getElementById('date-custom-range');
+      if (period === 'custom') {
+        customRange.classList.add('visible');
+      } else {
+        customRange.classList.remove('visible');
+        loadCashTab();
+      }
+    }
+
+    function getDateParams() {
+      var period = document.getElementById('date-period') ? document.getElementById('date-period').value : 'today';
+      var today = new Date();
+      var fmt = function(d) {
+        var m = d.getMonth() + 1;
+        var day = d.getDate();
+        return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+      };
+      if (period === 'today') {
+        var s = fmt(today);
+        return { date_from: s, date_to: s };
+      }
+      if (period === 'yesterday') {
+        var y = new Date(today); y.setDate(y.getDate() - 1);
+        var s2 = fmt(y);
+        return { date_from: s2, date_to: s2 };
+      }
+      if (period === 'last7') {
+        var d7 = new Date(today); d7.setDate(d7.getDate() - 6);
+        return { date_from: fmt(d7), date_to: fmt(today) };
+      }
+      if (period === 'month') {
+        var first = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { date_from: fmt(first), date_to: fmt(today) };
+      }
+      if (period === 'custom') {
+        var df = document.getElementById('date-from').value;
+        var dt = document.getElementById('date-to').value;
+        var params = {};
+        if (df) params.date_from = df;
+        if (dt) params.date_to = dt;
+        return Object.keys(params).length ? params : null;
+      }
+      // 'all' — sem filtro de data
+      return null;
+    }
+
     async function loadCashTab() {
+      var dateParams = getDateParams();
+      var pdvParam = { pdv_id: currentPdvId };
+      var cashParams = Object.assign({}, dateParams || {}, pdvParam);
       try {
         var [summary, orders, flows] = await Promise.all([
-          CantinAPI.cash(),
-          CantinAPI.orders(),
-          CantinAPI.cashFlow(),
+          CantinAPI.cash(cashParams),
+          CantinAPI.orders(cashParams),
+          CantinAPI.cashFlow(cashParams),
         ]);
         renderCashSummary(summary);
         ordersCache = orders || [];
@@ -1053,7 +1141,7 @@
     function renderCashFlowList(flows) {
       var container = document.getElementById('cash-flow-list');
       if (!flows.length) {
-        container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Nenhuma movimentação manual hoje.</p>';
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Nenhuma movimentação manual no período.</p>';
         return;
       }
       var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
@@ -1088,7 +1176,7 @@
       var btn = document.getElementById('btn-save-cashflow');
       btnLoading(btn, true);
       try {
-        await CantinAPI.addCashFlow({ type: type, amount: amount, description: desc, payment_method: method || null });
+        await CantinAPI.addCashFlow({ type: type, amount: amount, description: desc, payment_method: method || null, pdv_id: currentPdvId });
         showToast('Movimentação registrada!', 'success');
         closeModal('modal-cashflow');
         if (currentTab === 'caixa') loadCashTab();

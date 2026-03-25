@@ -10,8 +10,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from pydantic import BaseModel
+
 from app.api.deps import require_organizer
-from app.db.models import Athlete, Team, User
+from app.db.models import Athlete, AthleteTeam, Sport, Team, User
 from app.db.session import get_db
 from app.schemas.athlete import AthleteCreate, AthleteOut, AthleteUpdate
 
@@ -92,4 +94,109 @@ def delete_athlete(
 ):
     athlete = _get_or_404(athlete_id, db)
     db.delete(athlete)
+    db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Vínculos de equipe (N:N)
+# ---------------------------------------------------------------------------
+
+class AthleteTeamIn(BaseModel):
+    team_id: int
+
+
+@router.get("/{athlete_id}/teams")
+def list_athlete_teams(athlete_id: int, db: Session = Depends(get_db)):
+    athlete = _get_or_404(athlete_id, db)
+    return [
+        {
+            "id": at.id,
+            "team_id": at.team_id,
+            "team_name": at.team.name if at.team else None,
+            "team_logo": at.team.logo_url if at.team else None,
+            "sport_id": at.sport_id,
+            "sport_name": at.sport.name if at.sport else None,
+            "sport_slug": at.sport.slug if at.sport else None,
+        }
+        for at in (athlete.athlete_teams or [])
+    ]
+
+
+@router.put("/{athlete_id}/teams", status_code=status.HTTP_201_CREATED)
+def link_athlete_team(
+    athlete_id: int,
+    data: AthleteTeamIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_organizer),
+):
+    athlete = _get_or_404(athlete_id, db)
+    team = db.query(Team).filter(Team.id == data.team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Equipe não encontrada")
+
+    sport_id = team.sport_id
+    sport = db.query(Sport).filter(Sport.id == sport_id).first()
+    sport_name = sport.name if sport else f"Modalidade {sport_id}"
+
+    # Verificar se atleta já tem vínculo nessa modalidade
+    existing = db.query(AthleteTeam).filter(
+        AthleteTeam.athlete_id == athlete_id,
+        AthleteTeam.sport_id == sport_id,
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Atleta já está em uma equipe de {sport_name}",
+        )
+
+    # Verificar se já está nessa equipe especificamente
+    existing_link = db.query(AthleteTeam).filter(
+        AthleteTeam.athlete_id == athlete_id,
+        AthleteTeam.team_id == data.team_id,
+    ).first()
+    if existing_link:
+        raise HTTPException(status_code=400, detail="Atleta já está vinculado a esta equipe")
+
+    at = AthleteTeam(athlete_id=athlete_id, team_id=data.team_id, sport_id=sport_id)
+    db.add(at)
+
+    # Atualizar team_id principal se ainda não tiver equipe
+    if athlete.team_id is None:
+        athlete.team_id = data.team_id
+
+    db.commit()
+    db.refresh(at)
+    return {
+        "id": at.id,
+        "team_id": at.team_id,
+        "team_name": team.name,
+        "sport_id": at.sport_id,
+        "sport_name": sport_name,
+    }
+
+
+@router.delete("/{athlete_id}/teams/{team_id}", status_code=status.HTTP_204_NO_CONTENT)
+def unlink_athlete_team(
+    athlete_id: int,
+    team_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_organizer),
+):
+    at = db.query(AthleteTeam).filter(
+        AthleteTeam.athlete_id == athlete_id,
+        AthleteTeam.team_id == team_id,
+    ).first()
+    if not at:
+        raise HTTPException(status_code=404, detail="Vínculo não encontrado")
+    db.delete(at)
+
+    # Se o team_id principal era essa equipe, atualizar para a próxima disponível
+    athlete = _get_or_404(athlete_id, db)
+    if athlete.team_id == team_id:
+        remaining = db.query(AthleteTeam).filter(
+            AthleteTeam.athlete_id == athlete_id,
+            AthleteTeam.team_id != team_id,
+        ).first()
+        athlete.team_id = remaining.team_id if remaining else None
+
     db.commit()

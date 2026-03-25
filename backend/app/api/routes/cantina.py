@@ -31,6 +31,7 @@ class ProductCreate(BaseModel):
     min_stock: int = 5
     active: bool = True
     image_url: Optional[str] = None
+    pdv_id: int = 1
 
 
 class ProductUpdate(BaseModel):
@@ -57,6 +58,7 @@ class OrderCreate(BaseModel):
     items: List[OrderItemIn]
     payment_method: Optional[str] = None
     notes: Optional[str] = None
+    pdv_id: int = 1
 
 
 class OrderStatusUpdate(BaseModel):
@@ -68,6 +70,7 @@ class CashFlowCreate(BaseModel):
     amount: float
     description: str
     payment_method: Optional[str] = None
+    pdv_id: int = 1
 
 
 class RefundRequest(BaseModel):
@@ -101,6 +104,7 @@ def _product_out(p: CantinProduct) -> dict:
         "active": p.active,
         "image_url": p.image_url,
         "created_at": p.created_at.isoformat() if p.created_at else None,
+        "pdv_id": p.pdv_id if hasattr(p, "pdv_id") and p.pdv_id is not None else 1,
     }
 
 
@@ -132,6 +136,7 @@ def _order_out(o: CantinOrder, users: dict = None) -> dict:
         "refunded_by_name": u.get(o.refunded_by) if o.refunded_by else None,
         "refund_reason": o.refund_reason,
         "items": [_item_out(i) for i in (o.items or [])],
+        "pdv_id": o.pdv_id if hasattr(o, "pdv_id") and o.pdv_id is not None else 1,
     }
 
 
@@ -146,12 +151,31 @@ def _cashflow_out(c: CantinCashFlow, users: dict = None) -> dict:
         "created_by": c.created_by,
         "created_by_name": u.get(c.created_by),
         "created_at": c.created_at.isoformat() if c.created_at else None,
+        "pdv_id": c.pdv_id if hasattr(c, "pdv_id") and c.pdv_id is not None else 1,
     }
 
 
 def _today_start():
     now = datetime.now(timezone.utc)
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _parse_date_range(date_from: Optional[str], date_to: Optional[str]):
+    """Retorna (dt_from, dt_to) como datetime UTC ou (None, None) se não informado."""
+    dt_from = dt_to = None
+    if date_from:
+        try:
+            d = date.fromisoformat(date_from)
+            dt_from = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            d = date.fromisoformat(date_to)
+            dt_to = datetime(d.year, d.month, d.day, 23, 59, 59, tzinfo=timezone.utc)
+        except ValueError:
+            pass
+    return dt_from, dt_to
 
 
 def _next_order_number(db: Session) -> int:
@@ -168,6 +192,7 @@ def _next_order_number(db: Session) -> int:
 def list_products(
     active: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
+    pdv_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -176,6 +201,8 @@ def list_products(
         q = q.filter(CantinProduct.active == active)
     if category:
         q = q.filter(CantinProduct.category == category)
+    if pdv_id is not None:
+        q = q.filter(CantinProduct.pdv_id == pdv_id)
     return [_product_out(p) for p in q.order_by(CantinProduct.category, CantinProduct.name).all()]
 
 
@@ -194,6 +221,7 @@ def create_product(
         min_stock=data.min_stock,
         active=data.active,
         image_url=data.image_url,
+        pdv_id=data.pdv_id,
     )
     db.add(p)
     db.commit()
@@ -254,13 +282,24 @@ def delete_product(
 @router.get("/orders")
 def list_orders(
     status: Optional[str] = Query(None),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    pdv_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    today = _today_start()
-    q = db.query(CantinOrder).filter(CantinOrder.created_at >= today)
+    dt_from, dt_to = _parse_date_range(date_from, date_to)
+    q = db.query(CantinOrder)
+    if dt_from:
+        q = q.filter(CantinOrder.created_at >= dt_from)
+    if dt_to:
+        q = q.filter(CantinOrder.created_at <= dt_to)
+    if not dt_from and not dt_to:
+        q = q.filter(CantinOrder.created_at >= _today_start())
     if status:
         q = q.filter(CantinOrder.status == status)
+    if pdv_id is not None:
+        q = q.filter(CantinOrder.pdv_id == pdv_id)
     orders = q.order_by(CantinOrder.id.desc()).all()
     uid_sets = (
         {o.created_by for o in orders},
@@ -303,6 +342,7 @@ def create_order(
         total=total,
         notes=data.notes,
         created_by=current_user.id,
+        pdv_id=data.pdv_id,
     )
     db.add(order)
     db.flush()
@@ -408,27 +448,45 @@ def delete_order(
 
 @router.get("/cash")
 def get_cash_summary(
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    pdv_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    today = _today_start()
+    dt_from, dt_to = _parse_date_range(date_from, date_to)
+    if not dt_from and not dt_to:
+        dt_from = _today_start()
 
-    paid_orders = db.query(CantinOrder).filter(
-        CantinOrder.created_at >= today,
-        CantinOrder.status == "paid",
-    ).all()
+    def _order_q():
+        q = db.query(CantinOrder)
+        if dt_from:
+            q = q.filter(CantinOrder.created_at >= dt_from)
+        if dt_to:
+            q = q.filter(CantinOrder.created_at <= dt_to)
+        if pdv_id is not None:
+            q = q.filter(CantinOrder.pdv_id == pdv_id)
+        return q
 
-    refunded_orders = db.query(CantinOrder).filter(
-        CantinOrder.created_at >= today,
-        CantinOrder.status == "refunded",
-    ).all()
+    def _flow_q():
+        q = db.query(CantinCashFlow)
+        if dt_from:
+            q = q.filter(CantinCashFlow.created_at >= dt_from)
+        if dt_to:
+            q = q.filter(CantinCashFlow.created_at <= dt_to)
+        if pdv_id is not None:
+            q = q.filter(CantinCashFlow.pdv_id == pdv_id)
+        return q
+
+    paid_orders = _order_q().filter(CantinOrder.status == "paid").all()
+    refunded_orders = _order_q().filter(CantinOrder.status == "refunded").all()
 
     total_dinheiro = sum(float(o.total) for o in paid_orders if o.payment_method == "dinheiro")
     total_pix = sum(float(o.total) for o in paid_orders if o.payment_method == "pix")
     total_vendas = sum(float(o.total) for o in paid_orders)
     total_refunded = sum(float(o.total) for o in refunded_orders)
 
-    flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).all()
+    flows = _flow_q().all()
     total_entradas = sum(float(f.amount) for f in flows if f.type == "entrada")
     # Exclui cashflows de estorno (gerados por versões antigas) para não contar duplo
     total_saidas = sum(
@@ -436,9 +494,9 @@ def get_cash_summary(
         if f.type == "saida" and "Estorno" not in (f.description or "")
     )
 
-    all_today = db.query(CantinOrder).filter(CantinOrder.created_at >= today).all()
-    pending = sum(1 for o in all_today if o.status == "pending")
-    cancelled = sum(1 for o in all_today if o.status == "cancelled")
+    all_orders = _order_q().all()
+    pending = sum(1 for o in all_orders if o.status == "pending")
+    cancelled = sum(1 for o in all_orders if o.status == "cancelled")
 
     return {
         "total_vendas": total_vendas,
@@ -448,7 +506,7 @@ def get_cash_summary(
         "total_saidas": total_saidas,
         "total_refunded": total_refunded,
         "saldo": total_vendas - total_refunded + total_entradas - total_saidas,
-        "orders_count": len(all_today),
+        "orders_count": len(all_orders),
         "orders_paid": len(paid_orders),
         "orders_pending": pending,
         "orders_cancelled": cancelled,
@@ -458,11 +516,23 @@ def get_cash_summary(
 
 @router.get("/cash/flow")
 def list_cash_flow(
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    pdv_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    today = _today_start()
-    flows = db.query(CantinCashFlow).filter(CantinCashFlow.created_at >= today).order_by(CantinCashFlow.created_at).all()
+    dt_from, dt_to = _parse_date_range(date_from, date_to)
+    q = db.query(CantinCashFlow)
+    if dt_from:
+        q = q.filter(CantinCashFlow.created_at >= dt_from)
+    if dt_to:
+        q = q.filter(CantinCashFlow.created_at <= dt_to)
+    if not dt_from and not dt_to:
+        q = q.filter(CantinCashFlow.created_at >= _today_start())
+    if pdv_id is not None:
+        q = q.filter(CantinCashFlow.pdv_id == pdv_id)
+    flows = q.order_by(CantinCashFlow.created_at).all()
     users = _users_map(db, {f.created_by for f in flows})
     return [_cashflow_out(f, users) for f in flows]
 
@@ -481,12 +551,81 @@ def add_cash_flow(
         description=data.description,
         payment_method=data.payment_method,
         created_by=current_user.id,
+        pdv_id=data.pdv_id,
     )
     db.add(flow)
     db.commit()
     db.refresh(flow)
     users = _users_map(db, {flow.created_by})
     return _cashflow_out(flow, users)
+
+
+# ---------------------------------------------------------------------------
+# CONSOLIDADO (ambos PDVs)
+# ---------------------------------------------------------------------------
+
+@router.get("/cash/consolidated")
+def get_cash_consolidated(
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    dt_from, dt_to = _parse_date_range(date_from, date_to)
+    if not dt_from and not dt_to:
+        dt_from = _today_start()
+
+    def _summary_for_pdv(pdv: int) -> dict:
+        def oq():
+            q = db.query(CantinOrder)
+            if dt_from:
+                q = q.filter(CantinOrder.created_at >= dt_from)
+            if dt_to:
+                q = q.filter(CantinOrder.created_at <= dt_to)
+            q = q.filter(CantinOrder.pdv_id == pdv)
+            return q
+
+        def fq():
+            q = db.query(CantinCashFlow)
+            if dt_from:
+                q = q.filter(CantinCashFlow.created_at >= dt_from)
+            if dt_to:
+                q = q.filter(CantinCashFlow.created_at <= dt_to)
+            q = q.filter(CantinCashFlow.pdv_id == pdv)
+            return q
+
+        paid = oq().filter(CantinOrder.status == "paid").all()
+        refunded = oq().filter(CantinOrder.status == "refunded").all()
+        all_orders = oq().all()
+        flows = fq().all()
+        total_vendas = sum(float(o.total) for o in paid)
+        total_dinheiro = sum(float(o.total) for o in paid if o.payment_method == "dinheiro")
+        total_pix = sum(float(o.total) for o in paid if o.payment_method == "pix")
+        total_refunded = sum(float(o.total) for o in refunded)
+        total_entradas = sum(float(f.amount) for f in flows if f.type == "entrada")
+        total_saidas = sum(
+            float(f.amount) for f in flows
+            if f.type == "saida" and "Estorno" not in (f.description or "")
+        )
+        return {
+            "total_vendas": total_vendas,
+            "total_dinheiro": total_dinheiro,
+            "total_pix": total_pix,
+            "total_entradas": total_entradas,
+            "total_saidas": total_saidas,
+            "total_refunded": total_refunded,
+            "saldo": total_vendas - total_refunded + total_entradas - total_saidas,
+            "orders_count": len(all_orders),
+            "orders_paid": len(paid),
+            "orders_pending": sum(1 for o in all_orders if o.status == "pending"),
+            "orders_cancelled": sum(1 for o in all_orders if o.status == "cancelled"),
+            "orders_refunded": len(refunded),
+        }
+
+    s1 = _summary_for_pdv(1)
+    s2 = _summary_for_pdv(2)
+    total = {k: s1[k] + s2[k] for k in s1}
+    return {"pdv1": s1, "pdv2": s2, "total": total}
 
 
 # ---------------------------------------------------------------------------

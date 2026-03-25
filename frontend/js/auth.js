@@ -57,10 +57,19 @@ function requireCantinaAccess() {
   return true;
 }
 
+function requireAdminAccess() {
+  if (!requireAuth()) return false;
+  if (getUserRole() !== 'admin') {
+    window.location.href = 'dashboard.html';
+    return false;
+  }
+  return true;
+}
+
 function redirectIfAuth() {
   if (!isAuthenticated()) return;
   if (getUserRole() === 'cantina') {
-    window.location.href = 'cantina.html';
+    window.location.href = 'cantina-select.html';
   } else {
     window.location.href = 'dashboard.html';
   }

@@ -125,6 +125,9 @@ const AthletesAPI = {
   get: (id) => apiFetch(`/api/athletes/${id}`),
   update: (id, data) => apiFetch(`/api/athletes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/api/athletes/${id}`, { method: 'DELETE' }),
+  listTeams: (id) => apiFetch(`/api/athletes/${id}/teams`),
+  linkTeam: (id, teamId) => apiFetch(`/api/athletes/${id}/teams`, { method: 'PUT', body: JSON.stringify({ team_id: teamId }) }),
+  unlinkTeam: (athleteId, teamId) => apiFetch(`/api/athletes/${athleteId}/teams/${teamId}`, { method: 'DELETE' }),
 };
 
 // --- Teams ---
@@ -162,8 +165,8 @@ const CantinAPI = {
   updateOrderStatus: (id, status) => apiFetch(`/api/cantina/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   deleteOrder: (id) => apiFetch(`/api/cantina/orders/${id}`, { method: 'DELETE' }),
   refundOrder: (id, data) => apiFetch(`/api/cantina/orders/${id}/refund`, { method: 'POST', body: JSON.stringify(data) }),
-  cash: () => apiFetch('/api/cantina/cash'),
-  cashFlow: () => apiFetch('/api/cantina/cash/flow'),
+  cash: (params) => apiFetch('/api/cantina/cash' + (params ? '?' + new URLSearchParams(params) : '')),
+  cashFlow: (params) => apiFetch('/api/cantina/cash/flow' + (params ? '?' + new URLSearchParams(params) : '')),
   addCashFlow: (data) => apiFetch('/api/cantina/cash/flow', { method: 'POST', body: JSON.stringify(data) }),
   report: () => apiFetch('/api/cantina/report'),
 };

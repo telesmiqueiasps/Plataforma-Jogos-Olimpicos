@@ -1354,7 +1354,21 @@
       sideEl.options[0].text = `Mandante — ${homeName}`;
       sideEl.options[1].text = `Visitante — ${awayName}`;
       sideEl.value = 'home';
-      document.getElementById('event-type').value = 'goal';
+      // Filtrar tipos de evento por esporte
+      const _sportSlug = currentChamp?.sport?.slug;
+      const _evTypeEl = document.getElementById('event-type');
+      if (_sportSlug === 'futsal') {
+        _evTypeEl.innerHTML = '<option value="goal">🥅 Gol</option>' +
+          '<option value="yellow_card">🟨 Cartão Amarelo</option>' +
+          '<option value="red_card">🟥 Cartão Vermelho</option>';
+      } else {
+        _evTypeEl.innerHTML = '<option value="goal">🥅 Gol</option>' +
+          '<option value="yellow_card">🟨 Cartão Amarelo</option>' +
+          '<option value="red_card">🟥 Cartão Vermelho</option>' +
+          '<option value="point">🎯 Ponto</option>' +
+          '<option value="foul">⚠️ Falta</option>';
+      }
+      _evTypeEl.value = 'goal';
       document.getElementById('event-minute').value = '';
       document.getElementById('event-desc').value = '';
       document.getElementById('event-alert').style.display = 'none';

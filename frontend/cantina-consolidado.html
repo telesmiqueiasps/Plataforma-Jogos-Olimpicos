@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
+  <title>Consolidado — Cantina</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    .tab-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:0; }
+    .tab-btn { padding:10px 18px; border:none; background:none; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; border-radius:0; font-family:inherit; }
+    .tab-btn.active { color:var(--accent-purple); border-bottom-color:var(--accent-purple); }
+    .cash-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+    .cash-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; }
+    .cash-card .c-icon { font-size:24px; margin-bottom:4px; }
+    .cash-card .c-value { font-size:20px; font-weight:800; color:var(--accent-blue,#2563eb); }
+    .cash-card .c-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
+    .pdv-section-title { font-size:14px; font-weight:700; padding:8px 0 4px; margin-bottom:8px; border-bottom:2px solid var(--accent-purple); color:var(--accent-purple); }
+    .order-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:8px; }
+    .order-card.refunded { border-color:#fca5a5; }
+    .badge-pdv1 { background:rgba(37,99,235,0.12); color:#2563eb; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
+    .badge-pdv2 { background:rgba(16,185,129,0.12); color:#059669; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
+    .badge-paid { background:#d1fae5; color:#065f46; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-pending { background:#fef3c7; color:#92400e; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-cancelled { background:#fee2e2; color:#991b1b; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-refunded { background:#fecaca; color:#7f1d1d; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .date-filter-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; padding:12px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; }
+    .date-filter-bar label { font-size:12px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+    .date-filter-bar select, .date-filter-bar input[type=date] { font-size:13px; padding:5px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-secondary); color:var(--text-primary); font-family:inherit; cursor:pointer; }
+    .date-custom-range { display:none; align-items:center; gap:8px; flex-wrap:wrap; }
+    .date-custom-range.visible { display:flex; }
+    .summary-cols { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
+    @media(max-width:700px){ .summary-cols { grid-template-columns:1fr; } }
+    .summary-col { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .summary-col-title { font-size:13px; font-weight:700; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="cantina-select.html" class="sidebar-logo">
+          <img src="img/logo.png" alt="Logo" style="width:50px;height:50px;object-fit:contain;flex-shrink:0;">
+          <span>Jogos Olímpicos<br>Sinodal PB</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Cantina</span>
+        <a href="cantina-select.html" class="nav-item">
+          <span class="nav-icon">🔀</span><span>Trocar PDV</span>
+        </a>
+        <a href="cantina.html?pdv=1" class="nav-item">
+          <span class="nav-icon">🏪</span><span>PDV 1</span>
+        </a>
+        <a href="cantina.html?pdv=2" class="nav-item">
+          <span class="nav-icon">🏪</span><span>PDV 2</span>
+        </a>
+        <a href="cantina-consolidado.html" class="nav-item active">
+          <span class="nav-icon">📊</span><span>Consolidado</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Admin</div>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">Sair</button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <span class="topbar-title">📊 Cantina — Consolidado</span>
+        <div class="topbar-actions">
+          <a href="cantina-select.html" class="btn btn-secondary btn-sm">← Trocar PDV</a>
+          <button class="btn btn-primary btn-sm" onclick="exportPDF()">📄 Exportar PDF</button>
+        </div>
+      </header>
+
+      <main class="content" id="main-content">
+        <!-- Filtro de período -->
+        <div class="date-filter-bar">
+          <label>📅 Período:</label>
+          <select id="date-period" onchange="onDatePeriodChange()">
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="last7">Últimos 7 dias</option>
+            <option value="month">Este mês</option>
+            <option value="custom">Período personalizado</option>
+            <option value="all">Tudo</option>
+          </select>
+          <div class="date-custom-range" id="date-custom-range">
+            <span style="font-size:12px;color:var(--text-secondary);">De:</span>
+            <input type="date" id="date-from" style="width:140px;">
+            <span style="font-size:12px;color:var(--text-secondary);">Até:</span>
+            <input type="date" id="date-to" style="width:140px;">
+            <button class="btn btn-primary btn-sm" onclick="loadConsolidado()">Aplicar</button>
+          </div>
+        </div>
+
+        <div id="summary-section"></div>
+        <div id="orders-section"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      requireAdminAccess();
+      loadConsolidado();
+    });
+
+    function onDatePeriodChange() {
+      var period = document.getElementById('date-period').value;
+      var customRange = document.getElementById('date-custom-range');
+      if (period === 'custom') {
+        customRange.classList.add('visible');
+      } else {
+        customRange.classList.remove('visible');
+        loadConsolidado();
+      }
+    }
+
+    function getDateParams() {
+      var period = document.getElementById('date-period').value;
+      var today = new Date();
+      var fmt = function(d) {
+        var m = d.getMonth()+1, day = d.getDate();
+        return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);
+      };
+      if (period === 'today') { var s = fmt(today); return { date_from: s, date_to: s }; }
+      if (period === 'yesterday') { var y = new Date(today); y.setDate(y.getDate()-1); var s2 = fmt(y); return { date_from: s2, date_to: s2 }; }
+      if (period === 'last7') { var d7 = new Date(today); d7.setDate(d7.getDate()-6); return { date_from: fmt(d7), date_to: fmt(today) }; }
+      if (period === 'month') { var first = new Date(today.getFullYear(), today.getMonth(), 1); return { date_from: fmt(first), date_to: fmt(today) }; }
+      if (period === 'custom') {
+        var df = document.getElementById('date-from').value;
+        var dt = document.getElementById('date-to').value;
+        var params = {};
+        if (df) params.date_from = df;
+        if (dt) params.date_to = dt;
+        return Object.keys(params).length ? params : null;
+      }
+      return null;
+    }
+
+    async function loadConsolidado() {
+      var dateParams = getDateParams();
+      var summaryEl = document.getElementById('summary-section');
+      var ordersEl = document.getElementById('orders-section');
+      summaryEl.innerHTML = '<div class="page-loading"><div class="spinner"></div><span>Carregando...</span></div>';
+      ordersEl.innerHTML = '';
+      try {
+        var [consol, orders1, orders2] = await Promise.all([
+          CantinAPI.cash(Object.assign({}, dateParams || {})),
+          CantinAPI.orders(Object.assign({}, dateParams || {}, { pdv_id: 1 })),
+          CantinAPI.orders(Object.assign({}, dateParams || {}, { pdv_id: 2 })),
+        ]);
+        // consol = full cash (no pdv filter) = total; we also compute per-pdv from orders
+        renderSummary(consol, orders1, orders2);
+        renderOrders(orders1, orders2);
+      } catch(e) {
+        summaryEl.innerHTML = '<p style="color:var(--text-muted);">Erro ao carregar: ' + e.message + '</p>';
+      }
+    }
+
+    function statCard(icon, value, label) {
+      return '<div class="cash-card"><div class="c-icon">'+icon+'</div><div class="c-value">'+value+'</div><div class="c-label">'+label+'</div></div>';
+    }
+
+    function summaryColHtml(s, title) {
+      return '<div class="summary-col">' +
+        '<div class="summary-col-title">' + title + '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:6px;">' +
+          statCard('💵','R$ '+formatMoney(s.total_dinheiro||0),'Dinheiro') +
+          statCard('📱','R$ '+formatMoney(s.total_pix||0),'PIX') +
+          statCard('💰','R$ '+formatMoney(s.total_vendas||0),'Total Vendas') +
+          statCard('📈','R$ '+formatMoney(s.saldo||0),'Saldo') +
+          statCard('🧾',(s.orders_paid||0)+'/'+(s.orders_count||0),'Pagos/Total') +
+        '</div>' +
+        '</div>';
+    }
+
+    async function renderSummary(consol, orders1, orders2) {
+      var dateParams = getDateParams();
+      // Buscar resumo por PDV
+      var [s1, s2] = await Promise.all([
+        CantinAPI.cash(Object.assign({}, dateParams || {}, { pdv_id: 1 })),
+        CantinAPI.cash(Object.assign({}, dateParams || {}, { pdv_id: 2 })),
+      ]);
+      document.getElementById('summary-section').innerHTML =
+        '<div class="summary-cols">' +
+          summaryColHtml(s1, '🏪 PDV 1') +
+          summaryColHtml(s2, '🏪 PDV 2') +
+          summaryColHtml(consol, '📊 Total Consolidado') +
+        '</div>';
+    }
+
+    function renderOrders(orders1, orders2) {
+      var el = document.getElementById('orders-section');
+      var all = orders1.map(function(o){ return Object.assign({}, o, {_pdv:1}); })
+        .concat(orders2.map(function(o){ return Object.assign({}, o, {_pdv:2}); }))
+        .sort(function(a,b){ return b.id - a.id; });
+
+      if (!all.length) {
+        el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:24px;">Nenhum pedido no período.</p>';
+        return;
+      }
+
+      var html = '<div class="card"><div class="card-header"><span class="card-title">📋 Todos os Pedidos</span></div><div class="card-body" style="padding:12px;">';
+      all.forEach(function(o) {
+        var badgeClass, badgeLabel;
+        if (o.status === 'paid') { badgeClass='badge-paid'; badgeLabel='Pago'; }
+        else if (o.status === 'cancelled') { badgeClass='badge-cancelled'; badgeLabel='Cancelado'; }
+        else if (o.status === 'refunded') { badgeClass='badge-refunded'; badgeLabel='ESTORNADO'; }
+        else { badgeClass='badge-pending'; badgeLabel='Pendente'; }
+        var pdvBadge = o._pdv === 1 ? '<span class="badge-pdv1">PDV 1</span>' : '<span class="badge-pdv2">PDV 2</span>';
+        var itemsText = (o.items||[]).map(function(i){ return i.quantity+'x '+i.product_name; }).join(', ');
+        html += '<div class="order-card' + (o.status==='refunded'?' refunded':'') + '">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:4px;">' +
+            '<span style="font-weight:800;color:var(--accent-blue,#2563eb);">#' + o.order_number + '</span>' +
+            '<div style="display:flex;gap:6px;align-items:center;">' + pdvBadge + '<span class="' + badgeClass + '">' + badgeLabel + '</span></div>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">' + escHtml(itemsText||'Sem itens') + '</div>' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">' +
+            '<span style="font-weight:800;font-size:15px;">R$ ' + formatMoney(o.total) + '</span>' +
+            '<span style="font-size:11px;color:var(--text-muted);">' + fmtDatetime(o.created_at) + '</span>' +
+          '</div>' +
+          '</div>';
+      });
+      html += '</div></div>';
+      el.innerHTML = html;
+    }
+
+    async function exportPDF() {
+      showToast('Gerando PDF...', 'info', 3000);
+      try {
+        var el = document.getElementById('main-content');
+        var canvas = await html2canvas(el, { scale: 1.5, useCORS: true });
+        var imgData = canvas.toDataURL('image/png');
+        var pdf = new jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        var pdfWidth = pdf.internal.pageSize.getWidth();
+        var ratio = pdfWidth / canvas.width;
+        var pdfHeight = canvas.height * ratio;
+        var pageHeight = pdf.internal.pageSize.getHeight();
+        var position = 0;
+        while (position < pdfHeight) {
+          if (position > 0) pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, pdfHeight);
+          position += pageHeight;
+        }
+        var today = new Date();
+        pdf.save('consolidado-cantina-' + today.toISOString().slice(0,10) + '.pdf');
+        showToast('PDF exportado!', 'success');
+      } catch(e) {
+        showToast('Erro ao exportar: ' + e.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

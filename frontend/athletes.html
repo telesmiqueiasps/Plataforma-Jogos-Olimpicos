@@ -198,6 +198,38 @@
     </div>
   </div>
 
+  <!-- Modal: Gerenciar Equipes (N:N) -->
+  <div class="modal-overlay" id="modal-athlete-teams">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <span class="modal-title">Equipes do Atleta</span>
+        <button class="modal-close" onclick="closeModal('modal-athlete-teams')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">
+          Atleta: <strong id="at-teams-athlete-name" style="color:var(--text-primary);"></strong>
+        </p>
+        <div id="at-teams-list" style="margin-bottom:16px;"></div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;">➕ Vincular nova equipe</div>
+          <div id="at-teams-alert" class="alert alert-error" style="display:none;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+              <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Equipe</label>
+              <select id="at-teams-new-select" class="form-control">
+                <option value="">Selecione a equipe...</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="addAthleteTeam()">Vincular</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-athlete-teams')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <!-- Lightbox de avatar -->
@@ -337,9 +369,7 @@
                   <td>${a.active !== false ? '<span class="badge badge-active">Ativo</span>' : '<span class="badge badge-draft">Inativo</span>'}</td>
                   <td>
                     <div class="actions">
-                      <button class="btn btn-sm btn-secondary" onclick="openLinkTeamModal(${a.id}, '${a.name.replace(/'/g, "\\'")}')">
-                        ${a.team_id ? 'Mudar Equipe' : 'Vincular Equipe'}
-                      </button>
+                      <button class="btn btn-sm btn-secondary" onclick="openAthleteTeamsModal(${a.id}, '${a.name.replace(/'/g, "\\'")}')">🏅 Equipes</button>
                       <button class="btn btn-sm btn-secondary" onclick="openEditAthleteModal(${a.id})">✏️ Editar</button>
                       <button class="btn btn-sm btn-ghost" onclick="toggleActive(${a.id}, ${!a.active})">
                         ${a.active !== false ? 'Desativar' : 'Ativar'}
@@ -539,6 +569,95 @@
 
     function _closeLbOnEsc(e) {
       if (e.key === 'Escape') closeAvatarLightbox();
+    }
+
+    // ================================================================
+    //  Gerenciar múltiplas equipes (N:N)
+    // ================================================================
+    var _atTeamsAthleteId = null;
+    var _atTeamsLoaded = [];
+
+    const SPORT_ICONS = {
+      futsal: '⚽', volleyball: '🏐', basketball: '🏀', running: '🏃',
+      domino: '🁣', dama: '♟️', xadrez: '♟️', tenis_mesa: '🏓',
+    };
+
+    async function openAthleteTeamsModal(athleteId, athleteName) {
+      _atTeamsAthleteId = athleteId;
+      document.getElementById('at-teams-athlete-name').textContent = athleteName;
+      document.getElementById('at-teams-alert').style.display = 'none';
+      openModal('modal-athlete-teams');
+      await refreshAthleteTeamsList();
+    }
+
+    async function refreshAthleteTeamsList() {
+      var listEl = document.getElementById('at-teams-list');
+      listEl.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;">Carregando...</div>';
+      try {
+        _atTeamsLoaded = await AthletesAPI.listTeams(_atTeamsAthleteId);
+      } catch(e) {
+        _atTeamsLoaded = [];
+      }
+      if (!_atTeamsLoaded.length) {
+        listEl.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;font-style:italic;">Nenhuma equipe vinculada.</div>';
+      } else {
+        listEl.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+          _atTeamsLoaded.map(function(at) {
+            var icon = SPORT_ICONS[at.sport_slug] || '🏅';
+            return '<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:20px;font-size:13px;">' +
+              '<span>' + icon + ' ' + escHtml(at.team_name || 'Equipe') + '</span>' +
+              '<span style="font-size:10px;color:var(--text-secondary);">(' + escHtml(at.sport_name || '') + ')</span>' +
+              '<button onclick="unlinkAthleteTeam(' + at.team_id + ', \'' + escHtml(at.team_name || '') + '\')" ' +
+                'style="background:none;border:none;cursor:pointer;color:var(--error,#ef4444);font-size:14px;line-height:1;padding:0 0 0 2px;" title="Desvincular">✕</button>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }
+      // Preencher select de nova equipe (excluir times já vinculados)
+      var linkedIds = new Set(_atTeamsLoaded.map(function(at){ return at.team_id; }));
+      var sel = document.getElementById('at-teams-new-select');
+      sel.innerHTML = '<option value="">Selecione a equipe...</option>' +
+        allTeams.filter(function(t){ return !linkedIds.has(t.id); })
+          .map(function(t){ return '<option value="' + t.id + '">' + escHtml(t.name) + '</option>'; }).join('');
+    }
+
+    async function addAthleteTeam() {
+      var sel = document.getElementById('at-teams-new-select');
+      var teamId = parseInt(sel.value, 10);
+      if (!teamId) { showToast('Selecione uma equipe.', 'error'); return; }
+      var alertEl = document.getElementById('at-teams-alert');
+      alertEl.style.display = 'none';
+      try {
+        await AthletesAPI.linkTeam(_atTeamsAthleteId, teamId);
+        // Atualizar allAthletes com o novo team_id principal se necessário
+        var athlete = allAthletes.find(function(a){ return a.id === _atTeamsAthleteId; });
+        if (athlete && !athlete.team_id) {
+          athlete.team_id = teamId;
+          renderAthletes();
+        }
+        showToast('Equipe vinculada!', 'success');
+        await refreshAthleteTeamsList();
+      } catch(e) {
+        alertEl.textContent = e.message;
+        alertEl.style.display = 'flex';
+      }
+    }
+
+    async function unlinkAthleteTeam(teamId, teamName) {
+      if (!confirm('Desvincular de "' + teamName + '"?')) return;
+      try {
+        await AthletesAPI.unlinkTeam(_atTeamsAthleteId, teamId);
+        // Atualizar allAthletes localmente
+        var athlete = allAthletes.find(function(a){ return a.id === _atTeamsAthleteId; });
+        if (athlete && athlete.team_id === teamId) {
+          athlete.team_id = null;
+          renderAthletes();
+        }
+        showToast('Desvinculado com sucesso.', 'success');
+        await refreshAthleteTeamsList();
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      }
     }
 
     initPage();
