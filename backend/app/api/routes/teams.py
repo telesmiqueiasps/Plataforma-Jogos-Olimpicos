@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_organizer
 from sqlalchemy import func, update as sa_update
 
-from app.db.models import Athlete, Sport, Suspension, Team, TeamSport, User
+from collections import defaultdict
+
+from app.db.models import Athlete, AthleteTeam, Sport, Suspension, Team, TeamSport, User
 from app.db.session import get_db
 from app.schemas.athlete import AthleteCreate, AthleteOut, AthleteUpdate
 from app.schemas.team import TeamCreate, TeamDetail, TeamOut, TeamUpdate
@@ -64,15 +66,26 @@ def list_teams(
         )
     teams = q.order_by(Team.name).all()
     if teams:
-        counts = {
-            row[0]: row[1]
-            for row in db.query(Athlete.team_id, func.count(Athlete.id))
-            .filter(Athlete.team_id.in_([t.id for t in teams]), Athlete.active == True)
-            .group_by(Athlete.team_id)
-            .all()
-        }
+        team_ids = [t.id for t in teams]
+
+        athletes_by_team = defaultdict(set)
+
+        # Contagem por team_id direto (campo team_id de atleta)
+        for team_id, athlete_id in db.query(Athlete.team_id, Athlete.id).filter(
+            Athlete.team_id.in_(team_ids), Athlete.active == True
+        ).all():
+            if team_id is not None:
+                athletes_by_team[team_id].add(athlete_id)
+
+        # Contagem via vínculo N:N (athlete_teams)
+        for team_id, athlete_id in db.query(AthleteTeam.team_id, AthleteTeam.athlete_id).filter(
+            AthleteTeam.team_id.in_(team_ids)
+        ).all():
+            athletes_by_team[team_id].add(athlete_id)
+
         for t in teams:
-            t.athlete_count = counts.get(t.id, 0)
+            t.athlete_count = len(athletes_by_team.get(t.id, set()))
+
     return teams
 
 
@@ -167,17 +180,26 @@ def list_athletes(
     db: Session = Depends(get_db),
 ):
     _get_team_or_404(team_id, db)
-    athletes = (
-        db.query(Athlete)
-        .filter(Athlete.team_id == team_id)
-        .order_by(Athlete.number, Athlete.name)
-        .all()
-    )
+
+    athlete_map = {}
+
+    # Atletas com team_id principal
+    for a in db.query(Athlete).filter(Athlete.team_id == team_id, Athlete.active == True).all():
+        athlete_map[a.id] = a
+
+    # Atletas em vínculo N:N
+    for link in db.query(AthleteTeam).filter(AthleteTeam.team_id == team_id).all():
+        if link.athlete and link.athlete.active:
+            athlete_map[link.athlete_id] = link.athlete
+
+    athletes = sorted(athlete_map.values(), key=lambda a: ((a.number if a.number is not None else 9999), a.name or ''))
+
     if championship_id:
         for a in athletes:
             susp = suspension_service.get_athlete_suspension(db, a.id, championship_id)
             a.suspended = susp is not None
             a.suspension_reason = susp.reason if susp else None
+
     return athletes
 
 

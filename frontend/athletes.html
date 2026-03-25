@@ -219,6 +219,7 @@
               <select id="at-teams-new-select" class="form-control">
                 <option value="">Selecione a equipe...</option>
               </select>
+              <div id="at-teams-available-message" style="color:var(--text-secondary);font-size:12px;margin-top:6px;"></div>
             </div>
             <button class="btn btn-primary btn-sm" onclick="addAthleteTeam()">Vincular</button>
           </div>
@@ -260,6 +261,7 @@
 
     let allAthletes = [];
     let allTeams = [];
+    let athleteTeamsMap = {}; // { athleteId: [links] }
     let currentPage = 1;
     let currentAthleteId = null;
     let editAthleteId = null;
@@ -294,6 +296,15 @@
     async function loadAthletes() {
       try {
         allAthletes = await AthletesAPI.list();
+
+        // Carrega vínculo N:N para cada atleta e armazena no cache
+        const loads = allAthletes.map(a =>
+          AthletesAPI.listTeams(a.id)
+            .then(teams => { athleteTeamsMap[a.id] = teams || []; })
+            .catch(() => { athleteTeamsMap[a.id] = []; })
+        );
+        await Promise.all(loads);
+
         updateStats();
         renderAthletes();
       } catch (err) {
@@ -333,11 +344,17 @@
     }
 
     function teamLabel(athlete) {
+      const linked = athleteTeamsMap[athlete.id] || [];
+      if (linked.length) {
+        const uniqueNames = [...new Set(linked.map(link => link.team_name || `Equipe #${link.team_id}`).filter(Boolean))];
+        return uniqueNames.map(name => `<span style="color:var(--accent-purple);">${escHtml(name)}</span>`).join(', ');
+      }
+
       if (!athlete.team_id) return '<span style="color:var(--text-secondary);font-style:italic;">Sem equipe</span>';
       const team = allTeams.find(t => t.id === athlete.team_id);
       return team
-        ? `<a href="athletes.html?team_id=${team.id}" style="color:var(--accent-purple);">${team.name}</a>`
-        : `Equipe #${athlete.team_id}`;
+        ? `<a href="athletes.html?team_id=${team.id}" style="color:var(--accent-purple);">${escHtml(team.name)}</a>`
+        : '<span style="color:var(--text-secondary);font-style:italic;">Sem equipe</span>';
     }
 
     function renderAthletes() {
@@ -603,12 +620,18 @@
 
     async function refreshAthleteTeamsList() {
       var listEl = document.getElementById('at-teams-list');
+      var availableMsgEl = document.getElementById('at-teams-available-message');
       listEl.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;">Carregando...</div>';
+      availableMsgEl.textContent = '';
+
       try {
         _atTeamsLoaded = await AthletesAPI.listTeams(_atTeamsAthleteId);
       } catch(e) {
         _atTeamsLoaded = [];
       }
+
+      athleteTeamsMap[_atTeamsAthleteId] = _atTeamsLoaded;
+
       if (!_atTeamsLoaded.length) {
         listEl.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;font-style:italic;">Nenhuma equipe vinculada.</div>';
       } else {
@@ -624,12 +647,41 @@
           }).join('') +
         '</div>';
       }
-      // Preencher select de nova equipe (excluir times já vinculados)
-      var linkedIds = new Set(_atTeamsLoaded.map(function(at){ return at.team_id; }));
+
+      // Consulta modalidades necessárias
+      let sports = [];
+      try {
+        sports = await SportsAPI.list();
+      } catch (e) {
+        sports = [];
+      }
+
+      const linkedIds = new Set(_atTeamsLoaded.map(function(at){ return at.team_id; }));
+      let availableTeams = [];
+
+      for (const sport of sports) {
+        try {
+          const teams = await TeamsAPI.list({ sport_id: sport.id });
+          teams.forEach(t => {
+            if (!linkedIds.has(t.id)) {
+              availableTeams.push({ ...t, sport_name: sport.name });
+            }
+          });
+        } catch (e) {
+          // Não impede o restante
+        }
+      }
+
       var sel = document.getElementById('at-teams-new-select');
-      sel.innerHTML = '<option value="">Selecione a equipe...</option>' +
-        allTeams.filter(function(t){ return !linkedIds.has(t.id); })
-          .map(function(t){ return '<option value="' + t.id + '">' + escHtml(t.name) + '</option>'; }).join('');
+      if (!availableTeams.length) {
+        sel.innerHTML = '<option value="">Nenhuma equipe disponível</option>';
+        availableMsgEl.textContent = 'Nenhuma equipe disponível. O atleta já possui equipe em todas as modalidades cadastradas, ou não há equipes cadastradas.';
+      } else {
+        sel.innerHTML = '<option value="">Selecione a equipe...</option>' +
+          availableTeams.map(function(t){
+            return '<option value="' + t.id + '">' + escHtml(t.name) + ' (' + escHtml(t.sport_name || '') + ')</option>';
+          }).join('');
+      }
     }
 
     async function addAthleteTeam() {
