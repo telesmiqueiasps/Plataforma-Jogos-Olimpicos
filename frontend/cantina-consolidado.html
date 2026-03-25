@@ -13,32 +13,244 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
+    /* ── Tabs ── */
     .tab-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:0; }
     .tab-btn { padding:10px 18px; border:none; background:none; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; border-radius:0; font-family:inherit; }
     .tab-btn.active { color:var(--accent-purple); border-bottom-color:var(--accent-purple); }
-    .cash-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
-    .cash-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; }
-    .cash-card .c-icon { font-size:24px; margin-bottom:4px; }
-    .cash-card .c-value { font-size:20px; font-weight:800; color:var(--accent-blue,#2563eb); }
-    .cash-card .c-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
-    .pdv-section-title { font-size:14px; font-weight:700; padding:8px 0 4px; margin-bottom:8px; border-bottom:2px solid var(--accent-purple); color:var(--accent-purple); }
-    .order-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:8px; }
-    .order-card.refunded { border-color:#fca5a5; }
-    .badge-pdv1 { background:rgba(37,99,235,0.12); color:#2563eb; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
-    .badge-pdv2 { background:rgba(16,185,129,0.12); color:#059669; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:700; }
-    .badge-paid { background:#d1fae5; color:#065f46; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
-    .badge-pending { background:#fef3c7; color:#92400e; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
-    .badge-cancelled { background:#fee2e2; color:#991b1b; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
-    .badge-refunded { background:#fecaca; color:#7f1d1d; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
-    .date-filter-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; padding:12px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; }
+
+    /* ── Filtro de data ── */
+    .date-filter-bar {
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      margin-bottom:20px; padding:12px 16px;
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:12px; box-shadow:var(--shadow-sm);
+    }
     .date-filter-bar label { font-size:12px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
-    .date-filter-bar select, .date-filter-bar input[type=date] { font-size:13px; padding:5px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-secondary); color:var(--text-primary); font-family:inherit; cursor:pointer; }
+    .date-filter-bar select, .date-filter-bar input[type=date] {
+      font-size:13px; padding:6px 10px; border:1px solid var(--border);
+      border-radius:8px; background:var(--bg-secondary); color:var(--text-primary);
+      font-family:inherit; cursor:pointer; outline:none; transition:border-color .15s;
+    }
+    .date-filter-bar select:focus, .date-filter-bar input[type=date]:focus { border-color:var(--accent-blue); }
     .date-custom-range { display:none; align-items:center; gap:8px; flex-wrap:wrap; }
     .date-custom-range.visible { display:flex; }
-    .summary-cols { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
-    @media(max-width:700px){ .summary-cols { grid-template-columns:1fr; } }
-    .summary-col { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; }
-    .summary-col-title { font-size:13px; font-weight:700; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+
+    /* ── Grid de colunas de resumo ── */
+    .summary-cols {
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:16px;
+      margin-bottom:24px;
+    }
+    @media(max-width:800px){ .summary-cols { grid-template-columns:1fr 1fr; } }
+    @media(max-width:540px){ .summary-cols { grid-template-columns:1fr; } }
+
+    .summary-col {
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      overflow:hidden;
+      box-shadow:var(--shadow-sm);
+      transition:box-shadow .15s;
+    }
+    .summary-col:hover { box-shadow:var(--shadow-md); }
+
+    .summary-col-header {
+      padding:14px 18px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:10px;
+    }
+    .summary-col-header .col-icon {
+      width:36px; height:36px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px; flex-shrink:0;
+    }
+    .summary-col-header .col-title { font-size:14px; font-weight:700; font-family:var(--font-display); }
+    .summary-col-header .col-sub { font-size:11px; color:var(--text-muted); margin-top:1px; }
+
+    /* Cores por coluna */
+    .summary-col.pdv1 { border-top:3px solid #2563eb; }
+    .summary-col.pdv1 .summary-col-header .col-icon { background:rgba(37,99,235,0.12); }
+    .summary-col.pdv1 .summary-col-header { background:rgba(37,99,235,0.04); }
+    .summary-col.pdv1 .stat-row .stat-value { color:#2563eb; }
+
+    .summary-col.pdv2 { border-top:3px solid #059669; }
+    .summary-col.pdv2 .summary-col-header .col-icon { background:rgba(5,150,105,0.12); }
+    .summary-col.pdv2 .summary-col-header { background:rgba(5,150,105,0.04); }
+    .summary-col.pdv2 .stat-row .stat-value { color:#059669; }
+
+    .summary-col.total { border-top:3px solid var(--accent-purple); }
+    .summary-col.total .summary-col-header .col-icon { background:rgba(124,58,237,0.12); }
+    .summary-col.total .summary-col-header { background:rgba(124,58,237,0.04); }
+    .summary-col.total .stat-row .stat-value { color:var(--accent-purple); }
+
+    /* Linhas de estatísticas */
+    .stat-list { padding:10px 0 6px; }
+    .stat-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 18px; gap:8px; transition:background .12s;
+    }
+    .stat-row:hover { background:var(--bg-secondary); }
+    .stat-row + .stat-row { border-top:1px solid var(--border-light); }
+    .stat-row-left { display:flex; align-items:center; gap:8px; }
+    .stat-row .stat-icon {
+      width:28px; height:28px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; background:var(--bg-secondary); flex-shrink:0;
+    }
+    .stat-row .stat-label { font-size:12px; color:var(--text-secondary); font-weight:500; }
+    .stat-row .stat-value { font-size:14px; font-weight:800; font-family:var(--font-display); }
+    .stat-row.highlight { background:var(--bg-secondary); }
+    .stat-row.highlight .stat-value { font-size:16px; }
+
+    /* ── Seção de pedidos ── */
+    .orders-header {
+      display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:wrap; gap:8px; margin-bottom:12px;
+    }
+    .orders-header-title { font-size:15px; font-weight:700; font-family:var(--font-display); }
+    .orders-count-badge {
+      background:var(--bg-secondary); border:1px solid var(--border);
+      border-radius:20px; padding:3px 10px; font-size:12px;
+      color:var(--text-secondary); font-weight:600;
+    }
+
+    /* ── Order cards ── */
+    .order-card {
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:10px; padding:12px 16px; margin-bottom:8px;
+      transition:box-shadow .15s, transform .15s;
+    }
+    .order-card:hover { box-shadow:var(--shadow-sm); }
+    .order-card.refunded { border-color:#fca5a5; background:rgba(252,165,165,0.04); }
+    .order-card.cancelled { border-color:#fcd34d; background:rgba(252,211,77,0.04); }
+
+    .order-card-top {
+      display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:wrap; gap:6px; margin-bottom:6px;
+    }
+    .order-num {
+      font-weight:800; font-size:14px; font-family:var(--font-display);
+      color:var(--accent-blue);
+    }
+    .order-badges { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .order-card-items {
+      font-size:12px; color:var(--text-secondary);
+      margin-bottom:6px; line-height:1.5;
+    }
+    .order-card-bottom {
+      display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:wrap; gap:4px;
+    }
+    .order-total { font-weight:800; font-size:15px; font-family:var(--font-display); }
+    .order-meta { font-size:11px; color:var(--text-muted); }
+    .order-payment {
+      font-size:11px; font-weight:600; padding:2px 8px;
+      border-radius:20px; background:var(--bg-secondary);
+      color:var(--text-secondary); border:1px solid var(--border);
+    }
+
+    /* Badges */
+    .badge-pdv1 { background:rgba(37,99,235,0.12); color:#2563eb; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; }
+    .badge-pdv2 { background:rgba(5,150,105,0.12); color:#059669; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; }
+    .badge-paid { background:#d1fae5; color:#065f46; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-pending { background:#fef3c7; color:#92400e; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-cancelled { background:#fef9c3; color:#78350f; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-refunded { background:#fee2e2; color:#991b1b; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+
+    /* Divider de PDV na lista de pedidos */
+    .orders-pdv-divider {
+      display:flex; align-items:center; gap:10px; margin:16px 0 10px;
+    }
+    .orders-pdv-divider-line { flex:1; height:1px; background:var(--border); }
+    .orders-pdv-divider-label {
+      font-size:11px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.5px; color:var(--text-muted);
+      white-space:nowrap;
+    }
+
+    /* ── PDF export ── */
+    #pdf-content {
+      display:none;
+      font-family:'Inter',sans-serif;
+      background:#fff;
+      color:#1a1d2e;
+      padding:32px;
+      width:794px; /* A4 width in px at 96dpi */
+    }
+    #pdf-content.rendering { display:block !important; }
+
+    .pdf-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:24px; padding-bottom:16px;
+      border-bottom:2px solid #e2e6ef;
+    }
+    .pdf-title { font-size:20px; font-weight:800; color:#1a1d2e; font-family:'Outfit',sans-serif; }
+    .pdf-subtitle { font-size:12px; color:#8b92a9; margin-top:2px; }
+    .pdf-date { font-size:12px; color:#4a5068; text-align:right; }
+
+    .pdf-section-title {
+      font-size:13px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.5px; color:#7c3aed;
+      padding-bottom:8px; border-bottom:2px solid #7c3aed;
+      margin-bottom:14px; font-family:'Outfit',sans-serif;
+    }
+
+    .pdf-cols { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:24px; }
+    .pdf-col {
+      border:1px solid #e2e6ef; border-radius:10px; overflow:hidden;
+    }
+    .pdf-col.pdv1 { border-top:3px solid #2563eb; }
+    .pdf-col.pdv2 { border-top:3px solid #059669; }
+    .pdf-col.total { border-top:3px solid #7c3aed; }
+
+    .pdf-col-head {
+      padding:10px 14px; font-size:13px; font-weight:700;
+      font-family:'Outfit',sans-serif;
+      border-bottom:1px solid #e2e6ef;
+    }
+    .pdf-col.pdv1 .pdf-col-head { background:#eff6ff; color:#2563eb; }
+    .pdf-col.pdv2 .pdf-col-head { background:#ecfdf5; color:#059669; }
+    .pdf-col.total .pdf-col-head { background:#f5f3ff; color:#7c3aed; }
+
+    .pdf-stat { display:flex; justify-content:space-between; padding:7px 14px; font-size:12px; }
+    .pdf-stat + .pdf-stat { border-top:1px solid #f0f2f7; }
+    .pdf-stat-label { color:#4a5068; }
+    .pdf-stat-value { font-weight:700; color:#1a1d2e; }
+    .pdf-stat.highlight { background:#f8f9fc; }
+    .pdf-stat.highlight .pdf-stat-value { font-size:14px; color:inherit; }
+    .pdf-col.pdv1 .pdf-stat.highlight .pdf-stat-value { color:#2563eb; }
+    .pdf-col.pdv2 .pdf-stat.highlight .pdf-stat-value { color:#059669; }
+    .pdf-col.total .pdf-stat.highlight .pdf-stat-value { color:#7c3aed; }
+
+    .pdf-orders-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .pdf-orders-table th {
+      background:#f8f9fc; padding:8px 10px; text-align:left;
+      font-weight:700; font-size:10px; text-transform:uppercase;
+      letter-spacing:.4px; color:#4a5068;
+      border-bottom:2px solid #e2e6ef;
+    }
+    .pdf-orders-table td { padding:8px 10px; border-bottom:1px solid #f0f2f7; vertical-align:middle; }
+    .pdf-orders-table tr:last-child td { border-bottom:none; }
+    .pdf-orders-table tr.refunded td { background:#fff5f5; }
+    .pdf-orders-table tr.cancelled td { background:#fefce8; }
+
+    .pdf-badge {
+      display:inline-block; border-radius:4px; padding:2px 6px;
+      font-size:10px; font-weight:700;
+    }
+    .pdf-badge-pdv1 { background:#dbeafe; color:#1d4ed8; }
+    .pdf-badge-pdv2 { background:#d1fae5; color:#065f46; }
+    .pdf-badge-paid { background:#d1fae5; color:#065f46; }
+    .pdf-badge-pending { background:#fef3c7; color:#92400e; }
+    .pdf-badge-cancelled { background:#fef9c3; color:#78350f; }
+    .pdf-badge-refunded { background:#fee2e2; color:#991b1b; }
+
+    .pdf-footer {
+      margin-top:24px; padding-top:12px; border-top:1px solid #e2e6ef;
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:10px; color:#8b92a9;
+    }
   </style>
 </head>
 <body>
@@ -116,10 +328,17 @@
     </div>
   </div>
 
+  <!-- Área oculta usada APENAS para renderizar o PDF -->
+  <div id="pdf-content"></div>
+
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
   <script>
+    // Dados globais para reutilização no PDF
+    var _lastS1 = null, _lastS2 = null, _lastConsol = null;
+    var _lastOrders1 = [], _lastOrders2 = [];
+
     document.addEventListener('DOMContentLoaded', function() {
       requireAdminAccess();
       loadConsolidado();
@@ -158,6 +377,17 @@
       return null;
     }
 
+    function getPeriodLabel() {
+      var period = document.getElementById('date-period').value;
+      var labels = { today:'Hoje', yesterday:'Ontem', last7:'Últimos 7 dias', month:'Este mês', all:'Todo o período', custom:'Período personalizado' };
+      if (period === 'custom') {
+        var df = document.getElementById('date-from').value;
+        var dt = document.getElementById('date-to').value;
+        if (df && dt) return df + ' até ' + dt;
+      }
+      return labels[period] || period;
+    }
+
     async function loadConsolidado() {
       var dateParams = getDateParams();
       var summaryEl = document.getElementById('summary-section');
@@ -170,7 +400,9 @@
           CantinAPI.orders(Object.assign({}, dateParams || {}, { pdv_id: 1 })),
           CantinAPI.orders(Object.assign({}, dateParams || {}, { pdv_id: 2 })),
         ]);
-        // consol = full cash (no pdv filter) = total; we also compute per-pdv from orders
+        _lastOrders1 = orders1;
+        _lastOrders2 = orders2;
+        _lastConsol = consol;
         renderSummary(consol, orders1, orders2);
         renderOrders(orders1, orders2);
       } catch(e) {
@@ -178,37 +410,54 @@
       }
     }
 
-    function statCard(icon, value, label) {
-      return '<div class="cash-card"><div class="c-icon">'+icon+'</div><div class="c-value">'+value+'</div><div class="c-label">'+label+'</div></div>';
+    // ── Resumo por coluna ──────────────────────────────────────────────
+
+    function summaryColHtml(s, title, icon, colClass) {
+      var paidPct = s.orders_count > 0 ? Math.round((s.orders_paid / s.orders_count) * 100) : 0;
+      return '<div class="summary-col ' + colClass + '">' +
+        '<div class="summary-col-header">' +
+          '<div class="col-icon">' + icon + '</div>' +
+          '<div>' +
+            '<div class="col-title">' + title + '</div>' +
+            '<div class="col-sub">' + (s.orders_paid||0) + ' pagos de ' + (s.orders_count||0) + ' pedidos (' + paidPct + '%)</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="stat-list">' +
+          statRow('💵', 'Dinheiro', 'R$ ' + formatMoney(s.total_dinheiro||0), '') +
+          statRow('📱', 'PIX', 'R$ ' + formatMoney(s.total_pix||0), '') +
+          statRow('🛒', 'Total Vendas', 'R$ ' + formatMoney(s.total_vendas||0), 'highlight') +
+          statRow('💰', 'Saldo', 'R$ ' + formatMoney(s.saldo||0), '') +
+        '</div>' +
+      '</div>';
     }
 
-    function summaryColHtml(s, title) {
-      return '<div class="summary-col">' +
-        '<div class="summary-col-title">' + title + '</div>' +
-        '<div style="display:flex;flex-direction:column;gap:6px;">' +
-          statCard('💵','R$ '+formatMoney(s.total_dinheiro||0),'Dinheiro') +
-          statCard('📱','R$ '+formatMoney(s.total_pix||0),'PIX') +
-          statCard('💰','R$ '+formatMoney(s.total_vendas||0),'Total Vendas') +
-          statCard('📈','R$ '+formatMoney(s.saldo||0),'Saldo') +
-          statCard('🧾',(s.orders_paid||0)+'/'+(s.orders_count||0),'Pagos/Total') +
+    function statRow(icon, label, value, extra) {
+      return '<div class="stat-row' + (extra ? ' ' + extra : '') + '">' +
+        '<div class="stat-row-left">' +
+          '<div class="stat-icon">' + icon + '</div>' +
+          '<span class="stat-label">' + label + '</span>' +
         '</div>' +
-        '</div>';
+        '<span class="stat-value">' + value + '</span>' +
+      '</div>';
     }
 
     async function renderSummary(consol, orders1, orders2) {
       var dateParams = getDateParams();
-      // Buscar resumo por PDV
       var [s1, s2] = await Promise.all([
         CantinAPI.cash(Object.assign({}, dateParams || {}, { pdv_id: 1 })),
         CantinAPI.cash(Object.assign({}, dateParams || {}, { pdv_id: 2 })),
       ]);
+      _lastS1 = s1;
+      _lastS2 = s2;
       document.getElementById('summary-section').innerHTML =
         '<div class="summary-cols">' +
-          summaryColHtml(s1, '🏪 PDV 1') +
-          summaryColHtml(s2, '🏪 PDV 2') +
-          summaryColHtml(consol, '📊 Total Consolidado') +
+          summaryColHtml(s1, 'PDV 1', '🏪', 'pdv1') +
+          summaryColHtml(s2, 'PDV 2', '🏪', 'pdv2') +
+          summaryColHtml(consol, 'Total Consolidado', '📊', 'total') +
         '</div>';
     }
+
+    // ── Lista de pedidos ───────────────────────────────────────────────
 
     function renderOrders(orders1, orders2) {
       var el = document.getElementById('orders-section');
@@ -221,57 +470,191 @@
         return;
       }
 
-      var html = '<div class="card"><div class="card-header"><span class="card-title">📋 Todos os Pedidos</span></div><div class="card-body" style="padding:12px;">';
+      var html = '<div class="card">' +
+        '<div class="card-header">' +
+          '<span class="card-title">📋 Todos os Pedidos</span>' +
+          '<span class="orders-count-badge">' + all.length + ' pedidos</span>' +
+        '</div>' +
+        '<div class="card-body" style="padding:16px;">';
+
       all.forEach(function(o) {
         var badgeClass, badgeLabel;
-        if (o.status === 'paid') { badgeClass='badge-paid'; badgeLabel='Pago'; }
+        if (o.status === 'paid')           { badgeClass='badge-paid';      badgeLabel='Pago'; }
         else if (o.status === 'cancelled') { badgeClass='badge-cancelled'; badgeLabel='Cancelado'; }
-        else if (o.status === 'refunded') { badgeClass='badge-refunded'; badgeLabel='ESTORNADO'; }
-        else { badgeClass='badge-pending'; badgeLabel='Pendente'; }
-        var pdvBadge = o._pdv === 1 ? '<span class="badge-pdv1">PDV 1</span>' : '<span class="badge-pdv2">PDV 2</span>';
-        var itemsText = (o.items||[]).map(function(i){ return i.quantity+'x '+i.product_name; }).join(', ');
-        html += '<div class="order-card' + (o.status==='refunded'?' refunded':'') + '">' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:4px;">' +
-            '<span style="font-weight:800;color:var(--accent-blue,#2563eb);">#' + o.order_number + '</span>' +
-            '<div style="display:flex;gap:6px;align-items:center;">' + pdvBadge + '<span class="' + badgeClass + '">' + badgeLabel + '</span></div>' +
+        else if (o.status === 'refunded')  { badgeClass='badge-refunded';  badgeLabel='Estornado'; }
+        else                               { badgeClass='badge-pending';   badgeLabel='Pendente'; }
+
+        var cardClass = 'order-card';
+        if (o.status === 'refunded') cardClass += ' refunded';
+        else if (o.status === 'cancelled') cardClass += ' cancelled';
+
+        var pdvBadge = o._pdv === 1
+          ? '<span class="badge-pdv1">PDV 1</span>'
+          : '<span class="badge-pdv2">PDV 2</span>';
+
+        var itemsText = (o.items||[]).map(function(i){ return i.quantity+'× '+i.product_name; }).join(' · ');
+
+        var paymentLabel = '';
+        if (o.payment_method === 'dinheiro' || o.payment_method === 'cash') paymentLabel = '💵 Dinheiro';
+        else if (o.payment_method === 'pix') paymentLabel = '📱 PIX';
+        else if (o.payment_method) paymentLabel = o.payment_method;
+
+        html += '<div class="' + cardClass + '">' +
+          '<div class="order-card-top">' +
+            '<span class="order-num">#' + o.order_number + '</span>' +
+            '<div class="order-badges">' +
+              pdvBadge +
+              '<span class="' + badgeClass + '">' + badgeLabel + '</span>' +
+              (paymentLabel ? '<span class="order-payment">' + paymentLabel + '</span>' : '') +
+            '</div>' +
           '</div>' +
-          '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">' + escHtml(itemsText||'Sem itens') + '</div>' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">' +
-            '<span style="font-weight:800;font-size:15px;">R$ ' + formatMoney(o.total) + '</span>' +
-            '<span style="font-size:11px;color:var(--text-muted);">' + fmtDatetime(o.created_at) + '</span>' +
+          '<div class="order-card-items">' + escHtml(itemsText||'Sem itens') + '</div>' +
+          '<div class="order-card-bottom">' +
+            '<span class="order-total">R$ ' + formatMoney(o.total) + '</span>' +
+            '<span class="order-meta">' + fmtDatetime(o.created_at) + '</span>' +
           '</div>' +
-          '</div>';
+        '</div>';
       });
+
       html += '</div></div>';
       el.innerHTML = html;
     }
 
+    // ── Exportar PDF ───────────────────────────────────────────────────
+
     async function exportPDF() {
-      showToast('Gerando PDF...', 'info', 3000);
+      showToast('Gerando PDF...', 'info', 4000);
       try {
-        var el = document.getElementById('main-content');
-        var canvas = await html2canvas(el, { scale: 1.5, useCORS: true });
+        var pdfEl = document.getElementById('pdf-content');
+        var now = new Date();
+        var periodLabel = getPeriodLabel();
+        var dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+        // Gerar HTML do PDF
+        pdfEl.innerHTML = buildPdfHtml(_lastS1, _lastS2, _lastConsol, _lastOrders1, _lastOrders2, periodLabel, dateStr);
+        pdfEl.classList.add('rendering');
+
+        // Aguardar render
+        await new Promise(function(r){ setTimeout(r, 150); });
+
+        var canvas = await html2canvas(pdfEl, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          windowWidth: 794,
+        });
+
+        pdfEl.classList.remove('rendering');
+        pdfEl.innerHTML = '';
+
         var imgData = canvas.toDataURL('image/png');
         var pdf = new jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
         var pdfWidth = pdf.internal.pageSize.getWidth();
+        var pdfHeight = pdf.internal.pageSize.getHeight();
         var ratio = pdfWidth / canvas.width;
-        var pdfHeight = canvas.height * ratio;
-        var pageHeight = pdf.internal.pageSize.getHeight();
+        var imgHeight = canvas.height * ratio;
         var position = 0;
-        while (position < pdfHeight) {
+
+        while (position < imgHeight) {
           if (position > 0) pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, pdfHeight);
-          position += pageHeight;
+          pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, imgHeight);
+          position += pdfHeight;
         }
-        var today = new Date();
-        pdf.save('consolidado-cantina-' + today.toISOString().slice(0,10) + '.pdf');
-        showToast('PDF exportado!', 'success');
+
+        pdf.save('consolidado-cantina-' + now.toISOString().slice(0,10) + '.pdf');
+        showToast('PDF exportado com sucesso!', 'success');
       } catch(e) {
+        document.getElementById('pdf-content').classList.remove('rendering');
+        document.getElementById('pdf-content').innerHTML = '';
         showToast('Erro ao exportar: ' + e.message, 'error');
       }
     }
 
-    // Helper functions
+    function buildPdfHtml(s1, s2, consol, orders1, orders2, periodLabel, dateStr) {
+      var all = (orders1||[]).map(function(o){ return Object.assign({},o,{_pdv:1}); })
+        .concat((orders2||[]).map(function(o){ return Object.assign({},o,{_pdv:2}); }))
+        .sort(function(a,b){ return b.id - a.id; });
+
+      var html = '<div class="pdf-header">' +
+        '<div>' +
+          '<div class="pdf-title">📊 Consolidado — Cantina</div>' +
+          '<div class="pdf-subtitle">Jogos Olímpicos Sinodal PB</div>' +
+        '</div>' +
+        '<div class="pdf-date">' +
+          '<div style="font-weight:700;color:#1a1d2e;">Período: ' + escHtml(periodLabel) + '</div>' +
+          '<div style="margin-top:2px;">Emitido em ' + escHtml(dateStr) + '</div>' +
+        '</div>' +
+      '</div>';
+
+      // Resumo financeiro
+      html += '<div class="pdf-section-title">Resumo Financeiro</div>';
+      html += '<div class="pdf-cols">' +
+        buildPdfCol(s1, 'PDV 1', 'pdv1') +
+        buildPdfCol(s2, 'PDV 2', 'pdv2') +
+        buildPdfCol(consol, 'Total Consolidado', 'total') +
+      '</div>';
+
+      // Tabela de pedidos
+      if (all.length) {
+        html += '<div class="pdf-section-title" style="margin-top:8px;">Pedidos (' + all.length + ')</div>';
+        html += '<table class="pdf-orders-table"><thead><tr>' +
+          '<th>#</th><th>PDV</th><th>Itens</th><th>Status</th><th>Pagamento</th><th style="text-align:right;">Total</th><th>Data</th>' +
+        '</tr></thead><tbody>';
+
+        all.forEach(function(o) {
+          var rowClass = o.status === 'refunded' ? 'refunded' : (o.status === 'cancelled' ? 'cancelled' : '');
+          var statusBadge, statusClass;
+          if (o.status === 'paid')           { statusBadge='Pago';      statusClass='paid'; }
+          else if (o.status === 'cancelled') { statusBadge='Cancelado'; statusClass='cancelled'; }
+          else if (o.status === 'refunded')  { statusBadge='Estornado'; statusClass='refunded'; }
+          else                               { statusBadge='Pendente';  statusClass='pending'; }
+
+          var itemsText = (o.items||[]).map(function(i){ return i.quantity+'× '+i.product_name; }).join(', ');
+          var payLabel = '';
+          if (o.payment_method === 'dinheiro' || o.payment_method === 'cash') payLabel = 'Dinheiro';
+          else if (o.payment_method === 'pix') payLabel = 'PIX';
+          else if (o.payment_method) payLabel = o.payment_method;
+
+          html += '<tr class="' + rowClass + '">' +
+            '<td style="font-weight:700;color:#2563eb;">#' + escHtml(String(o.order_number)) + '</td>' +
+            '<td><span class="pdf-badge pdf-badge-pdv' + o._pdv + '">PDV ' + o._pdv + '</span></td>' +
+            '<td style="max-width:220px;color:#4a5068;">' + escHtml(itemsText||'—') + '</td>' +
+            '<td><span class="pdf-badge pdf-badge-' + statusClass + '">' + statusBadge + '</span></td>' +
+            '<td style="color:#4a5068;">' + escHtml(payLabel||'—') + '</td>' +
+            '<td style="text-align:right;font-weight:700;">R$ ' + formatMoney(o.total) + '</td>' +
+            '<td style="color:#8b92a9;white-space:nowrap;">' + fmtDatetime(o.created_at) + '</td>' +
+          '</tr>';
+        });
+
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="color:#8b92a9;text-align:center;padding:16px;">Nenhum pedido no período.</p>';
+      }
+
+      html += '<div class="pdf-footer">' +
+        '<span>Plataforma Jogos Olímpicos Sinodal PB</span>' +
+        '<span>Emitido em ' + escHtml(dateStr) + '</span>' +
+      '</div>';
+
+      return html;
+    }
+
+    function buildPdfCol(s, title, colClass) {
+      if (!s) s = {};
+      var paidPct = s.orders_count > 0 ? Math.round((s.orders_paid / s.orders_count) * 100) : 0;
+      return '<div class="pdf-col ' + colClass + '">' +
+        '<div class="pdf-col-head">' + title + '</div>' +
+        '<div class="pdf-stat"><span class="pdf-stat-label">💵 Dinheiro</span><span class="pdf-stat-value">R$ ' + formatMoney(s.total_dinheiro||0) + '</span></div>' +
+        '<div class="pdf-stat"><span class="pdf-stat-label">📱 PIX</span><span class="pdf-stat-value">R$ ' + formatMoney(s.total_pix||0) + '</span></div>' +
+        '<div class="pdf-stat highlight"><span class="pdf-stat-label">🛒 Total Vendas</span><span class="pdf-stat-value">R$ ' + formatMoney(s.total_vendas||0) + '</span></div>' +
+        '<div class="pdf-stat"><span class="pdf-stat-label">💰 Saldo</span><span class="pdf-stat-value">R$ ' + formatMoney(s.saldo||0) + '</span></div>' +
+        '<div class="pdf-stat"><span class="pdf-stat-label">🧾 Pagos/Total</span><span class="pdf-stat-value">' + (s.orders_paid||0) + '/' + (s.orders_count||0) + ' (' + paidPct + '%)</span></div>' +
+      '</div>';
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────
+
     function escHtml(s) {
       if (s == null) return '';
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
