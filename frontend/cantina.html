@@ -177,9 +177,10 @@
         <!-- Tab nav -->
         <div class="tab-nav">
           <button class="tab-btn active" data-tab="pdv">🛒 PDV</button>
-          <button class="tab-btn" data-tab="produtos">📦 Produtos</button>
+          <button class="tab-btn" data-tab="produtos">🗂️ Produtos</button>
           <button class="tab-btn" data-tab="caixa">💰 Caixa</button>
           <button class="tab-btn" data-tab="relatorio">📊 Relatório</button>
+          <button class="tab-btn" data-tab="estoque">📦 Estoque</button>
         </div>
 
         <!-- ======================================================= -->
@@ -335,14 +336,40 @@
             </div>
           </div>
 
-          <!-- Relatório de Estoque -->
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-            <span style="font-size:15px;font-weight:700;">📦 Situação do Estoque</span>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ABA: ESTOQUE                                             -->
+        <!-- ======================================================= -->
+        <div id="tab-estoque" style="display:none;">
+          <!-- Filtro de período próprio -->
+          <div class="date-filter-bar">
+            <label>📅 Período:</label>
+            <select id="stock-date-period" onchange="onStockDatePeriodChange()">
+              <option value="today">Hoje</option>
+              <option value="yesterday">Ontem</option>
+              <option value="last7">Últimos 7 dias</option>
+              <option value="month">Este mês</option>
+              <option value="custom">Período personalizado</option>
+              <option value="all">Tudo</option>
+            </select>
+            <div class="date-custom-range" id="stock-date-custom-range">
+              <span style="font-size:12px;color:var(--text-secondary);">De:</span>
+              <input type="date" id="stock-date-from" style="width:140px;">
+              <span style="font-size:12px;color:var(--text-secondary);">Até:</span>
+              <input type="date" id="stock-date-to" style="width:140px;">
+              <button class="btn btn-primary btn-sm" onclick="loadStockTab()">Aplicar</button>
+            </div>
           </div>
-          <div id="stock-summary-cards" class="cash-grid" style="margin-bottom:14px;"></div>
+
+          <!-- Cards de resumo -->
+          <div id="stock-tab-summary" class="cash-grid" style="margin-bottom:16px;"></div>
+
+          <!-- Tabela de estoque -->
           <div class="card">
             <div class="card-header">
-              <span class="card-title">📦 Estoque Detalhado</span>
+              <span class="card-title">📦 Relatório de Estoque</span>
+              <button class="btn btn-secondary btn-sm" onclick="loadStockTab()">↻ Atualizar</button>
             </div>
             <div class="card-body" style="padding:0;">
               <div class="table-wrapper">
@@ -352,13 +379,15 @@
                       <th>Produto</th>
                       <th>Categoria</th>
                       <th style="text-align:right;">Preço</th>
-                      <th style="text-align:center;">Atual</th>
-                      <th style="text-align:center;">Mín.</th>
+                      <th style="text-align:center;">Est. Inicial</th>
+                      <th style="text-align:center;">Qtd. Vendida</th>
+                      <th style="text-align:center;">Est. Atual</th>
+                      <th style="text-align:center;">Mínimo</th>
                       <th style="text-align:center;">Status</th>
                     </tr>
                   </thead>
-                  <tbody id="stock-report-tbody">
-                    <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>
+                  <tbody id="stock-tab-tbody">
+                    <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -588,13 +617,14 @@
           var tab = btn.dataset.tab;
           document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
           btn.classList.add('active');
-          ['pdv','produtos','caixa','relatorio'].forEach(function(t){
+          ['pdv','produtos','caixa','relatorio','estoque'].forEach(function(t){
             document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
           });
           currentTab = tab;
           if (tab === 'produtos') loadProductsTable();
           if (tab === 'caixa') loadCashTab();
           if (tab === 'relatorio') loadReport();
+          if (tab === 'estoque') loadStockTab();
         });
       });
 
@@ -1227,42 +1257,98 @@
       try {
         var dateParams = getDateParams();
         var reportParams = Object.assign({}, dateParams || {}, { pdv_id: currentPdvId });
-        var [reportResult, stockProducts] = await Promise.all([
-          CantinAPI.report(reportParams),
-          CantinAPI.products({ pdv_id: currentPdvId }),
-        ]);
-        reportData = reportResult;
+        reportData = await CantinAPI.report(reportParams);
         renderReportSummary(reportData);
         renderTopProducts(reportData.top_products || []);
-        renderStockReport(stockProducts || []);
       } catch(e) {
         showToast('Erro ao carregar relatório: ' + e.message, 'error');
       }
     }
 
-    function renderStockReport(products) {
+    // ================================================================
+    //  Aba Estoque
+    // ================================================================
+    function getStockDateParams() {
+      var period = document.getElementById('stock-date-period').value;
+      var today = new Date();
+      var fmt = function(d) {
+        var m = d.getMonth()+1, day = d.getDate();
+        return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);
+      };
+      if (period === 'today')     { var s = fmt(today); return { date_from: s, date_to: s }; }
+      if (period === 'yesterday') { var y = new Date(today); y.setDate(y.getDate()-1); var s2=fmt(y); return { date_from: s2, date_to: s2 }; }
+      if (period === 'last7')     { var d7=new Date(today); d7.setDate(d7.getDate()-6); return { date_from: fmt(d7), date_to: fmt(today) }; }
+      if (period === 'month')     { var first=new Date(today.getFullYear(),today.getMonth(),1); return { date_from: fmt(first), date_to: fmt(today) }; }
+      if (period === 'custom') {
+        var df = document.getElementById('stock-date-from').value;
+        var dt = document.getElementById('stock-date-to').value;
+        var params = {};
+        if (df) params.date_from = df;
+        if (dt) params.date_to = dt;
+        return Object.keys(params).length ? params : null;
+      }
+      return null;
+    }
+
+    function onStockDatePeriodChange() {
+      var period = document.getElementById('stock-date-period').value;
+      var cr = document.getElementById('stock-date-custom-range');
+      if (period === 'custom') { cr.classList.add('visible'); }
+      else { cr.classList.remove('visible'); loadStockTab(); }
+    }
+
+    async function loadStockTab() {
+      var dateParams = getStockDateParams();
+      var ordersParams = Object.assign({}, dateParams || {}, { pdv_id: currentPdvId });
+      document.getElementById('stock-tab-tbody').innerHTML =
+        '<tr><td colspan="8" style="text-align:center;padding:24px;"><div class="page-loading" style="display:inline-flex;gap:8px;align-items:center;"><div class="spinner"></div><span>Carregando...</span></div></td></tr>';
+      document.getElementById('stock-tab-summary').innerHTML = '';
+      try {
+        var [products, orders] = await Promise.all([
+          CantinAPI.products({ pdv_id: currentPdvId }),
+          CantinAPI.orders(ordersParams),
+        ]);
+        // Agregar qtd vendida por product_id (apenas pedidos pagos)
+        var qtySold = {};
+        (orders || []).forEach(function(o) {
+          if (o.status === 'paid') {
+            (o.items || []).forEach(function(item) {
+              qtySold[item.product_id] = (qtySold[item.product_id] || 0) + item.quantity;
+            });
+          }
+        });
+        renderStockTab(products || [], qtySold);
+      } catch(e) {
+        document.getElementById('stock-tab-tbody').innerHTML =
+          '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Erro: ' + escHtml(e.message) + '</td></tr>';
+        showToast('Erro ao carregar estoque: ' + e.message, 'error');
+      }
+    }
+
+    function renderStockTab(products, qtySold) {
       var total  = products.length;
       var empty  = products.filter(function(p){ return p.stock === 0; }).length;
       var low    = products.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length;
       var normal = total - empty - low;
+      var totalSold = 0;
+      products.forEach(function(p){ totalSold += (qtySold[p.id] || 0); });
 
-      var emptyCard = empty > 0
-        ? '<div class="cash-card"><div class="c-icon">❌</div><div class="c-value danger">' + empty + '</div><div class="c-label">Sem Estoque</div></div>'
-        : cashCard('❌', empty, 'Sem Estoque');
-
-      document.getElementById('stock-summary-cards').innerHTML =
+      document.getElementById('stock-tab-summary').innerHTML =
         cashCard('📦', total, 'Produtos') +
-        cashCard('✅', normal, 'Normal') +
+        cashCard('🛒', totalSold, 'Unid. Vendidas') +
+        cashCard('✅', normal, 'Estoque Normal') +
         cashCard('⚠️', low, 'Estoque Baixo') +
-        emptyCard;
+        (empty > 0
+          ? '<div class="cash-card"><div class="c-icon">❌</div><div class="c-value danger">' + empty + '</div><div class="c-label">Sem Estoque</div></div>'
+          : cashCard('❌', 0, 'Sem Estoque'));
 
-      var tbody = document.getElementById('stock-report-tbody');
+      var tbody = document.getElementById('stock-tab-tbody');
       if (!products.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum produto cadastrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum produto cadastrado.</td></tr>';
         return;
       }
 
-      // Ordenar: sem estoque → baixo → normal
+      // Ordenar: sem estoque → baixo → normal → alfabético
       var sorted = products.slice().sort(function(a, b) {
         var ra = a.stock === 0 ? 0 : (a.stock <= a.min_stock ? 1 : 2);
         var rb = b.stock === 0 ? 0 : (b.stock <= b.min_stock ? 1 : 2);
@@ -1271,7 +1357,10 @@
 
       var html = '';
       sorted.forEach(function(p) {
+        var sold    = qtySold[p.id] || 0;
+        var initial = p.stock + sold;
         var rowClass = p.stock === 0 ? 'zero-stock' : (p.stock <= p.min_stock ? 'low-stock' : '');
+
         var statusBadge;
         if (p.stock === 0)
           statusBadge = '<span class="badge-cancelled" style="border-radius:20px;">Sem Estoque</span>';
@@ -1280,15 +1369,23 @@
         else
           statusBadge = '<span class="badge-paid" style="border-radius:20px;">Normal</span>';
 
+        var soldCell = sold > 0
+          ? '<span style="font-weight:800;color:#2563eb;">' + sold + '</span>'
+          : '<span style="color:var(--text-muted);">—</span>';
+
+        var currentCell = p.stock === 0
+          ? '<span style="font-weight:800;color:#dc2626;">0</span>'
+          : p.stock <= p.min_stock
+            ? '<span style="font-weight:800;color:#d97706;">' + p.stock + '</span>'
+            : '<span style="font-weight:800;">' + p.stock + '</span>';
+
         html += '<tr class="' + rowClass + '">' +
           '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
           '<td><span style="background:var(--bg-tertiary,#f0f2f7);padding:2px 8px;border-radius:10px;font-size:11px;">' + escHtml(p.category || '—') + '</span></td>' +
           '<td style="text-align:right;font-weight:700;">R$ ' + formatMoney(p.price) + '</td>' +
-          '<td style="text-align:center;font-weight:800;">' +
-            (p.stock === 0 ? '<span style="color:#dc2626;font-weight:800;">0</span>' :
-             p.stock <= p.min_stock ? '<span style="color:#d97706;font-weight:800;">' + p.stock + '</span>' :
-             p.stock) +
-          '</td>' +
+          '<td style="text-align:center;color:var(--text-secondary);">' + initial + '</td>' +
+          '<td style="text-align:center;">' + soldCell + '</td>' +
+          '<td style="text-align:center;">' + currentCell + '</td>' +
           '<td style="text-align:center;color:var(--text-muted);">' + p.min_stock + '</td>' +
           '<td style="text-align:center;">' + statusBadge + '</td>' +
           '</tr>';

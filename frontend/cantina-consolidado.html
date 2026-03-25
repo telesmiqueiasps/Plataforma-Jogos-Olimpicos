@@ -18,6 +18,12 @@
     .tab-btn { padding:10px 18px; border:none; background:none; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; border-radius:0; font-family:inherit; }
     .tab-btn.active { color:var(--accent-purple); border-bottom-color:var(--accent-purple); }
 
+    /* ── Tab nav do consolidado ── */
+    .consol-tab-nav { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--border); }
+    .consol-tab-btn { padding:10px 20px; border:none; background:none; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; border-radius:0; font-family:inherit; }
+    .consol-tab-btn:hover { color:var(--text-primary); }
+    .consol-tab-btn.active { color:var(--accent-purple); border-bottom-color:var(--accent-purple); }
+
     /* ── Filtro de data ── */
     .date-filter-bar {
       display:flex; align-items:center; gap:10px; flex-wrap:wrap;
@@ -344,9 +350,20 @@
           </div>
         </div>
 
-        <div id="summary-section"></div>
-        <div id="orders-section"></div>
-        <div id="stock-section"></div>
+        <!-- Tabs -->
+        <div class="consol-tab-nav">
+          <button class="consol-tab-btn active" data-ctab="financeiro">💰 Financeiro</button>
+          <button class="consol-tab-btn" data-ctab="estoque">📦 Estoque</button>
+        </div>
+
+        <div id="ctab-financeiro">
+          <div id="summary-section"></div>
+          <div id="orders-section"></div>
+        </div>
+
+        <div id="ctab-estoque" style="display:none;">
+          <div id="stock-section"></div>
+        </div>
       </main>
     </div>
   </div>
@@ -365,8 +382,21 @@
 
     document.addEventListener('DOMContentLoaded', function() {
       requireAdminAccess();
+      initConsolTabs();
       loadConsolidado();
     });
+
+    function initConsolTabs() {
+      document.querySelectorAll('.consol-tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.consol-tab-btn').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+          var tab = btn.dataset.ctab;
+          document.getElementById('ctab-financeiro').style.display = tab === 'financeiro' ? '' : 'none';
+          document.getElementById('ctab-estoque').style.display    = tab === 'estoque'    ? '' : 'none';
+        });
+      });
+    }
 
     function onDatePeriodChange() {
       var period = document.getElementById('date-period').value;
@@ -431,9 +461,25 @@
         _lastConsol = consol;
         _lastProds1 = prods1 || [];
         _lastProds2 = prods2 || [];
+        // Agregar qtd vendida por product_id (apenas pedidos pagos)
+        var qtySold1 = {}, qtySold2 = {};
+        (orders1 || []).forEach(function(o) {
+          if (o.status === 'paid') {
+            (o.items || []).forEach(function(item) {
+              qtySold1[item.product_id] = (qtySold1[item.product_id] || 0) + item.quantity;
+            });
+          }
+        });
+        (orders2 || []).forEach(function(o) {
+          if (o.status === 'paid') {
+            (o.items || []).forEach(function(item) {
+              qtySold2[item.product_id] = (qtySold2[item.product_id] || 0) + item.quantity;
+            });
+          }
+        });
         renderSummary(consol, orders1, orders2);
         renderOrders(orders1, orders2);
-        renderStock(_lastProds1, _lastProds2);
+        renderStock(_lastProds1, _lastProds2, qtySold1, qtySold2);
       } catch(e) {
         summaryEl.innerHTML = '<p style="color:var(--text-muted);">Erro ao carregar: ' + e.message + '</p>';
       }
@@ -562,15 +608,20 @@
 
     // ── Estoque ────────────────────────────────────────────────────────
 
-    function renderStock(prods1, prods2) {
+    function renderStock(prods1, prods2, qtySold1, qtySold2) {
+      qtySold1 = qtySold1 || {};
+      qtySold2 = qtySold2 || {};
       var el = document.getElementById('stock-section');
 
-      function statsFor(prods) {
+      function statsFor(prods, qtySold) {
+        var totalSold = 0;
+        prods.forEach(function(p){ totalSold += (qtySold[p.id] || 0); });
         return {
-          total:  prods.length,
-          normal: prods.filter(function(p){ return p.stock > p.min_stock; }).length,
-          low:    prods.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length,
-          empty:  prods.filter(function(p){ return p.stock === 0; }).length,
+          total:     prods.length,
+          normal:    prods.filter(function(p){ return p.stock > p.min_stock; }).length,
+          low:       prods.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length,
+          empty:     prods.filter(function(p){ return p.stock === 0; }).length,
+          totalSold: totalSold,
         };
       }
 
@@ -581,7 +632,7 @@
         '</div>';
       }
 
-      function stockTable(prods, pdvId) {
+      function stockTable(prods, qtySold) {
         if (!prods.length) return '<p style="color:var(--text-muted);text-align:center;padding:16px;">Nenhum produto cadastrado.</p>';
 
         var sorted = prods.slice().sort(function(a, b) {
@@ -591,7 +642,10 @@
         });
 
         var rows = sorted.map(function(p) {
+          var sold    = qtySold[p.id] || 0;
+          var initial = p.stock + sold;
           var rowClass = p.stock === 0 ? 'zero-stock' : (p.stock <= p.min_stock ? 'low-stock' : '');
+
           var statusBadge;
           if (p.stock === 0)
             statusBadge = '<span class="badge-cancelled" style="border-radius:20px;font-size:11px;">Sem Estoque</span>';
@@ -600,11 +654,23 @@
           else
             statusBadge = '<span class="badge-paid" style="border-radius:20px;font-size:11px;">Normal</span>';
 
+          var soldCell = sold > 0
+            ? '<span style="font-weight:800;color:#2563eb;">' + sold + '</span>'
+            : '<span style="color:var(--text-muted);">—</span>';
+
+          var currentCell = p.stock === 0
+            ? '<span style="font-weight:800;color:#dc2626;">0</span>'
+            : p.stock <= p.min_stock
+              ? '<span style="font-weight:800;color:#d97706;">' + p.stock + '</span>'
+              : '<span style="font-weight:800;">' + p.stock + '</span>';
+
           return '<tr class="' + rowClass + '">' +
             '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
             '<td><span style="background:var(--bg-tertiary,#f0f2f7);padding:2px 8px;border-radius:10px;font-size:11px;">' + escHtml(p.category || '—') + '</span></td>' +
             '<td style="text-align:right;font-weight:700;">R$ ' + formatMoney(p.price) + '</td>' +
-            '<td style="text-align:center;font-weight:800;color:' + (p.stock === 0 ? '#dc2626' : p.stock <= p.min_stock ? '#d97706' : 'inherit') + ';">' + p.stock + '</td>' +
+            '<td style="text-align:center;color:var(--text-secondary);">' + initial + '</td>' +
+            '<td style="text-align:center;">' + soldCell + '</td>' +
+            '<td style="text-align:center;">' + currentCell + '</td>' +
             '<td style="text-align:center;color:var(--text-muted);">' + p.min_stock + '</td>' +
             '<td style="text-align:center;">' + statusBadge + '</td>' +
             '</tr>';
@@ -613,55 +679,55 @@
         return '<table class="stock-table"><thead><tr>' +
           '<th>Produto</th><th>Categoria</th>' +
           '<th style="text-align:right;">Preço</th>' +
-          '<th style="text-align:center;">Estoque Atual</th>' +
+          '<th style="text-align:center;">Est. Inicial</th>' +
+          '<th style="text-align:center;">Qtd. Vendida</th>' +
+          '<th style="text-align:center;">Est. Atual</th>' +
           '<th style="text-align:center;">Mínimo</th>' +
           '<th style="text-align:center;">Status</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table>';
       }
 
-      var st1 = statsFor(prods1);
-      var st2 = statsFor(prods2);
+      var st1 = statsFor(prods1, qtySold1);
+      var st2 = statsFor(prods2, qtySold2);
       var stAll = {
-        total:  st1.total  + st2.total,
-        normal: st1.normal + st2.normal,
-        low:    st1.low    + st2.low,
-        empty:  st1.empty  + st2.empty,
+        total:     st1.total     + st2.total,
+        normal:    st1.normal    + st2.normal,
+        low:       st1.low       + st2.low,
+        empty:     st1.empty     + st2.empty,
+        totalSold: st1.totalSold + st2.totalSold,
       };
 
-      var html = '<div class="section-divider"><div class="section-divider-line"></div>' +
-        '<span class="section-divider-label">📦 Estoque de Produtos</span>' +
-        '<div class="section-divider-line"></div></div>';
-
-      // Pills do consolidado
-      html += '<div class="stock-pills">' +
-        pill('📦', stAll.total,  'Total',       '') +
-        pill('✅', stAll.normal, 'Normal',       'normal') +
-        pill('⚠️', stAll.low,    'Estoque Baixo','low') +
-        pill('❌', stAll.empty,  'Sem Estoque',  stAll.empty > 0 ? 'empty' : '') +
+      // Pills consolidadas
+      var html = '<div class="stock-pills">' +
+        pill('📦', stAll.total,      'Produtos',       '') +
+        pill('🛒', stAll.totalSold,  'Unid. Vendidas', '') +
+        pill('✅', stAll.normal,     'Normal',         'normal') +
+        pill('⚠️', stAll.low,        'Estoque Baixo',  'low') +
+        pill('❌', stAll.empty,      'Sem Estoque',    stAll.empty > 0 ? 'empty' : '') +
       '</div>';
 
       // PDV 1
       html += '<div class="card" style="margin-bottom:16px;">' +
         '<div class="card-header" style="background:rgba(37,99,235,0.04);border-top:3px solid #2563eb;">' +
           '<span class="card-title" style="color:#2563eb;">🏪 PDV 1</span>' +
-          '<span style="font-size:12px;color:var(--text-muted);">' + st1.total + ' produtos' +
+          '<span style="font-size:12px;color:var(--text-muted);">' + st1.total + ' produtos · ' + st1.totalSold + ' unid. vendidas' +
             (st1.empty ? ' · <span style="color:#dc2626;font-weight:700;">' + st1.empty + ' sem estoque</span>' : '') +
             (st1.low   ? ' · <span style="color:#d97706;font-weight:700;">' + st1.low + ' baixo</span>' : '') +
           '</span>' +
         '</div>' +
-        '<div class="card-body" style="padding:0;"><div class="table-wrapper">' + stockTable(prods1, 1) + '</div></div>' +
+        '<div class="card-body" style="padding:0;"><div class="table-wrapper">' + stockTable(prods1, qtySold1) + '</div></div>' +
       '</div>';
 
       // PDV 2
       html += '<div class="card" style="margin-bottom:16px;">' +
         '<div class="card-header" style="background:rgba(5,150,105,0.04);border-top:3px solid #059669;">' +
           '<span class="card-title" style="color:#059669;">🏪 PDV 2</span>' +
-          '<span style="font-size:12px;color:var(--text-muted);">' + st2.total + ' produtos' +
+          '<span style="font-size:12px;color:var(--text-muted);">' + st2.total + ' produtos · ' + st2.totalSold + ' unid. vendidas' +
             (st2.empty ? ' · <span style="color:#dc2626;font-weight:700;">' + st2.empty + ' sem estoque</span>' : '') +
             (st2.low   ? ' · <span style="color:#d97706;font-weight:700;">' + st2.low + ' baixo</span>' : '') +
           '</span>' +
         '</div>' +
-        '<div class="card-body" style="padding:0;"><div class="table-wrapper">' + stockTable(prods2, 2) + '</div></div>' +
+        '<div class="card-body" style="padding:0;"><div class="table-wrapper">' + stockTable(prods2, qtySold2) + '</div></div>' +
       '</div>';
 
       el.innerHTML = html;
@@ -779,15 +845,32 @@
         html += '<p style="color:#8b92a9;text-align:center;padding:16px;">Nenhum pedido no período.</p>';
       }
 
-      // Tabela de estoque por PDV
-      function pdfStockTable(prods, title, headerColor) {
+      // Tabela de estoque por PDV com colunas inicial/vendida/atual
+      function pdfQtySold(orders) {
+        var map = {};
+        (orders || []).forEach(function(o) {
+          if (o.status === 'paid') {
+            (o.items || []).forEach(function(item) {
+              map[item.product_id] = (map[item.product_id] || 0) + item.quantity;
+            });
+          }
+        });
+        return map;
+      }
+
+      function pdfStockTable(prods, qtySold, title, headerColor) {
         if (!prods || !prods.length) return '';
         var sorted = prods.slice().sort(function(a, b) {
           var ra = a.stock === 0 ? 0 : (a.stock <= a.min_stock ? 1 : 2);
           var rb = b.stock === 0 ? 0 : (b.stock <= b.min_stock ? 1 : 2);
           return ra - rb || a.name.localeCompare(b.name);
         });
+        var totalSold = 0;
+        prods.forEach(function(p){ totalSold += (qtySold[p.id] || 0); });
+
         var rows = sorted.map(function(p) {
+          var sold    = qtySold[p.id] || 0;
+          var initial = p.stock + sold;
           var rowStyle = p.stock === 0 ? 'background:#fff0f0;' : (p.stock <= p.min_stock ? 'background:#fffbeb;' : '');
           var status = p.stock === 0
             ? '<span class="pdf-badge pdf-badge-refunded">Sem Estoque</span>'
@@ -798,6 +881,8 @@
             '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
             '<td style="color:#4a5068;">' + escHtml(p.category || '—') + '</td>' +
             '<td style="text-align:right;">R$ ' + formatMoney(p.price) + '</td>' +
+            '<td style="text-align:center;color:#4a5068;">' + initial + '</td>' +
+            '<td style="text-align:center;font-weight:700;color:' + (sold > 0 ? '#2563eb' : '#8b92a9') + ';">' + (sold > 0 ? sold : '—') + '</td>' +
             '<td style="text-align:center;font-weight:800;color:' + (p.stock === 0 ? '#dc2626' : p.stock <= p.min_stock ? '#d97706' : '#1a1d2e') + ';">' + p.stock + '</td>' +
             '<td style="text-align:center;color:#8b92a9;">' + p.min_stock + '</td>' +
             '<td style="text-align:center;">' + status + '</td>' +
@@ -807,19 +892,21 @@
         var emptyCount = prods.filter(function(p){ return p.stock === 0; }).length;
         var lowCount   = prods.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length;
 
-        return '<div style="font-size:12px;font-weight:700;color:' + headerColor + ';padding:6px 0 4px;margin-top:10px;">' + title + ' — ' + prods.length + ' produtos' +
+        return '<div style="font-size:12px;font-weight:700;color:' + headerColor + ';padding:6px 0 4px;margin-top:10px;">' + title + ' — ' + prods.length + ' produtos · ' + totalSold + ' unid. vendidas' +
           (emptyCount ? ' &nbsp;·&nbsp; <span style="color:#dc2626;">' + emptyCount + ' sem estoque</span>' : '') +
           (lowCount   ? ' &nbsp;·&nbsp; <span style="color:#d97706;">' + lowCount + ' estoque baixo</span>' : '') +
           '</div>' +
           '<table class="pdf-orders-table">' +
-          '<thead><tr><th>Produto</th><th>Categoria</th><th style="text-align:right;">Preço</th><th style="text-align:center;">Atual</th><th style="text-align:center;">Mínimo</th><th style="text-align:center;">Status</th></tr></thead>' +
+          '<thead><tr><th>Produto</th><th>Categoria</th><th style="text-align:right;">Preço</th><th style="text-align:center;">Est.Inicial</th><th style="text-align:center;">Vendido</th><th style="text-align:center;">Est.Atual</th><th style="text-align:center;">Mínimo</th><th style="text-align:center;">Status</th></tr></thead>' +
           '<tbody>' + rows + '</tbody></table>';
       }
 
       if ((prods1 && prods1.length) || (prods2 && prods2.length)) {
+        var qs1 = pdfQtySold(orders1);
+        var qs2 = pdfQtySold(orders2);
         html += '<div class="pdf-section-title" style="margin-top:12px;">Estoque de Produtos</div>';
-        html += pdfStockTable(prods1 || [], 'PDV 1', '#2563eb');
-        html += pdfStockTable(prods2 || [], 'PDV 2', '#059669');
+        html += pdfStockTable(prods1 || [], qs1, 'PDV 1', '#2563eb');
+        html += pdfStockTable(prods2 || [], qs2, 'PDV 2', '#059669');
       }
 
       html += '<div class="pdf-footer">' +
