@@ -45,6 +45,10 @@
           <span class="nav-icon"><img src="img/cantina.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;"></span>
           <span>Cantina</span>
         </a>
+        <a href="secretaria.html" class="nav-item" data-role="admin">
+          <span class="nav-icon"><img src="img/secretaria.png" alt="Secretaria" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Secretaria</span>
+        </a>
         <span class="nav-section-label">Gestão</span>
         <a href="teams.html" class="nav-item">
           <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
@@ -224,9 +228,11 @@
   <script src="js/app.js"></script>
   <script>
     if (!requireAuth()) { /* redirect handled by requireAuth */ }
-    if (typeof getUserRole === 'function' && getUserRole() === 'cantina') {
-      window.location.replace('cantina.html');
-    }
+    (function() {
+      var r = typeof getUserRole === 'function' ? getUserRole() : null;
+      if (r === 'cantina') window.location.replace('cantina.html');
+      else if (r === 'secretaria') window.location.replace('secretaria.html');
+    })();
 
     // Greeting dinâmico
     (function() {

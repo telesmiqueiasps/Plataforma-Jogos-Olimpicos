@@ -27,9 +27,10 @@ function getUserRole() {
   return localStorage.getItem('sp_role') || (getUser() || {}).role || 'organizer';
 }
 
-function isAdmin()     { return getUserRole() === 'admin'; }
-function isOrganizer() { var r = getUserRole(); return r === 'organizer' || r === 'admin'; }
-function isCantina()   { var r = getUserRole(); return r === 'cantina'   || r === 'admin'; }
+function isAdmin()       { return getUserRole() === 'admin'; }
+function isOrganizer()   { var r = getUserRole(); return r === 'organizer'  || r === 'admin'; }
+function isCantina()     { var r = getUserRole(); return r === 'cantina'    || r === 'admin'; }
+function isSecretaria()  { var r = getUserRole(); return r === 'secretaria' || r === 'admin'; }
 
 function requireAuth() {
   if (!isAuthenticated()) {
@@ -66,10 +67,22 @@ function requireAdminAccess() {
   return true;
 }
 
+function requireSecretariaAccess() {
+  if (!requireAuth()) return false;
+  if (!isSecretaria()) {
+    window.location.href = 'dashboard.html';
+    return false;
+  }
+  return true;
+}
+
 function redirectIfAuth() {
   if (!isAuthenticated()) return;
-  if (getUserRole() === 'cantina') {
+  var r = getUserRole();
+  if (r === 'cantina') {
     window.location.href = 'cantina-select.html';
+  } else if (r === 'secretaria') {
+    window.location.href = 'secretaria.html';
   } else {
     window.location.href = 'dashboard.html';
   }

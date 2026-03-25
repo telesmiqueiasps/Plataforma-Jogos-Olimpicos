@@ -20,7 +20,7 @@ from app.db.session import Base
 # Enums
 # ---------------------------------------------------------------------------
 
-UserRole = Enum("admin", "organizer", "cantina", name="user_role")
+UserRole = Enum("admin", "organizer", "cantina", "secretaria", name="user_role")
 
 SportSlug = Enum(
     "futsal",
@@ -582,3 +582,47 @@ class CantinCashFlow(Base):
     created_by     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at     = Column(DateTime(timezone=True), server_default=func.now())
     pdv_id         = Column(Integer, default=1, nullable=False)
+
+
+# ---------------------------------------------------------------------------
+# Credenciamento
+# ---------------------------------------------------------------------------
+
+class Credential(Base):
+    __tablename__ = "credentials"
+
+    id               = Column(Integer, primary_key=True)
+
+    # Dados pessoais
+    full_name        = Column(String(150), nullable=False)
+    birth_date       = Column(String(10), nullable=True)   # DD/MM/YYYY
+    cpf              = Column(String(14), unique=True, nullable=True)  # 000.000.000-00
+    phone            = Column(String(20), nullable=True)
+    city             = Column(String(100), nullable=True)
+
+    # Dados eclesiásticos
+    church           = Column(String(150), nullable=True)
+    pastor_name      = Column(String(150), nullable=True)
+    presbytery       = Column(String(150), nullable=True)
+
+    # Participação no evento
+    modalities       = Column(JSON, nullable=True)   # lista de modalidades
+    teams            = Column(JSON, nullable=True)   # lista de equipes/times
+
+    # Status da credencial
+    status           = Column(String(20), default="pending")  # pending, approved, rejected
+    rejection_reason = Column(String(300), nullable=True)
+    reviewed_by      = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at      = Column(DateTime(timezone=True), nullable=True)
+
+    # QR Code e checkin
+    qr_code          = Column(String(100), unique=True, nullable=True)
+    checked_in       = Column(Boolean, default=False)
+    checked_in_at    = Column(DateTime(timezone=True), nullable=True)
+    checked_in_by    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    wristband_type   = Column(String(20), nullable=True)  # visitante, atleta, col
+
+    created_at       = Column(DateTime(timezone=True), server_default=func.now())
+
+    reviewer     = relationship("User", foreign_keys=[reviewed_by])
+    checkin_user = relationship("User", foreign_keys=[checked_in_by])

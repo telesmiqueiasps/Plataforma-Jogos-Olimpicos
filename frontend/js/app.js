@@ -101,7 +101,7 @@ function loadUserInfo() {
   const roleEl = document.getElementById('user-role');
   const avatarEl = document.getElementById('user-avatar');
   if (nameEl) nameEl.textContent = user.name || user.email || 'Usuário';
-  const roleLabels = { admin: 'Administrador', organizer: 'Organizador', cantina: 'Cantina' };
+  const roleLabels = { admin: 'Administrador', organizer: 'Organizador', cantina: 'Cantina', secretaria: 'Secretaria' };
   if (roleEl) roleEl.textContent = roleLabels[user.role] || user.role || 'Usuário';
   if (avatarEl) avatarEl.textContent = (user.name || user.email || 'U')[0].toUpperCase();
   applySidebarRoles(user.role);
@@ -218,13 +218,17 @@ function sportIcon(slug, size = 20) {
 
 // --- Sidebar role filtering ---
 function applySidebarRoles(role) {
-  var gamesOnly = document.querySelectorAll('[data-role="games"]');
-  var cantinaOnly = document.querySelectorAll('[data-role="cantina"]');
+  var gamesOnly    = document.querySelectorAll('[data-role="games"]');
+  var cantinaOnly  = document.querySelectorAll('[data-role="cantina"]');
+  var adminOnly    = document.querySelectorAll('[data-role="admin"]');
   gamesOnly.forEach(function(el) {
-    el.style.display = (role === 'cantina') ? 'none' : '';
+    el.style.display = (role === 'cantina' || role === 'secretaria') ? 'none' : '';
   });
   cantinaOnly.forEach(function(el) {
-    el.style.display = (role === 'organizer') ? 'none' : '';
+    el.style.display = (role === 'organizer' || role === 'secretaria') ? 'none' : '';
+  });
+  adminOnly.forEach(function(el) {
+    el.style.display = (role === 'admin') ? '' : 'none';
   });
 }
 
