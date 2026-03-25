@@ -39,6 +39,10 @@
       <img src="img/logo.png" alt="Logo" onerror="this.style.display='none'">
       <h1>🏪 Cantina</h1>
       <p>Selecione o PDV para acessar</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <a href="cantina-consolidado.html" class="btn btn-secondary btn-sm" style="font-size:12px;min-width:165px;">📊 Consolidado</a>
+        <a href="cantina.html?pdv=1" class="btn btn-secondary btn-sm" style="font-size:12px;min-width:165px;">🏪 Ir para Cantina</a>
+      </div>
     </div>
 
     <div class="pdv-grid" id="pdv-grid">
@@ -46,7 +50,7 @@
     </div>
 
     <div class="logout-area">
-      <button onclick="doLogout()" class="btn btn-ghost btn-sm">Sair</button>
+      <button onclick="goToCantinaHome()" class="btn btn-ghost btn-sm">↩️ Voltar Cantina</button>
     </div>
   </div>
 
@@ -146,6 +150,10 @@
     function doLogout() {
       if (typeof logout === 'function') logout();
       else { localStorage.clear(); window.location.href = 'login.html'; }
+    }
+
+    function goToCantinaHome() {
+      window.location.href = 'cantina.html?pdv=1';
     }
   </script>
 </body>
