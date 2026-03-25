@@ -31,6 +31,7 @@ class CredentialRegister(BaseModel):
     city: Optional[str] = None
     church: Optional[str] = None
     pastor_name: Optional[str] = None
+    pastor_phone: Optional[str] = None
     presbytery: Optional[str] = None
     modalities: Optional[List[str]] = None
     teams: Optional[List[str]] = None
@@ -54,6 +55,7 @@ def _serialize(c: Credential) -> dict:
         "city": c.city,
         "church": c.church,
         "pastor_name": c.pastor_name,
+        "pastor_phone": c.pastor_phone,
         "presbytery": c.presbytery,
         "modalities": c.modalities or [],
         "teams": c.teams or [],
@@ -101,6 +103,7 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
         city=body.city,
         church=body.church,
         pastor_name=body.pastor_name,
+        pastor_phone=body.pastor_phone,
         presbytery=body.presbytery,
         modalities=body.modalities or [],
         teams=body.teams or [],

@@ -24,7 +24,7 @@
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Principal</span>
-        <a href="dashboard.html" class="nav-item"><span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span><span>Dashboard</span></a>
+        <a href="dashboard.html" class="nav-item" data-role="games"><span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span><span>Dashboard</span></a>
         <a href="championships.html" class="nav-item" data-role="games"><span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span><span>Campeonatos</span></a>
         <a href="games.html" class="nav-item" data-role="games"><span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span><span>Jogos</span></a>
         <a href="reports.html" class="nav-item" data-role="games">
@@ -35,9 +35,13 @@
           <span class="nav-icon"><img src="img/cantina.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;"></span>
           <span>Cantina</span>
         </a>
+        <a href="secretaria.html" class="nav-item" data-role="secretaria">
+          <span class="nav-icon"><img src="img/secretaria.png" alt="Secretaria" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Secretaria</span>
+        </a>
         <span class="nav-section-label">Gestão</span>
-        <a href="teams.html" class="nav-item"><span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span><span>Equipes</span></a>
-        <a href="athletes.html" class="nav-item active"><span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span><span>Atletas</span></a>
+        <a href="teams.html" class="nav-item" data-role="games"><span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span><span>Equipes</span></a>
+        <a href="athletes.html" class="nav-item active" data-role="games"><span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span><span>Atletas</span></a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -247,6 +251,7 @@
   <script src="js/app.js"></script>
   <script>
     if (!requireAuth()) {}
+    if (getUserRole() === 'secretaria') window.location.href = 'secretaria.html';
 
     // Função para escapar HTML e evitar XSS
     function escHtml(str) {

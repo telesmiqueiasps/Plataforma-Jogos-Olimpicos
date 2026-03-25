@@ -42,6 +42,11 @@ function requireAuth() {
 
 function requireOrganizerAccess() {
   if (!requireAuth()) return false;
+  var r = getUserRole();
+  if (r === 'secretaria') {
+    window.location.href = 'secretaria.html';
+    return false;
+  }
   if (!isOrganizer()) {
     window.location.href = 'cantina.html';
     return false;

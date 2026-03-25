@@ -218,9 +218,10 @@ function sportIcon(slug, size = 20) {
 
 // --- Sidebar role filtering ---
 function applySidebarRoles(role) {
-  var gamesOnly    = document.querySelectorAll('[data-role="games"]');
-  var cantinaOnly  = document.querySelectorAll('[data-role="cantina"]');
-  var adminOnly    = document.querySelectorAll('[data-role="admin"]');
+  var gamesOnly      = document.querySelectorAll('[data-role="games"]');
+  var cantinaOnly    = document.querySelectorAll('[data-role="cantina"]');
+  var adminOnly      = document.querySelectorAll('[data-role="admin"]');
+  var secretariaOnly = document.querySelectorAll('[data-role="secretaria"]');
   gamesOnly.forEach(function(el) {
     el.style.display = (role === 'cantina' || role === 'secretaria') ? 'none' : '';
   });
@@ -229,6 +230,9 @@ function applySidebarRoles(role) {
   });
   adminOnly.forEach(function(el) {
     el.style.display = (role === 'admin') ? '' : 'none';
+  });
+  secretariaOnly.forEach(function(el) {
+    el.style.display = (role === 'secretaria' || role === 'admin') ? '' : 'none';
   });
 }
 

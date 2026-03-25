@@ -603,6 +603,7 @@ class Credential(Base):
     # Dados eclesiásticos
     church           = Column(String(150), nullable=True)
     pastor_name      = Column(String(150), nullable=True)
+    pastor_phone     = Column(String(20),  nullable=True)
     presbytery       = Column(String(150), nullable=True)
 
     # Participação no evento
