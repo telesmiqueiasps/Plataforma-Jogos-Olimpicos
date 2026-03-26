@@ -3,8 +3,9 @@ services/email_service.py
 =========================
 Envio de email transacional via Brevo (Sendinblue).
 """
+import base64
+import io
 import logging
-import urllib.parse
 
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
@@ -38,11 +39,26 @@ _CSS_BASE = """
 """
 
 
-def get_qr_url(qr_code_value: str) -> str:
-    """Gera URL de QR Code via Google Charts API."""
+def generate_qr_base64(qr_code_value: str) -> str:
+    """Gera QR Code como imagem base64 embutida."""
+    import qrcode
+
     checkin_url = f"https://jogossinodal.netlify.app/secretaria.html?qr={qr_code_value}"
-    encoded = urllib.parse.quote(checkin_url)
-    return f"https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={encoded}&choe=UTF-8"
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=4,
+    )
+    qr.add_data(checkin_url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
 def _brevo_send(to_email: str, to_name: str, subject: str, html_content: str) -> bool:
@@ -112,7 +128,7 @@ def send_credential_email(credential) -> bool:
     </div>
     <div class="footer">
       <p>Este email foi enviado automaticamente. Por favor não responda.</p>
-      <p>Jogos Sinodal PB — Organização de Eventos</p>
+      <p>Jogos Sinodal PB — Organização</p>
     </div>
   </div>
 </body>
@@ -121,7 +137,7 @@ def send_credential_email(credential) -> bool:
         result = _brevo_send(
             credential.email,
             credential.full_name,
-            "✅ Credencial recebida — Aguardando validação",
+            "🏆 Jogos Sinodal PB - Sua credencial foi recebida!",
             html_content,
         )
         logger.info(f"Email de cadastro enviado com sucesso para: {credential.email}")
@@ -147,8 +163,7 @@ def send_approval_email(credential) -> bool:
         return False
 
     try:
-        qr_url = get_qr_url(credential.qr_code)
-        checkin_link = f"https://jogossinodal.netlify.app/secretaria.html?qr={credential.qr_code}"
+        qr_b64 = generate_qr_base64(credential.qr_code)
         modalities_text = ", ".join(credential.modalities) if credential.modalities else "Não informado"
 
         html_content = f"""<!DOCTYPE html>
@@ -171,25 +186,23 @@ def send_approval_email(credential) -> bool:
         <div class="info-row"><span class="info-label">Modalidades:</span><span class="info-value">{modalities_text}</span></div>
       </div>
 
-      <div class="qr-section">
-        <h3>🎫 Seu QR Code de Entrada</h3>
-        <img src="{qr_url}" width="220" height="220" alt="QR Code de entrada">
-        <p style="color:#14532d; font-weight:bold; margin-top:14px;">
+      <div style="text-align:center;padding:24px;background:#f0fdf4;border-radius:8px;margin:20px 0;">
+        <h3 style="color:#065f46;margin-bottom:16px;">🎫 Seu QR Code de Entrada</h3>
+        <img src="data:image/png;base64,{qr_b64}"
+             width="220" height="220"
+             alt="QR Code de Entrada"
+             style="display:block;margin:0 auto;border:4px solid #059669;border-radius:8px;padding:8px;background:white;">
+        <p style="color:#065f46;margin-top:12px;font-weight:bold;">
           Apresente este QR Code na entrada do evento
         </p>
-        <p class="qr-link">
-          Ou acesse diretamente:<br>
-          <a href="{checkin_link}" style="color:#16a34a;">{checkin_link}</a>
+        <p style="color:#6b7280;font-size:13px;">
+          Salve este email! Você precisará do QR Code no dia do evento.
         </p>
-      </div>
-
-      <div class="notice" style="background:#fef3c7; border-color:#f59e0b; color:#92400e;">
-        ⚠️ <strong>Salve este email!</strong> Você precisará do QR Code no dia do evento.
       </div>
     </div>
     <div class="footer">
       <p>Este email foi enviado automaticamente. Por favor não responda.</p>
-      <p>Jogos Sinodal PB — Organização de Eventos</p>
+      <p>Jogos Sinodal PB — Organização</p>
     </div>
   </div>
 </body>
@@ -198,7 +211,7 @@ def send_approval_email(credential) -> bool:
         result = _brevo_send(
             credential.email,
             credential.full_name,
-            "🎉 Credencial Aprovada — Jogos Sinodais",
+            "🏆 Jogos Sinodal PB - Credencial aprovada!🎉",
             html_content,
         )
         logger.info(f"Email de aprovação enviado com sucesso para: {credential.email}")
@@ -251,7 +264,7 @@ def send_rejection_email(credential) -> bool:
     </div>
     <div class="footer">
       <p>Este email foi enviado automaticamente. Por favor não responda.</p>
-      <p>Jogos Sinodal PB — Organização de Eventos</p>
+      <p>Jogos Sinodal PB — Organização</p>
     </div>
   </div>
 </body>
@@ -260,7 +273,7 @@ def send_rejection_email(credential) -> bool:
         result = _brevo_send(
             credential.email,
             credential.full_name,
-            "❌ Credencial não aprovada — Jogos Sinodais",
+            "🏆 Jogos Sinodal PB - Credencial rejeitada!❌",
             html_content,
         )
         logger.info(f"Email de rejeição enviado com sucesso para: {credential.email}")
