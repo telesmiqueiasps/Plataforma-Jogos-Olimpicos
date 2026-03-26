@@ -615,6 +615,7 @@ class Credential(Base):
     # Participação no evento
     modalities       = Column(JSON, nullable=True)   # lista de modalidades
     teams            = Column(JSON, nullable=True)   # lista de equipes/times
+    participation_type = Column(String(20), nullable=True)  # atleta, visitante, col
 
     # Status da credencial
     status           = Column(String(20), default="pending")  # pending, approved, rejected

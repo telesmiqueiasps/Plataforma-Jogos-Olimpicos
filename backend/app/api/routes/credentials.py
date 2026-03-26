@@ -41,6 +41,7 @@ class CredentialRegister(BaseModel):
     presbytery: Optional[str] = None
     modalities: Optional[List[str]] = None
     teams: Optional[List[str]] = None
+    participation_type: Optional[str] = None
     guardian_name: Optional[str] = None
     guardian_phone: Optional[str] = None
 
@@ -75,6 +76,7 @@ def _serialize(c: Credential) -> dict:
         "is_minor": c.is_minor or False,
         "modalities": c.modalities or [],
         "teams": c.teams or [],
+        "participation_type": c.participation_type,
         "status": c.status,
         "rejection_reason": c.rejection_reason,
         "reviewed_by": c.reviewed_by,
@@ -147,6 +149,7 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
         is_minor=is_minor,
         modalities=body.modalities or [],
         teams=body.teams or [],
+        participation_type=body.participation_type,
         status="pending",
         qr_code=qr,
         checked_in=False,
