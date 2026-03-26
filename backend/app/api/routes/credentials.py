@@ -41,10 +41,16 @@ class CredentialRegister(BaseModel):
     presbytery: Optional[str] = None
     modalities: Optional[List[str]] = None
     teams: Optional[List[str]] = None
+    guardian_name: Optional[str] = None
+    guardian_phone: Optional[str] = None
 
 
 class RejectRequest(BaseModel):
     reason: str
+
+
+class ApprovalRequest(BaseModel):
+    approved: bool
 
 
 class CheckinRequest(BaseModel):
@@ -57,12 +63,16 @@ def _serialize(c: Credential) -> dict:
         "full_name": c.full_name,
         "birth_date": c.birth_date,
         "cpf": c.cpf,
+        "email": c.email,
         "phone": c.phone,
         "city": c.city,
         "church": c.church,
         "pastor_name": c.pastor_name,
         "pastor_phone": c.pastor_phone,
         "presbytery": c.presbytery,
+        "guardian_name": c.guardian_name,
+        "guardian_phone": c.guardian_phone,
+        "is_minor": c.is_minor or False,
         "modalities": c.modalities or [],
         "teams": c.teams or [],
         "status": c.status,
@@ -70,6 +80,12 @@ def _serialize(c: Credential) -> dict:
         "reviewed_by": c.reviewed_by,
         "reviewed_at": c.reviewed_at.isoformat() if c.reviewed_at else None,
         "reviewed_by_name": c.reviewer.name if c.reviewer else None,
+        "pastor_approved": c.pastor_approved or False,
+        "pastor_approved_at": c.pastor_approved_at.isoformat() if c.pastor_approved_at else None,
+        "pastor_approved_by_name": c.pastor_approver.name if c.pastor_approver else None,
+        "guardian_approved": c.guardian_approved or False,
+        "guardian_approved_at": c.guardian_approved_at.isoformat() if c.guardian_approved_at else None,
+        "guardian_approved_by_name": c.guardian_approver.name if c.guardian_approver else None,
         "qr_code": c.qr_code,
         "checked_in": c.checked_in,
         "checked_in_at": c.checked_in_at.isoformat() if c.checked_in_at else None,
@@ -101,6 +117,20 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
     while db.query(Credential).filter(Credential.qr_code == qr).first():
         qr = secrets.token_urlsafe(16)
 
+    # Calcular se é menor de 18 anos
+    is_minor = False
+    if body.birth_date:
+        try:
+            parts = body.birth_date.split("/")
+            if len(parts) == 3:
+                from datetime import date
+                birth = date(int(parts[2]), int(parts[1]), int(parts[0]))
+                today = date.today()
+                age = today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
+                is_minor = age < 18
+        except Exception:
+            pass
+
     cred = Credential(
         full_name=body.full_name.strip(),
         birth_date=body.birth_date,
@@ -112,6 +142,9 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
         pastor_name=body.pastor_name,
         pastor_phone=body.pastor_phone,
         presbytery=body.presbytery,
+        guardian_name=body.guardian_name.strip() if body.guardian_name else None,
+        guardian_phone=body.guardian_phone,
+        is_minor=is_minor,
         modalities=body.modalities or [],
         teams=body.teams or [],
         status="pending",
@@ -316,6 +349,44 @@ def revert_credential(
     cred.reviewed_by = None
     cred.reviewed_at = None
     cred.rejection_reason = None
+    db.commit()
+    db.refresh(cred)
+    return _serialize(cred)
+
+
+@router.put("/{cred_id}/pastor-approve")
+def pastor_approve_credential(
+    cred_id: int,
+    body: ApprovalRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_secretaria),
+):
+    cred = db.query(Credential).filter(Credential.id == cred_id).first()
+    if not cred:
+        raise HTTPException(status_code=404, detail="Credencial não encontrada")
+    cred.pastor_approved = body.approved
+    cred.pastor_approved_at = datetime.now(timezone.utc) if body.approved else None
+    cred.pastor_approved_by = current_user.id if body.approved else None
+    db.commit()
+    db.refresh(cred)
+    return _serialize(cred)
+
+
+@router.put("/{cred_id}/guardian-approve")
+def guardian_approve_credential(
+    cred_id: int,
+    body: ApprovalRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_secretaria),
+):
+    cred = db.query(Credential).filter(Credential.id == cred_id).first()
+    if not cred:
+        raise HTTPException(status_code=404, detail="Credencial não encontrada")
+    if not cred.is_minor:
+        raise HTTPException(status_code=400, detail="Aprovação de responsável só se aplica a menores de idade")
+    cred.guardian_approved = body.approved
+    cred.guardian_approved_at = datetime.now(timezone.utc) if body.approved else None
+    cred.guardian_approved_by = current_user.id if body.approved else None
     db.commit()
     db.refresh(cred)
     return _serialize(cred)

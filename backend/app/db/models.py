@@ -607,6 +607,11 @@ class Credential(Base):
     pastor_phone     = Column(String(20),  nullable=True)
     presbytery       = Column(String(150), nullable=True)
 
+    # Responsável (para menores de 18 anos)
+    guardian_name    = Column(String(150), nullable=True)
+    guardian_phone   = Column(String(20),  nullable=True)
+    is_minor         = Column(Boolean, default=False)
+
     # Participação no evento
     modalities       = Column(JSON, nullable=True)   # lista de modalidades
     teams            = Column(JSON, nullable=True)   # lista de equipes/times
@@ -624,7 +629,17 @@ class Credential(Base):
     checked_in_by    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     wristband_type   = Column(String(20), nullable=True)  # visitante, atleta, col
 
+    # Aprovações
+    pastor_approved      = Column(Boolean, default=False)
+    pastor_approved_at   = Column(DateTime(timezone=True), nullable=True)
+    pastor_approved_by   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    guardian_approved    = Column(Boolean, default=False)
+    guardian_approved_at = Column(DateTime(timezone=True), nullable=True)
+    guardian_approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
     created_at       = Column(DateTime(timezone=True), server_default=func.now())
 
-    reviewer     = relationship("User", foreign_keys=[reviewed_by])
-    checkin_user = relationship("User", foreign_keys=[checked_in_by])
+    reviewer          = relationship("User", foreign_keys=[reviewed_by])
+    checkin_user      = relationship("User", foreign_keys=[checked_in_by])
+    pastor_approver   = relationship("User", foreign_keys=[pastor_approved_by])
+    guardian_approver = relationship("User", foreign_keys=[guardian_approved_by])

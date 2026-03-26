@@ -148,7 +148,7 @@ def send_approval_email(credential) -> bool:
         return False
 
     try:
-        qr_img_url, checkin_url = get_qr_image_url(credential.qr_code)
+        qr_img_url, _ = get_qr_image_url(credential.qr_code)
         modalities_text = ", ".join(credential.modalities) if credential.modalities else "Não informado"
 
         html_content = f"""<!DOCTYPE html>
@@ -173,22 +173,16 @@ def send_approval_email(credential) -> bool:
 
       <div style="text-align:center;padding:24px;background:#f0fdf4;border-radius:8px;margin:20px 0;border:1px solid #bbf7d0;">
         <h3 style="color:#065f46;margin:0 0 16px;">🎫 Seu QR Code de Entrada</h3>
-        <a href="{checkin_url}" style="display:inline-block;">
-          <img src="{qr_img_url}"
-               width="220" height="220"
-               alt="QR Code de Entrada"
-               style="display:block;border:4px solid #059669;border-radius:8px;padding:8px;background:white;">
-        </a>
+        <img src="{qr_img_url}"
+             width="220" height="220"
+             alt="QR Code de Entrada"
+             style="display:block;margin:0 auto;border:4px solid #059669;border-radius:8px;padding:8px;background:white;">
         <p style="color:#065f46;margin:12px 0 4px;font-weight:bold;font-size:15px;">
           Apresente este QR Code na entrada do evento
         </p>
-        <p style="color:#6b7280;font-size:13px;margin:4px 0 12px;">
-          Se a imagem não carregar, clique no link abaixo:
+        <p style="color:#6b7280;font-size:13px;margin:4px 0 0;">
+          Salve este email! Você precisará do QR Code no dia do evento.
         </p>
-        <a href="{checkin_url}"
-           style="display:inline-block;background:#059669;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;">
-          🔗 Acessar minha credencial
-        </a>
       </div>
     </div>
     <div class="footer">
