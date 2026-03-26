@@ -5,12 +5,15 @@ Envio de email transacional via Brevo (Sendinblue).
 """
 import io
 import base64
+import logging
 
 import qrcode
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def generate_qr_base64(qr_code_value: str) -> str:
@@ -30,6 +33,10 @@ def send_credential_email(credential) -> bool:
     Envia email de confirmação de credencial com QR Code embutido.
     Retorna True se enviado com sucesso, False se falhou ou se faltar email/API key.
     """
+    logger.info(f"Iniciando envio de email para: {credential.email}")
+    logger.info(f"BREVO_API_KEY configurada: {bool(settings.BREVO_API_KEY)}")
+    logger.info(f"EMAIL_FROM: {settings.EMAIL_FROM}")
+
     if not credential.email or not settings.BREVO_API_KEY:
         return False
 
@@ -144,11 +151,12 @@ def send_credential_email(credential) -> bool:
         )
 
         api_instance.send_transac_email(send_smtp_email)
+        logger.info(f"Email enviado com sucesso para: {credential.email}")
         return True
 
     except ApiException as e:
-        print(f"Erro ao enviar email Brevo: {e}")
+        logger.error(f"Erro ApiException Brevo: {e}")
         return False
     except Exception as e:
-        print(f"Erro geral no envio de email: {e}")
+        logger.error(f"Erro geral email: {e}")
         return False

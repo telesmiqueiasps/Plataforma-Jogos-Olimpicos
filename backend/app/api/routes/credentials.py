@@ -3,10 +3,13 @@ routes/credentials.py
 =====================
 Módulo de credenciamento: registro público, validação e checkin.
 """
+import logging
 import secrets
 import threading
 from datetime import datetime, timezone
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -123,12 +126,19 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
     cred_id = cred.id
 
     def send_email_bg(credential_id: int):
+        logger.info(f"Thread de email iniciada para credencial ID: {credential_id}")
         from app.db.session import SessionLocal
         db_bg = SessionLocal()
         try:
             c = db_bg.query(Credential).filter(Credential.id == credential_id).first()
             if c:
-                email_service.send_credential_email(c)
+                logger.info(f"Credencial encontrada, email: {c.email}")
+                result = email_service.send_credential_email(c)
+                logger.info(f"Resultado do envio de email: {result}")
+            else:
+                logger.error(f"Credencial ID {credential_id} não encontrada na thread")
+        except Exception as e:
+            logger.error(f"Erro na thread de email: {e}")
         finally:
             db_bg.close()
 
