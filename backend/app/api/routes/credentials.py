@@ -129,9 +129,10 @@ def check_cpf(cpf: str, db: Session = Depends(get_db)):
 @router.get("/qr/{qr_code}")
 def get_by_qr(qr_code: str, db: Session = Depends(get_db)):
     """Busca credencial pelo QR code para checkin via câmera."""
-    cred = db.query(Credential).filter(Credential.qr_code == qr_code).first()
+    qr_clean = qr_code.strip()
+    cred = db.query(Credential).filter(Credential.qr_code == qr_clean).first()
     if not cred:
-        raise HTTPException(status_code=404, detail="QR Code não encontrado")
+        raise HTTPException(status_code=404, detail="Credencial não encontrada para o QR Code informado")
     return _serialize(cred)
 
 
