@@ -15,11 +15,16 @@ async function apiFetch(path, options = {}) {
     throw new Error('Sem conexão com o servidor. Verifique sua internet.');
   }
 
-  if (res.status === 401) {
+  if (res.status === 401 && !path.includes('/auth/login')) {
     localStorage.removeItem('sp_token');
     localStorage.removeItem('sp_user');
+    localStorage.removeItem('sp_role');
+    localStorage.removeItem('sp_user_name');
     if (!window.location.pathname.endsWith('login.html')) {
-      window.location.href = 'login.html';
+      if (typeof showToast === 'function') {
+        showToast('Sessão expirada. Redirecionando para login...', 'warning', 3000);
+      }
+      setTimeout(() => { window.location.href = 'login.html'; }, 2000);
     }
     throw new Error('Sessão expirada. Faça login novamente.');
   }

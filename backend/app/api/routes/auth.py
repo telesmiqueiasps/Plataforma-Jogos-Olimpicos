@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -26,5 +28,9 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
             detail="Credenciais inválidas",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = create_access_token(data={"sub": str(user.id)})
+    expire_minutes = 720 if user.role in ("secretaria", "cantina") else None
+    token = create_access_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(minutes=expire_minutes) if expire_minutes else None,
+    )
     return {"access_token": token, "token_type": "bearer"}

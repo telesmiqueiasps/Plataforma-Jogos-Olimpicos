@@ -234,6 +234,29 @@ def approve_credential(
     cred.rejection_reason = None
     db.commit()
     db.refresh(cred)
+
+    cred_id = cred.id
+
+    def _send_approval_bg(credential_id: int):
+        logger.info(f"Thread de email de aprovação iniciada para credencial ID: {credential_id}")
+        from app.db.session import SessionLocal
+        db_bg = SessionLocal()
+        try:
+            c = db_bg.query(Credential).filter(Credential.id == credential_id).first()
+            if c:
+                result = email_service.send_approval_email(c)
+                logger.info(f"Resultado email aprovação: {result}")
+            else:
+                logger.error(f"Credencial ID {credential_id} não encontrada na thread de aprovação")
+        except Exception as e:
+            logger.error(f"Erro na thread de email de aprovação: {e}")
+        finally:
+            db_bg.close()
+
+    t = threading.Thread(target=_send_approval_bg, args=(cred_id,))
+    t.daemon = True
+    t.start()
+
     return _serialize(cred)
 
 
@@ -253,6 +276,29 @@ def reject_credential(
     cred.rejection_reason = body.reason
     db.commit()
     db.refresh(cred)
+
+    cred_id = cred.id
+
+    def _send_rejection_bg(credential_id: int):
+        logger.info(f"Thread de email de rejeição iniciada para credencial ID: {credential_id}")
+        from app.db.session import SessionLocal
+        db_bg = SessionLocal()
+        try:
+            c = db_bg.query(Credential).filter(Credential.id == credential_id).first()
+            if c:
+                result = email_service.send_rejection_email(c)
+                logger.info(f"Resultado email rejeição: {result}")
+            else:
+                logger.error(f"Credencial ID {credential_id} não encontrada na thread de rejeição")
+        except Exception as e:
+            logger.error(f"Erro na thread de email de rejeição: {e}")
+        finally:
+            db_bg.close()
+
+    t = threading.Thread(target=_send_rejection_bg, args=(cred_id,))
+    t.daemon = True
+    t.start()
+
     return _serialize(cred)
 
 
