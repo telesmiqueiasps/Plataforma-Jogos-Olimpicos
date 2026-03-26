@@ -14,5 +14,3 @@ pytest==8.2.0
 pytest-asyncio==0.23.7
 bcrypt==4.0.1
 sib-api-v3-sdk==7.6.0
-qrcode[pil]==7.4.2
-Pillow==10.3.0
