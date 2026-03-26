@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # Exemplo: https://sports.netlify.app,http://localhost:3000
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:5500"
 
+    # Brevo (Sendinblue) — envio de email transacional
+    BREVO_API_KEY: str = ""
+    EMAIL_FROM: str = "noreply@jogossinodal.com.br"
+    EMAIL_FROM_NAME: str = "Jogos Sinodais"
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]

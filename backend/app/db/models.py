@@ -597,6 +597,7 @@ class Credential(Base):
     full_name        = Column(String(150), nullable=False)
     birth_date       = Column(String(10), nullable=True)   # DD/MM/YYYY
     cpf              = Column(String(14), unique=True, nullable=True)  # 000.000.000-00
+    email            = Column(String(200), nullable=True)
     phone            = Column(String(20), nullable=True)
     city             = Column(String(100), nullable=True)
 

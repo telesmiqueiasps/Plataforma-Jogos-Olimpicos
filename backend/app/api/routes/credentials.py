@@ -4,6 +4,7 @@ routes/credentials.py
 Módulo de credenciamento: registro público, validação e checkin.
 """
 import secrets
+import threading
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_secretaria
 from app.db.models import Credential, User
 from app.db.session import get_db
+from app.services import email_service
 
 router = APIRouter(prefix="/credentials", tags=["Credenciais"])
 
@@ -27,6 +29,7 @@ class CredentialRegister(BaseModel):
     full_name: str
     birth_date: Optional[str] = None
     cpf: Optional[str] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     city: Optional[str] = None
     church: Optional[str] = None
@@ -99,6 +102,7 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
         full_name=body.full_name.strip(),
         birth_date=body.birth_date,
         cpf=body.cpf.strip() if body.cpf else None,
+        email=body.email.strip() if body.email else None,
         phone=body.phone,
         city=body.city,
         church=body.church,
@@ -114,7 +118,25 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
     db.add(cred)
     db.commit()
     db.refresh(cred)
-    return {"id": cred.id, "full_name": cred.full_name, "status": cred.status, "qr_code": cred.qr_code}
+
+    # Enviar email de confirmação em background para não atrasar a resposta
+    cred_id = cred.id
+
+    def send_email_bg(credential_id: int):
+        from app.db.session import SessionLocal
+        db_bg = SessionLocal()
+        try:
+            c = db_bg.query(Credential).filter(Credential.id == credential_id).first()
+            if c:
+                email_service.send_credential_email(c)
+        finally:
+            db_bg.close()
+
+    thread = threading.Thread(target=send_email_bg, args=(cred_id,))
+    thread.daemon = True
+    thread.start()
+
+    return {"id": cred.id, "full_name": cred.full_name, "status": cred.status, "qr_code": cred.qr_code, "email": cred.email}
 
 
 @router.get("/check/{cpf}")
