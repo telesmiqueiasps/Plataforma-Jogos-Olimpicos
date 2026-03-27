@@ -640,7 +640,38 @@ class Credential(Base):
 
     created_at       = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Pagamento (via webhook e-inscrições / Pluga)
+    payment_verified    = Column(Boolean, default=False)
+    payment_modalities  = Column(JSON, nullable=True)   # slugs das modalidades pagas
+    payment_mismatch    = Column(Boolean, default=False)
+
     reviewer          = relationship("User", foreign_keys=[reviewed_by])
     checkin_user      = relationship("User", foreign_keys=[checked_in_by])
     pastor_approver   = relationship("User", foreign_keys=[pastor_approved_by])
     guardian_approver = relationship("User", foreign_keys=[guardian_approved_by])
+
+
+# ---------------------------------------------------------------------------
+# RegistrationPayment  (pagamentos via webhook Pluga / e-inscrições)
+# ---------------------------------------------------------------------------
+
+class RegistrationPayment(Base):
+    __tablename__ = "registration_payments"
+
+    id            = Column(Integer, primary_key=True)
+    cpf           = Column(String(14), nullable=True, index=True)
+    full_name     = Column(String(150), nullable=True)
+    email         = Column(String(200), nullable=True)
+    phone         = Column(String(20), nullable=True)
+    ticket_name   = Column(String(200), nullable=True)
+    modality_slug = Column(String(50), nullable=True)
+    amount_paid   = Column(Numeric(10, 2), nullable=True)
+    order_id      = Column(String(100), nullable=True)
+    order_status  = Column(String(50), nullable=True)
+    raw_data      = Column(JSON, nullable=True)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_registration_payments_cpf",   "cpf"),
+        Index("ix_registration_payments_email", "email"),
+    )

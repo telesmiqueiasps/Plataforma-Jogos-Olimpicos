@@ -17,7 +17,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_secretaria
-from app.db.models import Credential, User
+from app.db.models import Credential, RegistrationPayment, User
 from app.db.session import get_db
 from app.services import email_service
 
@@ -95,6 +95,9 @@ def _serialize(c: Credential) -> dict:
         "checked_in_by_name": c.checkin_user.name if c.checkin_user else None,
         "wristband_type": c.wristband_type,
         "created_at": c.created_at.isoformat() if c.created_at else None,
+        "payment_verified": c.payment_verified or False,
+        "payment_modalities": c.payment_modalities or [],
+        "payment_mismatch": c.payment_mismatch or False,
     }
 
 
@@ -187,11 +190,25 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
 
 @router.get("/check/{cpf}")
 def check_cpf(cpf: str, db: Session = Depends(get_db)):
-    """Verifica se CPF já tem credencial — sem dados sensíveis."""
-    cred = db.query(Credential).filter(Credential.cpf == cpf.strip()).first()
+    """Verifica se CPF já tem credencial e busca pagamentos associados."""
+    cpf_clean = cpf.strip()
+    cred = db.query(Credential).filter(Credential.cpf == cpf_clean).first()
+
+    payments = db.query(RegistrationPayment).filter(RegistrationPayment.cpf == cpf_clean).all()
+    payment_info = {
+        "payment_found": len(payments) > 0,
+        "paid_modalities": list(set(p.modality_slug for p in payments if p.modality_slug and p.modality_slug != "outro")),
+        "tickets": [p.ticket_name for p in payments if p.ticket_name],
+    }
+
     if not cred:
-        return {"exists": False}
-    return {"exists": True, "status": cred.status, "full_name": cred.full_name}
+        return {"exists": False, "payment_info": payment_info}
+    return {
+        "exists": True,
+        "status": cred.status,
+        "full_name": cred.full_name,
+        "payment_info": payment_info,
+    }
 
 
 @router.get("/qr/{qr_code}")
