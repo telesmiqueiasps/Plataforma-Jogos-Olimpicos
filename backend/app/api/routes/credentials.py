@@ -117,6 +117,15 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
                 detail=f"CPF já cadastrado com status: {existing.status}",
             )
 
+    if body.email:
+        email_norm = body.email.strip()
+        existing_email = db.query(Credential).filter(Credential.email == email_norm).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este email já possui uma credencial cadastrada.",
+            )
+
     qr = secrets.token_urlsafe(16)
     # Garantir unicidade do QR code (extremamente improvável de colidir, mas seguro)
     while db.query(Credential).filter(Credential.qr_code == qr).first():
@@ -209,6 +218,15 @@ def check_cpf(cpf: str, db: Session = Depends(get_db)):
         "full_name": cred.full_name,
         "payment_info": payment_info,
     }
+
+
+@router.get("/check-email/{email}")
+def check_email(email: str, db: Session = Depends(get_db)):
+    """Verifica se email já tem credencial cadastrada — endpoint público."""
+    cred = db.query(Credential).filter(Credential.email == email.strip()).first()
+    if not cred:
+        return {"exists": False, "status": None}
+    return {"exists": True, "status": cred.status}
 
 
 @router.get("/qr/{qr_code}")

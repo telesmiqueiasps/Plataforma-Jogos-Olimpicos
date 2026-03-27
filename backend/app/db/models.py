@@ -597,7 +597,7 @@ class Credential(Base):
     full_name        = Column(String(150), nullable=False)
     birth_date       = Column(String(10), nullable=True)   # DD/MM/YYYY
     cpf              = Column(String(14), unique=True, nullable=True)  # 000.000.000-00
-    email            = Column(String(200), nullable=True)
+    email            = Column(String(200), nullable=True, unique=True, index=True)
     phone            = Column(String(20), nullable=True)
     city             = Column(String(100), nullable=True)
 
@@ -658,18 +658,24 @@ class Credential(Base):
 class RegistrationPayment(Base):
     __tablename__ = "registration_payments"
 
-    id            = Column(Integer, primary_key=True)
-    cpf           = Column(String(14), nullable=True, index=True)
-    full_name     = Column(String(150), nullable=True)
-    email         = Column(String(200), nullable=True)
-    phone         = Column(String(20), nullable=True)
-    ticket_name   = Column(String(200), nullable=True)
-    modality_slug = Column(String(50), nullable=True)
-    amount_paid   = Column(Numeric(10, 2), nullable=True)
-    order_id      = Column(String(100), nullable=True)
-    order_status  = Column(String(50), nullable=True)
-    raw_data      = Column(JSON, nullable=True)
-    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+    id               = Column(Integer, primary_key=True)
+    cpf              = Column(String(14), nullable=True, index=True)
+    full_name        = Column(String(150), nullable=True)
+    email            = Column(String(200), nullable=True)
+    phone            = Column(String(20), nullable=True)
+    ticket_name      = Column(String(200), nullable=True)
+    ticket_number    = Column(String(50), nullable=True)
+    modality_slug    = Column(String(50), nullable=True)
+    amount_paid      = Column(Numeric(10, 2), nullable=True)
+    order_id         = Column(String(100), nullable=True)
+    order_status     = Column(String(50), nullable=True)
+    church           = Column(String(150), nullable=True)
+    pastor_name      = Column(String(150), nullable=True)
+    pastor_phone     = Column(String(20), nullable=True)
+    presbytery       = Column(String(150), nullable=True)
+    participation_type = Column(String(20), nullable=True)
+    raw_data         = Column(JSON, nullable=True)
+    created_at       = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         Index("ix_registration_payments_cpf",   "cpf"),
