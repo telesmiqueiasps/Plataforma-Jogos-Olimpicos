@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Credential, RegistrationPayment
 from app.db.session import get_db
+from app.api.routes.credentials import recalculate_payment_mismatch
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,7 @@ async def receive_einscricoes_payment(
         ticket_name=ticket_name,
         ticket_number=ticket_number or None,
         modality_slug=modality_slug,
+        modalities=modalities if modalities else None,
         amount_paid=amount,
         order_id=order_id,
         order_status=order_status,
@@ -242,14 +244,13 @@ async def receive_einscricoes_payment(
         paid_slugs = list(set(
             slug
             for p in all_payments
-            for slug in ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else [])
+            for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
         ))
         credential.payment_verified = True
         credential.payment_modalities = paid_slugs
 
-        cred_mods = credential.modalities or []
-        unpaid = [m for m in cred_mods if m not in paid_slugs]
-        credential.payment_mismatch = len(unpaid) > 0
+        # Recalcular mismatch baseado no estado atual
+        credential.payment_mismatch = recalculate_payment_mismatch(credential, db)
 
         db.commit()
         logger.info(f"Credencial atualizada via {link_method}: {credential.full_name} - pagas: {paid_slugs}")

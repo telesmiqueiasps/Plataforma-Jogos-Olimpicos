@@ -666,6 +666,7 @@ class RegistrationPayment(Base):
     ticket_name      = Column(String(200), nullable=True)
     ticket_number    = Column(String(50), nullable=True)
     modality_slug    = Column(String(50), nullable=True)
+    modalities       = Column(JSON, nullable=True)   # lista de modalidades
     amount_paid      = Column(Numeric(10, 2), nullable=True)
     order_id         = Column(String(100), nullable=True)
     order_status     = Column(String(50), nullable=True)

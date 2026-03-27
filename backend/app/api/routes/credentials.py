@@ -24,6 +24,32 @@ from app.services import email_service
 router = APIRouter(prefix="/credentials", tags=["Credenciais"])
 
 
+def recalculate_payment_mismatch(credential: Credential, db: Session) -> bool:
+    """Recalcula se há mismatch entre modalidades inscritas e pagas."""
+    if not credential.modalities:
+        return False
+    
+    # Buscar todos os pagamentos associados à credencial
+    all_payments = db.query(RegistrationPayment).filter(
+        or_(
+            RegistrationPayment.cpf == credential.cpf,
+            RegistrationPayment.email == credential.email,
+            func.lower(RegistrationPayment.full_name) == credential.full_name.lower()
+        )
+    ).all()
+
+    # Agregar todos os slugs pagos
+    paid_slugs = list(set(
+        slug
+        for p in all_payments
+        for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
+    ))
+    
+    # Verificar se todas as modalidades inscritas foram pagas
+    unpaid = [m for m in credential.modalities if m not in paid_slugs]
+    return len(unpaid) > 0
+
+
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
@@ -58,7 +84,7 @@ class CheckinRequest(BaseModel):
     wristband_type: str  # visitante, atleta, col
 
 
-def _serialize(c: Credential) -> dict:
+def _serialize(c: Credential, db: Session) -> dict:
     return {
         "id": c.id,
         "full_name": c.full_name,
@@ -97,7 +123,7 @@ def _serialize(c: Credential) -> dict:
         "created_at": c.created_at.isoformat() if c.created_at else None,
         "payment_verified": c.payment_verified or False,
         "payment_modalities": c.payment_modalities or [],
-        "payment_mismatch": c.payment_mismatch or False,
+        "payment_mismatch": recalculate_payment_mismatch(c, db),
     }
 
 
@@ -206,7 +232,11 @@ def check_cpf(cpf: str, db: Session = Depends(get_db)):
     payments = db.query(RegistrationPayment).filter(RegistrationPayment.cpf == cpf_clean).all()
     payment_info = {
         "payment_found": len(payments) > 0,
-        "paid_modalities": list(set(p.modality_slug for p in payments if p.modality_slug and p.modality_slug != "outro")),
+        "paid_modalities": list(set(
+            slug
+            for p in payments
+            for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
+        )),
         "tickets": [p.ticket_name for p in payments if p.ticket_name],
     }
 
@@ -236,7 +266,7 @@ def get_by_qr(qr_code: str, db: Session = Depends(get_db)):
     cred = db.query(Credential).filter(Credential.qr_code == qr_clean).first()
     if not cred:
         raise HTTPException(status_code=404, detail="Credencial não encontrada para o QR Code informado")
-    return _serialize(cred)
+    return _serialize(cred, db)
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +309,7 @@ def list_credentials(
         term = f"%{search}%"
         q = q.filter(or_(Credential.full_name.ilike(term), Credential.cpf.ilike(term)))
     creds = q.order_by(Credential.created_at.desc()).all()
-    return [_serialize(c) for c in creds]
+    return [_serialize(c, db) for c in creds]
 
 
 @router.get("/{cred_id}")
@@ -287,7 +317,7 @@ def get_credential(cred_id: int, db: Session = Depends(get_db), _=Depends(requir
     cred = db.query(Credential).filter(Credential.id == cred_id).first()
     if not cred:
         raise HTTPException(status_code=404, detail="Credencial não encontrada")
-    return _serialize(cred)
+    return _serialize(cred, db)
 
 
 @router.put("/{cred_id}/approve")
@@ -328,7 +358,7 @@ def approve_credential(
     t.daemon = True
     t.start()
 
-    return _serialize(cred)
+    return _serialize(cred, db)
 
 
 @router.put("/{cred_id}/reject")
@@ -370,7 +400,7 @@ def reject_credential(
     t.daemon = True
     t.start()
 
-    return _serialize(cred)
+    return _serialize(cred, db)
 
 
 @router.put("/{cred_id}/revert")
@@ -389,7 +419,7 @@ def revert_credential(
     cred.rejection_reason = None
     db.commit()
     db.refresh(cred)
-    return _serialize(cred)
+    return _serialize(cred, db)
 
 
 @router.put("/{cred_id}/pastor-approve")
@@ -407,7 +437,7 @@ def pastor_approve_credential(
     cred.pastor_approved_by = current_user.id if body.approved else None
     db.commit()
     db.refresh(cred)
-    return _serialize(cred)
+    return _serialize(cred, db)
 
 
 @router.put("/{cred_id}/guardian-approve")
@@ -427,7 +457,7 @@ def guardian_approve_credential(
     cred.guardian_approved_by = current_user.id if body.approved else None
     db.commit()
     db.refresh(cred)
-    return _serialize(cred)
+    return _serialize(cred, db)
 
 
 @router.put("/{cred_id}/checkin")
@@ -446,4 +476,4 @@ def checkin_credential(
     cred.wristband_type = body.wristband_type
     db.commit()
     db.refresh(cred)
-    return _serialize(cred)
+    return _serialize(cred, db)
