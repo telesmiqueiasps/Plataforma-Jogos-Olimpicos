@@ -18,9 +18,28 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Criar índice único no campo email da tabela credentials
-    # Usar CREATE UNIQUE INDEX CONCURRENTLY não é suportado em transação,
-    # então usamos o padrão do alembic com batch_alter_table para compatibilidade
+    # Remover emails duplicados mantendo apenas o registro mais antigo (menor id)
+    # para cada email, os demais recebem NULL antes de criar o índice único
+    op.execute(sa.text("""
+        UPDATE credentials
+        SET email = NULL
+        WHERE id NOT IN (
+            SELECT MIN(id)
+            FROM credentials
+            WHERE email IS NOT NULL
+            GROUP BY email
+        )
+        AND email IS NOT NULL
+        AND email IN (
+            SELECT email
+            FROM credentials
+            WHERE email IS NOT NULL
+            GROUP BY email
+            HAVING COUNT(*) > 1
+        )
+    """))
+
+    # Criar índice único parcial (exclui NULLs, que são permitidos múltiplos)
     op.create_index(
         'uq_credentials_email',
         'credentials',
