@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
+  <title>Igrejas & Presbitérios — Jogos Olímpicos Sinodal PB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-title  { font-size:1.4rem; font-weight:800; color:var(--text-primary); margin:0; }
+    .two-col     { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+    @media(max-width:860px){ .two-col { grid-template-columns:1fr; } }
+    .panel       { background:var(--bg-primary); border-radius:12px; box-shadow:var(--shadow-md); overflow:hidden; }
+    .panel-header{ padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; }
+    .panel-title { font-size:1rem; font-weight:700; color:var(--text-primary); margin:0; }
+    table        { width:100%; border-collapse:collapse; font-size:0.875rem; }
+    th           { padding:10px 14px; text-align:left; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-secondary); border-bottom:1px solid var(--border-color); }
+    td           { padding:10px 14px; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td  { background:#fafafa; }
+    .badge-active   { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#d1fae5; color:#065f46; }
+    .badge-inactive { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#f3f4f6; color:#6b7280; }
+    .action-btn  { border:none; background:transparent; cursor:pointer; padding:4px 8px; border-radius:6px; font-size:13px; transition:background .15s; }
+    .action-btn:hover { background:var(--bg-secondary); }
+    .filter-bar  { padding:12px 20px; border-bottom:1px solid var(--border-color); }
+    select.form-control-sm { padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:0.87rem; background:var(--bg-primary); color:var(--text-primary); }
+    /* Modal */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:900; display:none; align-items:center; justify-content:center; padding:16px; }
+    .modal-backdrop.open { display:flex; }
+    .modal-card { background:#fff; border-radius:14px; width:100%; max-width:420px; padding:28px 24px; box-shadow:0 8px 40px rgba(0,0,0,.18); }
+    .modal-title { font-size:1.1rem; font-weight:800; margin:0 0 20px; }
+    .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    .empty-row td { text-align:center; color:var(--text-secondary); padding:28px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="dashboard.html" class="sidebar-logo">
+          <img src="img/logo.png" alt="Logo" style="width:50px;height:50px;object-fit:contain;flex-shrink:0;">
+          <span>Jogos Olímpicos<br>Sinodal PB</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Jogos</span>
+        </a>
+        <a href="reports.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/relatorio.png" alt="Relatórios" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Relatórios</span>
+        </a>
+        <a href="cantina.html" class="nav-item" data-role="cantina">
+          <span class="nav-icon"><img src="img/cantina.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;"></span>
+          <span>Cantina</span>
+        </a>
+        <a href="secretaria.html" class="nav-item" data-role="secretaria">
+          <span class="nav-icon"><img src="img/secretaria.png" alt="Secretaria" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Secretaria</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Atletas</span>
+        </a>
+        <a href="churches.html" class="nav-item active" data-role="secretaria">
+          <span class="nav-icon"><img src="img/igrejas.png" alt="Igrejas" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Igrejas</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Organizador</div>
+          </div>
+        </div>
+        <a href="register.html" class="btn btn-secondary btn-sm" style="width:100%;margin-top:12px;justify-content:center;">Criar novo usuário</a>
+        <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">👤 Meu Perfil</a>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">Sair</button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <div class="topbar-greeting">
+          <div class="topbar-greeting-main">⛪ Igrejas &amp; Presbitérios</div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <div id="toast-container" class="toast-container"></div>
+
+        <div class="two-col">
+          <!-- PRESBITÉRIOS -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Presbitérios</span>
+              <button class="btn btn-primary btn-sm" onclick="openPresbyterModal()">+ Novo</button>
+            </div>
+            <table>
+              <thead><tr><th>Nome</th><th>Igrejas</th><th style="width:80px;"></th></tr></thead>
+              <tbody id="presb-tbody"><tr class="empty-row"><td colspan="3">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+
+          <!-- IGREJAS -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Igrejas</span>
+              <button class="btn btn-primary btn-sm" onclick="openChurchModal()">+ Nova</button>
+            </div>
+            <div class="filter-bar">
+              <select id="filter-presb" class="form-control-sm" onchange="loadChurches()" style="width:100%;">
+                <option value="">Todos os presbitérios</option>
+              </select>
+            </div>
+            <table>
+              <thead><tr><th>Igreja</th><th>Presbitério</th><th>Cidade</th><th style="width:70px;"></th></tr></thead>
+              <tbody id="churches-tbody"><tr class="empty-row"><td colspan="4">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal Presbitério -->
+  <div class="modal-backdrop" id="presb-modal">
+    <div class="modal-card">
+      <div class="modal-title" id="presb-modal-title">Novo Presbitério</div>
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" id="presb-name" class="form-control" placeholder="Ex: Presbitério do Cariri">
+      </div>
+      <div id="presb-modal-error" class="alert alert-error" style="display:none;margin-top:10px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closePresbyterModal()">Cancelar</button>
+        <button class="btn btn-primary" id="presb-save-btn" onclick="savePresbyter()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Igreja -->
+  <div class="modal-backdrop" id="church-modal">
+    <div class="modal-card">
+      <div class="modal-title" id="church-modal-title">Nova Igreja</div>
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" id="church-name" class="form-control" placeholder="Ex: Igreja Presbiteriana de Sousa">
+      </div>
+      <div class="form-group">
+        <label>Presbitério</label>
+        <select id="church-presb-select" class="form-control">
+          <option value="">— Sem presbitério —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cidade</label>
+        <input type="text" id="church-city" class="form-control" placeholder="Ex: Sousa">
+      </div>
+      <div id="church-modal-error" class="alert alert-error" style="display:none;margin-top:10px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeChurchModal()">Cancelar</button>
+        <button class="btn btn-primary" id="church-save-btn" onclick="saveChurch()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    var _presbyteries = [];
+    var _churches = [];
+    var _editPresbId = null;
+    var _editChurchId = null;
+
+    function escHtml(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showToast(msg, type) {
+      var c = document.getElementById('toast-container');
+      var t = document.createElement('div');
+      t.className = 'toast toast-' + (type || 'success');
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(function(){ t.remove(); }, 3500);
+    }
+
+    // ---- Presbitérios ----
+    async function loadPresbyteries() {
+      try {
+        _presbyteries = await PresbyteryAPI.list();
+        renderPresbyteries();
+        populatePresbyterSelects();
+      } catch(e) {
+        document.getElementById('presb-tbody').innerHTML = '<tr class="empty-row"><td colspan="3">Erro ao carregar</td></tr>';
+      }
+    }
+
+    function renderPresbyteries() {
+      var tbody = document.getElementById('presb-tbody');
+      if (!_presbyteries.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Nenhum presbitério cadastrado</td></tr>';
+        return;
+      }
+      tbody.innerHTML = _presbyteries.map(function(p) {
+        var count = _churches.filter(function(c){ return c.presbytery_id === p.id; }).length;
+        return '<tr>'
+          + '<td><strong>' + escHtml(p.name) + '</strong></td>'
+          + '<td>' + count + '</td>'
+          + '<td style="white-space:nowrap;">'
+          + '<button class="action-btn" title="Editar" onclick="openPresbyterModal(' + p.id + ')">✏️</button>'
+          + '<button class="action-btn" title="Excluir" onclick="deletePresbytery(' + p.id + ', \'' + escHtml(p.name) + '\')">🗑️</button>'
+          + '</td></tr>';
+      }).join('');
+    }
+
+    function populatePresbyterSelects() {
+      var opts = '<option value="">— Sem presbitério —</option>'
+        + _presbyteries.map(function(p){ return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>'; }).join('');
+      document.getElementById('church-presb-select').innerHTML = opts;
+
+      var filterOpts = '<option value="">Todos os presbitérios</option>'
+        + _presbyteries.map(function(p){ return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>'; }).join('');
+      document.getElementById('filter-presb').innerHTML = filterOpts;
+    }
+
+    function openPresbyterModal(id) {
+      _editPresbId = id || null;
+      document.getElementById('presb-modal-title').textContent = id ? 'Editar Presbitério' : 'Novo Presbitério';
+      document.getElementById('presb-modal-error').style.display = 'none';
+      if (id) {
+        var p = _presbyteries.find(function(x){ return x.id === id; });
+        document.getElementById('presb-name').value = p ? p.name : '';
+      } else {
+        document.getElementById('presb-name').value = '';
+      }
+      document.getElementById('presb-modal').classList.add('open');
+      setTimeout(function(){ document.getElementById('presb-name').focus(); }, 80);
+    }
+
+    function closePresbyterModal() {
+      document.getElementById('presb-modal').classList.remove('open');
+    }
+
+    async function savePresbyter() {
+      var name = document.getElementById('presb-name').value.trim();
+      var errEl = document.getElementById('presb-modal-error');
+      errEl.style.display = 'none';
+      if (!name) { errEl.textContent = 'Informe o nome.'; errEl.style.display = 'flex'; return; }
+      var btn = document.getElementById('presb-save-btn');
+      btn.disabled = true;
+      try {
+        if (_editPresbId) {
+          await PresbyteryAPI.update(_editPresbId, { name: name });
+          showToast('Presbitério atualizado!');
+        } else {
+          await PresbyteryAPI.create({ name: name });
+          showToast('Presbitério criado!');
+        }
+        closePresbyterModal();
+        await loadPresbyteries();
+      } catch(e) {
+        errEl.textContent = e.message || 'Erro ao salvar.';
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deletePresbytery(id, name) {
+      if (!confirm('Excluir o presbitério "' + name + '"?\n\nAs igrejas vinculadas ficarão sem presbitério.')) return;
+      try {
+        await PresbyteryAPI.delete(id);
+        showToast('Presbitério excluído.');
+        await loadPresbyteries();
+        await loadChurches();
+      } catch(e) {
+        showToast(e.message || 'Erro ao excluir.', 'error');
+      }
+    }
+
+    // ---- Igrejas ----
+    async function loadChurches() {
+      var pid = document.getElementById('filter-presb').value;
+      var params = pid ? { presbytery_id: pid } : null;
+      try {
+        _churches = await ChurchAPI.list(params);
+        renderChurches();
+        renderPresbyteries(); // atualiza contagem
+      } catch(e) {
+        document.getElementById('churches-tbody').innerHTML = '<tr class="empty-row"><td colspan="4">Erro ao carregar</td></tr>';
+      }
+    }
+
+    function renderChurches() {
+      var tbody = document.getElementById('churches-tbody');
+      if (!_churches.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhuma igreja cadastrada</td></tr>';
+        return;
+      }
+      tbody.innerHTML = _churches.map(function(c) {
+        return '<tr>'
+          + '<td><strong>' + escHtml(c.name) + '</strong></td>'
+          + '<td>' + escHtml(c.presbytery_name || '—') + '</td>'
+          + '<td>' + escHtml(c.city || '—') + '</td>'
+          + '<td style="white-space:nowrap;">'
+          + '<button class="action-btn" title="Editar" onclick="openChurchModal(' + c.id + ')">✏️</button>'
+          + '<button class="action-btn" title="Excluir" onclick="deleteChurch(' + c.id + ', \'' + escHtml(c.name) + '\')">🗑️</button>'
+          + '</td></tr>';
+      }).join('');
+    }
+
+    function openChurchModal(id) {
+      _editChurchId = id || null;
+      document.getElementById('church-modal-title').textContent = id ? 'Editar Igreja' : 'Nova Igreja';
+      document.getElementById('church-modal-error').style.display = 'none';
+      if (id) {
+        var c = _churches.find(function(x){ return x.id === id; });
+        document.getElementById('church-name').value = c ? c.name : '';
+        document.getElementById('church-presb-select').value = c && c.presbytery_id ? c.presbytery_id : '';
+        document.getElementById('church-city').value = c ? (c.city || '') : '';
+      } else {
+        document.getElementById('church-name').value = '';
+        document.getElementById('church-presb-select').value = '';
+        document.getElementById('church-city').value = '';
+      }
+      document.getElementById('church-modal').classList.add('open');
+      setTimeout(function(){ document.getElementById('church-name').focus(); }, 80);
+    }
+
+    function closeChurchModal() {
+      document.getElementById('church-modal').classList.remove('open');
+    }
+
+    async function saveChurch() {
+      var name  = document.getElementById('church-name').value.trim();
+      var pid   = document.getElementById('church-presb-select').value;
+      var city  = document.getElementById('church-city').value.trim();
+      var errEl = document.getElementById('church-modal-error');
+      errEl.style.display = 'none';
+      if (!name) { errEl.textContent = 'Informe o nome da igreja.'; errEl.style.display = 'flex'; return; }
+      var data = { name: name, presbytery_id: pid ? parseInt(pid) : null, city: city || null };
+      var btn = document.getElementById('church-save-btn');
+      btn.disabled = true;
+      try {
+        if (_editChurchId) {
+          await ChurchAPI.update(_editChurchId, data);
+          showToast('Igreja atualizada!');
+        } else {
+          await ChurchAPI.create(data);
+          showToast('Igreja criada!');
+        }
+        closeChurchModal();
+        await loadChurches();
+      } catch(e) {
+        errEl.textContent = e.message || 'Erro ao salvar.';
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteChurch(id, name) {
+      if (!confirm('Excluir a igreja "' + name + '"?')) return;
+      try {
+        await ChurchAPI.delete(id);
+        showToast('Igreja excluída.');
+        await loadChurches();
+      } catch(e) {
+        showToast(e.message || 'Erro ao excluir.', 'error');
+      }
+    }
+
+    // Fechar modal ao clicar no backdrop
+    ['presb-modal', 'church-modal'].forEach(function(id) {
+      document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('open');
+      });
+    });
+
+    // ---- Init ----
+    (async function() {
+      await loadPresbyteries();
+      await loadChurches();
+    })();
+  </script>
+</body>
+</html>

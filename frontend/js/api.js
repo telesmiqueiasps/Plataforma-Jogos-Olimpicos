@@ -176,6 +176,23 @@ const CantinAPI = {
   report: (params) => apiFetch('/api/cantina/report' + (params ? '?' + new URLSearchParams(params) : '')),
 };
 
+// --- Presbyteries ---
+const PresbyteryAPI = {
+  list:   ()         => apiFetch('/api/presbyteries/'),
+  create: (data)     => apiFetch('/api/presbyteries/', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/api/presbyteries/${id}`, { method: 'PUT',  body: JSON.stringify(data) }),
+  delete: (id)       => apiFetch(`/api/presbyteries/${id}`, { method: 'DELETE' }),
+};
+
+// --- Churches ---
+const ChurchAPI = {
+  list:   (params)          => apiFetch('/api/churches/' + (params ? '?' + new URLSearchParams(params) : '')),
+  search: (q, presbytery_id) => apiFetch('/api/churches/search?q=' + encodeURIComponent(q) + (presbytery_id ? '&presbytery_id=' + presbytery_id : '')),
+  create: (data)            => apiFetch('/api/churches/', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data)        => apiFetch(`/api/churches/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  delete: (id)              => apiFetch(`/api/churches/${id}`, { method: 'DELETE' }),
+};
+
 // --- Games ---
 const GamesAPI = {
   get: (id) => apiFetch(`/api/games/${id}`),

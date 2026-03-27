@@ -682,3 +682,35 @@ class RegistrationPayment(Base):
         Index("ix_registration_payments_cpf",   "cpf"),
         Index("ix_registration_payments_email", "email"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Presbytery / Church
+# ---------------------------------------------------------------------------
+
+class Presbytery(Base):
+    __tablename__ = "presbyteries"
+
+    id         = Column(Integer, primary_key=True)
+    name       = Column(String(150), unique=True, nullable=False)
+    active     = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    churches = relationship("Church", back_populates="presbytery")
+
+
+class Church(Base):
+    __tablename__ = "churches"
+
+    id            = Column(Integer, primary_key=True)
+    name          = Column(String(200), nullable=False)
+    presbytery_id = Column(Integer, ForeignKey("presbyteries.id", ondelete="SET NULL"), nullable=True)
+    city          = Column(String(100), nullable=True)
+    active        = Column(Boolean, default=True)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+    presbytery = relationship("Presbytery", back_populates="churches")
+
+    __table_args__ = (
+        Index("ix_churches_presbytery_id", "presbytery_id"),
+    )
