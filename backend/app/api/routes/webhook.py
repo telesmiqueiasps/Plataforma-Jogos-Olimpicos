@@ -132,7 +132,7 @@ async def receive_einscricoes_payment(
     first_name = body.get("first_name", "")
     last_name = body.get("last_name", "")
     full_name = (body.get("name") or f"{first_name} {last_name}").strip()
-    email = body.get("email", "").strip() or None
+    email = body.get("email", "").lower().strip() or None
     phone = body.get("phone", "")
     ticket_name = body.get("ticket_name", "")
     ticket_number = body.get("ticket_number", "") or body.get("ticket_code", "")
@@ -208,7 +208,7 @@ async def receive_einscricoes_payment(
         if credential:
             link_method = f"CPF: {cpf}"
     if not credential and email:
-        credential = db.query(Credential).filter(Credential.email == email).first()
+        credential = db.query(Credential).filter(func.lower(Credential.email) == email).first()
         if credential:
             link_method = f"email: {email}"
             logger.info(f"Credencial vinculada por email: {email}")

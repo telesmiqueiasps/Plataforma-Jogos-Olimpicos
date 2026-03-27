@@ -179,8 +179,8 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
             )
 
     if body.email:
-        email_norm = body.email.strip()
-        existing_email = db.query(Credential).filter(Credential.email == email_norm).first()
+        email_norm = body.email.lower().strip()
+        existing_email = db.query(Credential).filter(func.lower(Credential.email) == email_norm).first()
         if existing_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -210,7 +210,7 @@ def register_credential(body: CredentialRegister, db: Session = Depends(get_db))
         full_name=body.full_name.strip(),
         birth_date=body.birth_date,
         cpf=body.cpf.strip() if body.cpf else None,
-        email=body.email.strip() if body.email else None,
+        email=body.email.lower().strip() if body.email else None,
         phone=body.phone,
         city=body.city,
         church=body.church,
@@ -291,10 +291,10 @@ def check_cpf(cpf: str, db: Session = Depends(get_db)):
 @router.get("/check-email/{email}")
 def check_email(email: str, db: Session = Depends(get_db)):
     """Verifica se email já tem credencial cadastrada — endpoint público."""
-    email_clean = email.strip()
-    cred = db.query(Credential).filter(Credential.email == email_clean).first()
+    email_clean = email.lower().strip()
+    cred = db.query(Credential).filter(func.lower(Credential.email) == email_clean).first()
 
-    payments = db.query(RegistrationPayment).filter(RegistrationPayment.email == email_clean).all()
+    payments = db.query(RegistrationPayment).filter(func.lower(RegistrationPayment.email) == email_clean).all()
     paid_slugs = list(set(
         slug
         for p in payments
