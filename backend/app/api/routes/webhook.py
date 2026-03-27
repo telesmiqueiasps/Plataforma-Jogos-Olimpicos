@@ -28,8 +28,14 @@ def normalize_cpf(cpf_raw: str) -> str:
     return digits
 
 
-def extract_modalities(body: dict) -> list:
-    """Extrai modalidades dos campos específicos do e-inscrições."""
+def extract_modalities(body: dict) -> tuple:
+    """
+    Extrai e mapeia modalidades dos campos do e-inscrições.
+    Campos: modalidade_01_7963068 até modalidade_04_7963117
+    Valor exemplo: "Futsal Masculino [Quadra 01] (R$ 20,00)"
+
+    Retorna (slugs, raw_names).
+    """
     modality_fields = [
         "modalidade_01_7963068",
         "modalidade_02_7963115",
@@ -38,21 +44,31 @@ def extract_modalities(body: dict) -> list:
     ]
 
     slugs = []
+    raw_names = []
+
     for field in modality_fields:
-        value = body.get(field, "")
-        if value and str(value).strip() and str(value).lower() not in ("", "exemplo", "none", "null"):
-            slug = map_ticket_to_slug(str(value))
-            if slug and slug != "outro" and slug not in slugs:
-                slugs.append(slug)
+        value = str(body.get(field, "") or "").strip()
+        if not value or value.lower() in ("exemplo", "none", "null", "-", "n/a"):
+            continue
 
-    # Também tentar pelo ticket_name
-    ticket = body.get("ticket_name", "")
-    if ticket and str(ticket).lower() not in ("normal", "padrão", "exemplo", ""):
-        slug = map_ticket_to_slug(str(ticket))
-        if slug and slug != "outro" and slug not in slugs:
+        raw_names.append(value)
+        slug = map_ticket_to_slug(value)
+
+        if slug and slug not in slugs:
             slugs.append(slug)
+            logger.info(f"Modalidade mapeada: '{value}' → '{slug}'")
+        elif not slug:
+            logger.warning(f"Modalidade NÃO mapeada: '{value}'")
 
-    return slugs
+    # Também tentar pelo ticket_name (fallback)
+    ticket = str(body.get("ticket_name", "") or "").strip()
+    if ticket and ticket.lower() not in ("normal", "padrão", "exemplo", "none", "null", ""):
+        slug = map_ticket_to_slug(ticket)
+        if slug and slug not in slugs:
+            slugs.append(slug)
+            logger.info(f"Modalidade mapeada via ticket_name: '{ticket}' → '{slug}'")
+
+    return slugs, raw_names
 
 
 def map_participation_type(raw: str) -> str:
@@ -132,19 +148,28 @@ async def receive_einscricoes_payment(
     ) or None
 
     # CPF (pode ou não vir no webhook)
+    # Tentar campos fixos primeiro; depois varrer campos customizados do e-inscrições
     cpf_raw = (
         body.get("cpf")
         or body.get("document")
         or body.get("tax_id")
         or body.get("cpf_cnpj")
+        or next(
+            (str(v) for k, v in body.items() if k.startswith("numero_do_documento") and v),
+            ""
+        )
         or ""
     )
     cpf = normalize_cpf(cpf_raw) if cpf_raw else None
+    if not cpf:
+        logger.warning(f"CPF não encontrado no webhook para: {full_name} ({email})")
 
     # Modalidades via campos específicos
-    modalities = extract_modalities(body)
+    modalities, raw_modality_names = extract_modalities(body)
     # Salva o primeiro slug para compatibilidade com campo único
-    modality_slug = modalities[0] if modalities else (map_ticket_to_slug(ticket_name) if ticket_name else "outro")
+    modality_slug = modalities[0] if modalities else None
+    # ticket_name: preferir nomes originais das modalidades para rastreabilidade
+    ticket_name = ", ".join(raw_modality_names) if raw_modality_names else ticket_name
 
     price_raw = body.get("ticket_sale_price") or body.get("price") or body.get("amount") or "0"
     try:

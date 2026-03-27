@@ -6,25 +6,74 @@ Funções auxiliares para mapeamento e normalização de modalidades.
 
 
 def map_ticket_to_slug(ticket_name: str) -> str:
-    """Mapeia nome do ingresso/modalidade do e-inscrições para slug da modalidade."""
-    name = ticket_name.lower().strip()
-    if "futsal" in name or "futebol" in name:
+    """
+    Mapeia nome do ingresso/modalidade do e-inscrições para slug interno.
+
+    Nomes reais que chegam do e-inscrições:
+    "Futsal Masculino [Quadra 01] (R$ 20,00)" → "futsal"
+    "Futsal Feminino [Quadra 01] (R$ 20,00)" → "futsal"
+    "Vôlei Misto [Quadra 02] (R$ 20,00)"     → "volleyball"
+    "Basquete 3x3 [Quadra 01] (R$ 20,00)"    → "basketball"
+    "100m rasos [Quadra 01] (R$ 12,00)"       → "running"
+    "Tênis de Mesa [Quadra 02] (R$ 12,00)"    → "tenis_mesa"
+    "Dominó Dupla [Quadra 01] (R$ 12,00)"     → "domino"
+    "Xadrez [Quadra 01] (R$ 12,00)"           → "xadrez"
+    "Dama [Quadra 01] (R$ 12,00)"             → "dama"
+    """
+    if not ticket_name:
+        return None
+
+    import re
+    import unicodedata
+
+    def normalize(s):
+        # Remover conteúdo entre colchetes e parênteses
+        s = re.sub(r'\[.*?\]', '', s)
+        s = re.sub(r'\(.*?\)', '', s)
+        # Converter para minúsculas
+        s = s.lower().strip()
+        # Remover acentos
+        s = unicodedata.normalize('NFKD', s)
+        s = ''.join(c for c in s if not unicodedata.combining(c))
+        # Remover espaços extras
+        s = ' '.join(s.split())
+        return s
+
+    name = normalize(ticket_name)
+
+    # FUTSAL — verificar antes de qualquer outra coisa
+    if "futsal" in name or "futebol de salao" in name or "futebol" in name:
         return "futsal"
-    if "vôlei" in name or "volei" in name or "vólei" in name or "volleyball" in name:
+
+    # VÔLEI
+    if any(x in name for x in ["volei", "volley", "volleyball", "voli"]):
         return "volleyball"
-    if "basquete" in name or "basketball" in name or "basquetebol" in name:
+
+    # BASQUETE
+    if any(x in name for x in ["basquete", "basketball", "basquetebol", "basquet", "3x3"]):
         return "basketball"
-    if "corrida" in name or "running" in name or "100m" in name or "200m" in name or "rasos" in name:
+
+    # CORRIDA — antes de "tenis" pois "100m" é único
+    if any(x in name for x in ["corrida", "running", "100m", "200m", "400m", "5km", "10km", "rasos", "metros rasos"]):
         return "running"
-    if "tênis de mesa" in name or "tenis de mesa" in name or "ping pong" in name or "tênis" in name:
+
+    # TÊNIS DE MESA — antes de "tenis" genérico para não colidir
+    if any(x in name for x in ["tenis de mesa", "ping pong", "pingpong", "mesa"]):
         return "tenis_mesa"
-    if "dominó" in name or "domino" in name or "dupla" in name:
+
+    # DOMINÓ
+    if any(x in name for x in ["domino", "dupla"]):
         return "domino"
-    if "xadrez" in name or "chess" in name:
+
+    # XADREZ
+    if any(x in name for x in ["xadrez", "chess"]):
         return "xadrez"
-    if "dama" in name or "checkers" in name:
+
+    # DAMA
+    if any(x in name for x in ["dama", "checkers", "jogo de dama"]):
         return "dama"
-    return "outro"
+
+    return None  # retorna None se não mapear
 
 
 def slug_to_label(slug: str) -> str:
