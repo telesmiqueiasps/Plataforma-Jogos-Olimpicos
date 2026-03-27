@@ -606,7 +606,11 @@
       requireCantinaAccess();
       // Atualizar título com PDV atual
       var titleEl = document.getElementById('topbar-title');
-      if (titleEl) titleEl.textContent = '🏪 Cantina — PDV ' + currentPdvId;
+      if (titleEl) {
+        var _user = getUser();
+        var _firstName = _user ? (_user.name || _user.email || 'Usuário').split(' ')[0] : 'Usuário';
+        titleEl.textContent = '🏪 Cantina — PDV ' + currentPdvId + ' · Olá, ' + _firstName + '!';
+      }
       document.title = 'Cantina PDV ' + currentPdvId + ' — Jogos Olímpicos Sinodal PB';
       initTabNav();
       loadPDV();
