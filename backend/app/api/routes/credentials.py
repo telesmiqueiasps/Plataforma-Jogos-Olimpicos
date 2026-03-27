@@ -20,6 +20,7 @@ from app.api.deps import get_current_user, require_secretaria
 from app.db.models import Credential, RegistrationPayment, User
 from app.db.session import get_db
 from app.services import email_service
+from app.api.routes.modality_mapper import map_ticket_to_slug
 
 router = APIRouter(prefix="/credentials", tags=["Credenciais"])
 
@@ -30,13 +31,18 @@ def recalculate_payment_mismatch(credential: Credential, db: Session) -> bool:
         return False
     
     # Buscar todos os pagamentos associados à credencial
-    all_payments = db.query(RegistrationPayment).filter(
-        or_(
-            RegistrationPayment.cpf == credential.cpf,
-            RegistrationPayment.email == credential.email,
-            func.lower(RegistrationPayment.full_name) == credential.full_name.lower()
-        )
-    ).all()
+    filters = []
+    if credential.cpf:
+        filters.append(RegistrationPayment.cpf == credential.cpf)
+    if credential.email:
+        filters.append(RegistrationPayment.email == credential.email)
+    if credential.full_name:
+        filters.append(func.lower(RegistrationPayment.full_name) == credential.full_name.lower())
+    
+    if not filters:
+        return False  # Sem forma de vincular pagamentos, não há mismatch
+    
+    all_payments = db.query(RegistrationPayment).filter(or_(*filters)).all()
 
     # Agregar todos os slugs pagos
     paid_slugs = list(set(
@@ -45,8 +51,11 @@ def recalculate_payment_mismatch(credential: Credential, db: Session) -> bool:
         for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
     ))
     
-    # Verificar se todas as modalidades inscritas foram pagas
-    unpaid = [m for m in credential.modalities if m not in paid_slugs]
+    # Normalizar modalidades inscritas para slugs e comparar
+    inscribed_slugs = list(set(
+        map_ticket_to_slug(m) for m in credential.modalities if m
+    ))
+    unpaid = [m for m in inscribed_slugs if m not in paid_slugs and m != "outro"]
     return len(unpaid) > 0
 
 
