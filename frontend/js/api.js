@@ -204,3 +204,8 @@ const GamesAPI = {
   createEvent: (id, data) => apiFetch(`/api/games/${id}/events`, { method: 'POST', body: JSON.stringify(data) }),
   addEvent: (id, data) => apiFetch(`/api/games/${id}/events`, { method: 'POST', body: JSON.stringify(data) }),
 };
+
+// --- Payments ---
+const PaymentsAPI = {
+  list: (params) => apiFetch('/api/webhooks/payments' + (params ? '?' + new URLSearchParams(params) : '')),
+};

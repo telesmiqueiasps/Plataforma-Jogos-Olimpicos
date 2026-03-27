@@ -6,12 +6,15 @@ URL configurada na Pluga: https://sports-platform-api.onrender.com/api/webhooks/
 """
 import logging
 
-from fastapi import APIRouter, Depends, Request
-from sqlalchemy import func
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.db.models import Credential, RegistrationPayment
 from app.db.session import get_db
+from app.api.deps import require_secretaria
 from app.api.routes.credentials import recalculate_payment_mismatch
 from app.api.routes.modality_mapper import map_ticket_to_slug
 
@@ -276,16 +279,49 @@ async def test_webhook():
 
 
 @router.get("/payments")
-async def list_payments(db: Session = Depends(get_db)):
-    """Lista pagamentos recebidos — para debug e verificação."""
-    payments = (
-        db.query(RegistrationPayment)
-        .order_by(RegistrationPayment.created_at.desc())
-        .limit(100)
-        .all()
-    )
-    return [
-        {
+async def list_payments(
+    search: Optional[str] = Query(None),
+    participation_type: Optional[str] = Query(None),
+    modality: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    _=Depends(require_secretaria),
+):
+    """Lista pagamentos recebidos com filtros — requer autenticação de secretaria."""
+    q = db.query(RegistrationPayment)
+
+    if search:
+        term = f"%{search}%"
+        q = q.filter(or_(
+            RegistrationPayment.full_name.ilike(term),
+            RegistrationPayment.email.ilike(term),
+        ))
+    if participation_type:
+        q = q.filter(func.lower(RegistrationPayment.participation_type) == participation_type.lower())
+    if modality:
+        q = q.filter(
+            or_(
+                RegistrationPayment.modality_slug == modality,
+                RegistrationPayment.modalities.contains([modality]),
+            )
+        )
+
+    payments = q.order_by(RegistrationPayment.created_at.desc()).all()
+
+    # Buscar credenciais vinculadas por email (LEFT JOIN via Python)
+    emails = [p.email for p in payments if p.email]
+    creds_by_email: dict = {}
+    if emails:
+        creds = db.query(Credential).filter(
+            func.lower(Credential.email).in_([e.lower() for e in emails])
+        ).all()
+        for c in creds:
+            if c.email:
+                creds_by_email[c.email.lower()] = c
+
+    result = []
+    for p in payments:
+        cred = creds_by_email.get(p.email.lower()) if p.email else None
+        result.append({
             "id": p.id,
             "name": p.full_name,
             "cpf": p.cpf,
@@ -294,6 +330,7 @@ async def list_payments(db: Session = Depends(get_db)):
             "ticket": p.ticket_name,
             "ticket_number": p.ticket_number,
             "modality": p.modality_slug,
+            "modalities": p.modalities or ([p.modality_slug] if p.modality_slug else []),
             "amount": float(p.amount_paid or 0),
             "order_id": p.order_id,
             "order_status": p.order_status,
@@ -303,6 +340,7 @@ async def list_payments(db: Session = Depends(get_db)):
             "presbytery": p.presbytery,
             "participation_type": p.participation_type,
             "created_at": p.created_at.isoformat() if p.created_at else None,
-        }
-        for p in payments
-    ]
+            "credential_id": cred.id if cred else None,
+            "credential_status": cred.status if cred else None,
+        })
+    return result
