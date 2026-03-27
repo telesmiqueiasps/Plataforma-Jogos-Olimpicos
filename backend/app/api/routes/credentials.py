@@ -59,6 +59,32 @@ def recalculate_payment_mismatch(credential: Credential, db: Session) -> bool:
     return len(unpaid) > 0
 
 
+def is_payment_verified(credential: Credential, db: Session) -> bool:
+    """Retorna True se todas as modalidades inscritas foram pagas (ou se não há modalidades inscritas)."""
+    if not credential.modalities:
+        return False
+    filters = []
+    if credential.cpf:
+        filters.append(RegistrationPayment.cpf == credential.cpf)
+    if credential.email:
+        filters.append(RegistrationPayment.email == credential.email)
+    if credential.full_name:
+        filters.append(func.lower(RegistrationPayment.full_name) == credential.full_name.lower())
+    if not filters:
+        return False
+    all_payments = db.query(RegistrationPayment).filter(or_(*filters)).all()
+    paid_slugs = list(set(
+        slug
+        for p in all_payments
+        for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
+    ))
+    inscribed_slugs = list(set(
+        map_ticket_to_slug(m) for m in credential.modalities if m
+    ))
+    # Se todas as modalidades inscritas estão em paid_slugs, está verificado
+    return all(m in paid_slugs and m != "outro" for m in inscribed_slugs)
+
+
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
@@ -130,7 +156,7 @@ def _serialize(c: Credential, db: Session) -> dict:
         "checked_in_by_name": c.checkin_user.name if c.checkin_user else None,
         "wristband_type": c.wristband_type,
         "created_at": c.created_at.isoformat() if c.created_at else None,
-        "payment_verified": c.payment_verified or False,
+        "payment_verified": is_payment_verified(c, db),
         "payment_modalities": c.payment_modalities or [],
         "payment_mismatch": recalculate_payment_mismatch(c, db),
     }
