@@ -265,13 +265,16 @@ def check_cpf(cpf: str, db: Session = Depends(get_db)):
     cred = db.query(Credential).filter(Credential.cpf == cpf_clean).first()
 
     payments = db.query(RegistrationPayment).filter(RegistrationPayment.cpf == cpf_clean).all()
+    paid_slugs = list(set(
+        slug
+        for p in payments
+        for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
+    ))
+    from app.api.routes.modality_mapper import slug_to_label
     payment_info = {
         "payment_found": len(payments) > 0,
-        "paid_modalities": list(set(
-            slug
-            for p in payments
-            for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
-        )),
+        "paid_modalities": paid_slugs,
+        "paid_modalities_labels": [slug_to_label(s) for s in paid_slugs],
         "tickets": [p.ticket_name for p in payments if p.ticket_name],
     }
 
@@ -292,13 +295,16 @@ def check_email(email: str, db: Session = Depends(get_db)):
     cred = db.query(Credential).filter(Credential.email == email_clean).first()
 
     payments = db.query(RegistrationPayment).filter(RegistrationPayment.email == email_clean).all()
+    paid_slugs = list(set(
+        slug
+        for p in payments
+        for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
+    ))
+    from app.api.routes.modality_mapper import slug_to_label
     payment_info = {
         "payment_found": len(payments) > 0,
-        "paid_modalities": list(set(
-            slug
-            for p in payments
-            for slug in (p.modalities if p.modalities else ([p.modality_slug] if p.modality_slug and p.modality_slug != "outro" else []))
-        )),
+        "paid_modalities": paid_slugs,
+        "paid_modalities_labels": [slug_to_label(s) for s in paid_slugs],
         "tickets": [p.ticket_name for p in payments if p.ticket_name],
         "participation_type": payments[0].participation_type if payments else None,
     }

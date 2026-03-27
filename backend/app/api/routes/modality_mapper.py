@@ -25,3 +25,19 @@ def map_ticket_to_slug(ticket_name: str) -> str:
     if "dama" in name or "checkers" in name:
         return "dama"
     return "outro"
+
+
+def slug_to_label(slug: str) -> str:
+    """Converte slug da modalidade para nome amigável para exibição."""
+    mapping = {
+        "futsal": "Futsal",
+        "volleyball": "Vôlei",
+        "basketball": "Basquete",
+        "running": "Corrida",
+        "tenis_mesa": "Tênis de Mesa",
+        "domino": "Dominó",
+        "xadrez": "Xadrez",
+        "dama": "Dama",
+        "outro": "Outra"
+    }
+    return mapping.get(slug, slug.capitalize())
