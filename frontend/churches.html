@@ -82,7 +82,7 @@
           <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Atletas</span>
         </a>
-        <a href="churches.html" class="nav-item active" data-role="secretaria">
+        <a href="churches.html" class="nav-item active" data-role="admin">
           <span class="nav-icon"><img src="img/igrejas.png" alt="Igrejas" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Igrejas</span>
         </a>
@@ -193,6 +193,8 @@
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script>
+    requireAdminAccess();
+
     var _presbyteries = [];
     var _churches = [];
     var _editPresbId = null;

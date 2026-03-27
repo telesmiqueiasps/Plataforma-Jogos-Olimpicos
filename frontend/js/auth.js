@@ -97,3 +97,12 @@ function logout() {
   clearAuth();
   window.location.href = 'login.html';
 }
+
+// Oculta automaticamente itens de navegação com data-role="admin" para não-admins
+document.addEventListener('DOMContentLoaded', function() {
+  if (!isAdmin()) {
+    document.querySelectorAll('[data-role="admin"]').forEach(function(el) {
+      el.style.display = 'none';
+    });
+  }
+});
