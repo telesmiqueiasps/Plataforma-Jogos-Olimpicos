@@ -209,3 +209,11 @@ const GamesAPI = {
 const PaymentsAPI = {
   list: (params) => apiFetch('/api/webhooks/payments' + (params ? '?' + new URLSearchParams(params) : '')),
 };
+
+// --- Modality Mappings ---
+const MappingAPI = {
+  list:   ()         => apiFetch('/api/modality-mappings/'),
+  create: (data)     => apiFetch('/api/modality-mappings/', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/api/modality-mappings/${id}`, { method: 'PUT',  body: JSON.stringify(data) }),
+  delete: (id)       => apiFetch(`/api/modality-mappings/${id}`, { method: 'DELETE' }),
+};

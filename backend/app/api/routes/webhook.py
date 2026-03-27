@@ -12,11 +12,10 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.db.models import Credential, RegistrationPayment
+from app.db.models import Credential, ModalityMapping, RegistrationPayment
 from app.db.session import get_db
 from app.api.deps import require_secretaria
 from app.api.routes.credentials import recalculate_payment_mismatch
-from app.api.routes.modality_mapper import map_ticket_to_slug
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,35 @@ def normalize_cpf(cpf_raw: str) -> str:
     return digits
 
 
-def extract_modalities(body: dict) -> tuple:
+def _normalize_for_mapping(s: str) -> str:
+    """Remove conteúdo entre colchetes/parênteses, acentos e espaços extras."""
+    import re, unicodedata
+    s = re.sub(r'\[.*?\]', '', s)
+    s = re.sub(r'\(.*?\)', '', s)
+    s = s.lower().strip()
+    s = unicodedata.normalize('NFKD', s)
+    s = ''.join(c for c in s if not unicodedata.combining(c))
+    return ' '.join(s.split())
+
+
+def map_ticket_to_slug_db(ticket_name: str, db: Session) -> str:
+    """
+    Mapeia nome do ingresso para slug buscando na tabela modality_mappings.
+    Usa keyword mais longa (mais específica) primeiro.
+    """
+    if not ticket_name:
+        return None
+    normalized = _normalize_for_mapping(ticket_name)
+    mappings = db.query(ModalityMapping).filter(ModalityMapping.active == True).all()
+    mappings.sort(key=lambda m: len(m.keyword), reverse=True)
+    for mapping in mappings:
+        kw = _normalize_for_mapping(mapping.keyword)
+        if kw and kw in normalized:
+            return mapping.sport_slug
+    return None
+
+
+def extract_modalities(body: dict, db: Session) -> tuple:
     """
     Extrai e mapeia modalidades dos campos do e-inscrições.
     Campos: modalidade_01_7963068 até modalidade_04_7963117
@@ -55,7 +82,7 @@ def extract_modalities(body: dict) -> tuple:
             continue
 
         raw_names.append(value)
-        slug = map_ticket_to_slug(value)
+        slug = map_ticket_to_slug_db(value, db)
 
         if slug and slug not in slugs:
             slugs.append(slug)
@@ -66,7 +93,7 @@ def extract_modalities(body: dict) -> tuple:
     # Também tentar pelo ticket_name (fallback)
     ticket = str(body.get("ticket_name", "") or "").strip()
     if ticket and ticket.lower() not in ("normal", "padrão", "exemplo", "none", "null", ""):
-        slug = map_ticket_to_slug(ticket)
+        slug = map_ticket_to_slug_db(ticket, db)
         if slug and slug not in slugs:
             slugs.append(slug)
             logger.info(f"Modalidade mapeada via ticket_name: '{ticket}' → '{slug}'")
@@ -168,7 +195,7 @@ async def receive_einscricoes_payment(
         logger.warning(f"CPF não encontrado no webhook para: {full_name} ({email})")
 
     # Modalidades via campos específicos
-    modalities, raw_modality_names = extract_modalities(body)
+    modalities, raw_modality_names = extract_modalities(body, db)
     # Salva o primeiro slug para compatibilidade com campo único
     modality_slug = modalities[0] if modalities else None
     # ticket_name: preferir nomes originais das modalidades para rastreabilidade

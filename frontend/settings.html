@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="img/logo.ico" type="image/x-icon">
+  <title>Configurações — Jogos Olímpicos Sinodal PB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .page-title   { font-size:1.4rem; font-weight:800; color:var(--text-primary); margin:0 0 6px; }
+    .page-sub     { font-size:0.875rem; color:var(--text-secondary); margin:0 0 28px; }
+    .panel        { background:var(--bg-primary); border-radius:12px; box-shadow:var(--shadow-md); overflow:hidden; margin-bottom:28px; }
+    .panel-header { padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .panel-title  { font-size:1rem; font-weight:700; color:var(--text-primary); margin:0; }
+    .panel-desc   { font-size:0.82rem; color:var(--text-secondary); margin:0; }
+    table         { width:100%; border-collapse:collapse; font-size:0.875rem; }
+    th            { padding:10px 16px; text-align:left; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-secondary); border-bottom:1px solid var(--border-color); background:#f8f9fc; white-space:nowrap; }
+    td            { padding:11px 16px; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td   { background:#fafafa; }
+    .badge-active   { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#d1fae5; color:#065f46; }
+    .badge-inactive { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#f3f4f6; color:#6b7280; }
+    .action-btn   { border:none; background:transparent; cursor:pointer; padding:4px 8px; border-radius:6px; font-size:14px; transition:background .15s; line-height:1; }
+    .action-btn:hover { background:var(--bg-secondary); }
+    /* Modal */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:900; display:none; align-items:center; justify-content:center; padding:16px; }
+    .modal-backdrop.open { display:flex; }
+    .modal-card   { background:#fff; border-radius:14px; width:100%; max-width:460px; padding:28px 24px; box-shadow:0 8px 40px rgba(0,0,0,.18); }
+    .modal-title  { font-size:1.1rem; font-weight:800; margin:0 0 20px; }
+    .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    /* Hint */
+    .field-hint   { font-size:0.78rem; color:var(--text-secondary); margin-top:4px; }
+    /* Test box */
+    .test-box     { padding:20px; background:#f8f9fc; border-top:1px solid var(--border-color); }
+    .test-result  { margin-top:10px; min-height:24px; font-size:0.875rem; font-weight:600; }
+    .test-result.mapped   { color:#059669; }
+    .test-result.unmapped { color:#d97706; }
+    /* Slug chip */
+    .slug-chip    { display:inline-block; padding:2px 9px; border-radius:10px; font-size:12px; font-weight:700; background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+    /* Empty */
+    .empty-row td { text-align:center; color:var(--text-secondary); padding:32px; }
+    /* Shortcut cards */
+    .shortcut-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; padding:20px; }
+    .shortcut-card { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:10px; border:1px solid var(--border-color); text-decoration:none; color:var(--text-primary); transition:box-shadow .15s,border-color .15s; background:#fff; }
+    .shortcut-card:hover { box-shadow:var(--shadow-md); border-color:#93c5fd; }
+    .shortcut-card .sc-icon { font-size:1.5rem; flex-shrink:0; }
+    .shortcut-card .sc-label { font-weight:600; font-size:0.9rem; }
+    .shortcut-card .sc-sub   { font-size:0.75rem; color:var(--text-secondary); margin-top:2px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="dashboard.html" class="sidebar-logo">
+          <img src="img/logo.png" alt="Logo" style="width:50px;height:50px;object-fit:contain;flex-shrink:0;">
+          <span>Jogos Olímpicos<br>Sinodal PB</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Principal</span>
+        <a href="dashboard.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/dashboard.png" alt="Dashboard" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Dashboard</span>
+        </a>
+        <a href="championships.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/campeonatos.png" alt="Campeonatos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Campeonatos</span>
+        </a>
+        <a href="games.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/jogos.png" alt="Jogos" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Jogos</span>
+        </a>
+        <a href="reports.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/relatorio.png" alt="Relatórios" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Relatórios</span>
+        </a>
+        <a href="cantina.html" class="nav-item" data-role="cantina">
+          <span class="nav-icon"><img src="img/cantina.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;"></span>
+          <span>Cantina</span>
+        </a>
+        <a href="secretaria.html" class="nav-item" data-role="secretaria">
+          <span class="nav-icon"><img src="img/secretaria.png" alt="Secretaria" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Secretaria</span>
+        </a>
+        <span class="nav-section-label">Gestão</span>
+        <a href="teams.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/equipe.png" alt="Equipes" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Equipes</span>
+        </a>
+        <a href="athletes.html" class="nav-item" data-role="games">
+          <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Atletas</span>
+        </a>
+        <a href="churches.html" class="nav-item" data-role="admin">
+          <span class="nav-icon"><img src="img/igrejas.png" alt="Igrejas" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Igrejas</span>
+        </a>
+        <a href="settings.html" class="nav-item active" data-role="admin">
+          <span class="nav-icon"><img src="img/config.png" alt="Configurações" style="width:22px;height:22px;object-fit:contain;"></span>
+          <span>Configurações</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div class="user-name" id="user-name">Usuário</div>
+            <div class="user-role" id="user-role">Administrador</div>
+          </div>
+        </div>
+        <a data-role="admin" href="register.html" class="btn btn-secondary btn-sm" style="width:100%;margin-top:12px;justify-content:center;">Criar novo usuário</a>
+        <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">👤 Meu Perfil</a>
+        <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">Sair</button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
+        <div class="topbar-greeting">
+          <div class="topbar-greeting-main"><img src="img/config.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;">Configurações</div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <div id="toast-container" class="toast-container"></div>
+
+        <p class="page-sub">Configurações gerais do sistema. Apenas administradores têm acesso a esta página.</p>
+
+        <!-- Atalhos -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">🔗 Acesso Rápido</div>
+            </div>
+          </div>
+          <div class="shortcut-grid">
+            <a href="churches.html" class="shortcut-card">
+              <span class="sc-icon"><img src="img/igrejas.png" alt="" style="width:28px;height:28px;object-fit:contain;"></span>
+              <div>
+                <div class="sc-label">Igrejas & Presbitérios</div>
+                <div class="sc-sub">Gerenciar cadastros</div>
+              </div>
+            </a>
+            <a href="register.html" class="shortcut-card">
+              <span class="sc-icon">👤</span>
+              <div>
+                <div class="sc-label">Criar Usuário</div>
+                <div class="sc-sub">Adicionar novo acesso</div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Mapeamento de Modalidades -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">🔗 Mapeamento de Modalidades</div>
+              <div class="panel-desc" style="margin-top:4px;">
+                Configure como os nomes dos ingressos do e-inscrições são mapeados para as modalidades da plataforma.
+                A busca é <strong>case-insensitive e parcial</strong> — "futsal" encontra "Futsal Masculino [Quadra 01]".
+                Keywords mais longas têm prioridade.
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openCreateModal()">➕ Novo Mapeamento</button>
+          </div>
+
+          <!-- Teste ao vivo -->
+          <div class="test-box">
+            <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:6px;">🧪 Teste de mapeamento ao vivo</label>
+            <input type="text" id="test-input" placeholder="Cole aqui um nome de ingresso para testar... ex: Futsal Masculino [Quadra 01] (R$ 20,00)"
+              style="width:100%;padding:9px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:0.875rem;box-sizing:border-box;"
+              oninput="runLiveTest(this.value)">
+            <div class="test-result" id="test-result"></div>
+          </div>
+
+          <!-- Tabela -->
+          <div style="overflow-x:auto;">
+            <table id="mappings-table">
+              <thead>
+                <tr>
+                  <th>Palavra-chave</th>
+                  <th>Modalidade</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="mappings-tbody">
+                <tr class="empty-row"><td colspan="4">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal criar/editar mapeamento -->
+  <div class="modal-backdrop" id="mapping-modal">
+    <div class="modal-card">
+      <h2 class="modal-title" id="modal-title">Novo Mapeamento</h2>
+      <input type="hidden" id="modal-id">
+
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">Palavra-chave</label>
+        <input type="text" id="modal-keyword" class="form-control"
+          placeholder="ex: futsal, vôlei misto, categoria A...">
+        <div class="field-hint">A busca é case-insensitive e parcial. "futsal" já encontra "Futsal Masculino [Quadra 01] (R$ 20,00)".</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">Modalidade</label>
+        <select id="modal-slug" class="form-control">
+          <option value="">Selecione...</option>
+          <option value="futsal">⚽ Futsal</option>
+          <option value="volleyball">🏐 Vôlei</option>
+          <option value="basketball">🏀 Basquete</option>
+          <option value="running">🏃 Corrida</option>
+          <option value="tenis_mesa">🏓 Tênis de Mesa</option>
+          <option value="domino">🎲 Dominó</option>
+          <option value="xadrez">♟️ Xadrez</option>
+          <option value="dama">♟️ Dama</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:4px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">
+          <input type="checkbox" id="modal-active" checked style="width:16px;height:16px;cursor:pointer;">
+          Mapeamento ativo
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" id="modal-save-btn" onclick="saveMapping()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal confirmar exclusão -->
+  <div class="modal-backdrop" id="delete-modal">
+    <div class="modal-card" style="max-width:360px;">
+      <h2 class="modal-title">Confirmar exclusão</h2>
+      <p style="font-size:0.9rem;color:var(--text-secondary);margin:0 0 6px;">Deseja remover o mapeamento da palavra-chave:</p>
+      <p style="font-weight:700;font-size:1rem;margin:0 0 20px;" id="delete-keyword-label"></p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmDelete()">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container-fixed" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    requireAdminAccess();
+
+    var _mappings = [];
+    var _deleteId = null;
+
+    // ---- Slug helpers ----
+    var SLUG_NAMES = {
+      futsal:'Futsal', volleyball:'Vôlei', basketball:'Basquete',
+      running:'Corrida', tenis_mesa:'Tênis de Mesa',
+      domino:'Dominó', xadrez:'Xadrez', dama:'Dama'
+    };
+    var SLUG_ICONS = {
+      futsal:'⚽', volleyball:'🏐', basketball:'🏀', running:'🏃',
+      tenis_mesa:'🏓', domino:'🎲', xadrez:'♟️', dama:'♟️'
+    };
+    function slugLabel(slug) {
+      return (SLUG_ICONS[slug] || '🏅') + ' ' + (SLUG_NAMES[slug] || slug);
+    }
+
+    // ---- Load ----
+    async function loadMappings() {
+      var tbody = document.getElementById('mappings-tbody');
+      try {
+        _mappings = await MappingAPI.list();
+        renderTable();
+      } catch(e) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Erro ao carregar: ' + (e.message || '') + '</td></tr>';
+      }
+    }
+
+    function renderTable() {
+      var tbody = document.getElementById('mappings-tbody');
+      if (!_mappings.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum mapeamento cadastrado.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = _mappings.map(function(m) {
+        var badge = m.active
+          ? '<span class="badge-active">Ativo</span>'
+          : '<span class="badge-inactive">Inativo</span>';
+        return '<tr>'
+          + '<td><span style="font-weight:600;font-size:0.9rem;">' + esc(m.keyword) + '</span></td>'
+          + '<td><span class="slug-chip">' + slugLabel(m.sport_slug) + '</span></td>'
+          + '<td>' + badge + '</td>'
+          + '<td>'
+            + '<button class="action-btn" title="Editar" onclick="openEditModal(' + m.id + ')">✏️</button>'
+            + '<button class="action-btn" title="Excluir" onclick="openDeleteModal(' + m.id + ', \'' + esc(m.keyword) + '\')">🗑️</button>'
+          + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    // ---- Live test ----
+    function normForTest(s) {
+      s = s.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '');
+      s = s.toLowerCase().trim();
+      // remover acentos aproximado (client-side)
+      s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return s.replace(/\s+/g, ' ').trim();
+    }
+
+    function runLiveTest(value) {
+      var resultEl = document.getElementById('test-result');
+      if (!value.trim()) { resultEl.textContent = ''; resultEl.className = 'test-result'; return; }
+      var normalized = normForTest(value);
+      var active = _mappings.filter(function(m){ return m.active; });
+      active.sort(function(a,b){ return b.keyword.length - a.keyword.length; });
+      var match = null;
+      for (var i = 0; i < active.length; i++) {
+        var kw = normForTest(active[i].keyword);
+        if (kw && normalized.indexOf(kw) !== -1) { match = active[i]; break; }
+      }
+      if (match) {
+        resultEl.className = 'test-result mapped';
+        resultEl.textContent = '✅ Mapeado para: ' + (SLUG_NAMES[match.sport_slug] || match.sport_slug) + ' (keyword: "' + match.keyword + '")';
+      } else {
+        resultEl.className = 'test-result unmapped';
+        resultEl.textContent = '⚠️ Sem mapeamento — nenhuma keyword ativa encontrada no ingresso.';
+      }
+    }
+
+    // ---- Modal criar ----
+    function openCreateModal() {
+      document.getElementById('modal-title').textContent = 'Novo Mapeamento';
+      document.getElementById('modal-id').value = '';
+      document.getElementById('modal-keyword').value = '';
+      document.getElementById('modal-slug').value = '';
+      document.getElementById('modal-active').checked = true;
+      document.getElementById('modal-save-btn').textContent = 'Criar';
+      document.getElementById('mapping-modal').classList.add('open');
+      document.getElementById('modal-keyword').focus();
+    }
+
+    function openEditModal(id) {
+      var m = _mappings.find(function(x){ return x.id === id; });
+      if (!m) return;
+      document.getElementById('modal-title').textContent = 'Editar Mapeamento';
+      document.getElementById('modal-id').value = m.id;
+      document.getElementById('modal-keyword').value = m.keyword;
+      document.getElementById('modal-slug').value = m.sport_slug;
+      document.getElementById('modal-active').checked = m.active;
+      document.getElementById('modal-save-btn').textContent = 'Salvar';
+      document.getElementById('mapping-modal').classList.add('open');
+      document.getElementById('modal-keyword').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('mapping-modal').classList.remove('open');
+    }
+
+    async function saveMapping() {
+      var id      = document.getElementById('modal-id').value;
+      var keyword = document.getElementById('modal-keyword').value.trim();
+      var slug    = document.getElementById('modal-slug').value;
+      var active  = document.getElementById('modal-active').checked;
+
+      if (!keyword) { showToast('Informe a palavra-chave.', 'error'); return; }
+      if (!slug)    { showToast('Selecione a modalidade.', 'error'); return; }
+
+      var btn = document.getElementById('modal-save-btn');
+      btn.disabled = true;
+      try {
+        if (id) {
+          await MappingAPI.update(parseInt(id), { keyword, sport_slug: slug, active });
+          showToast('Mapeamento atualizado!', 'success');
+        } else {
+          await MappingAPI.create({ keyword, sport_slug: slug, active });
+          showToast('Mapeamento criado!', 'success');
+        }
+        closeModal();
+        loadMappings();
+      } catch(e) {
+        showToast(e.message || 'Erro ao salvar.', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ---- Modal excluir ----
+    function openDeleteModal(id, keyword) {
+      _deleteId = id;
+      document.getElementById('delete-keyword-label').textContent = '"' + keyword + '"';
+      document.getElementById('delete-modal').classList.add('open');
+    }
+
+    function closeDeleteModal() {
+      _deleteId = null;
+      document.getElementById('delete-modal').classList.remove('open');
+    }
+
+    async function confirmDelete() {
+      if (!_deleteId) return;
+      try {
+        await MappingAPI.delete(_deleteId);
+        showToast('Mapeamento removido.', 'success');
+        closeDeleteModal();
+        loadMappings();
+      } catch(e) {
+        showToast(e.message || 'Erro ao excluir.', 'error');
+      }
+    }
+
+    // Fechar modais ao clicar fora
+    ['mapping-modal', 'delete-modal'].forEach(function(id) {
+      document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) {
+          this.classList.remove('open');
+          _deleteId = null;
+        }
+      });
+    });
+
+    // ---- Toast ----
+    function showToast(msg, type) {
+      var c = document.getElementById('toast-container-fixed');
+      var t = document.createElement('div');
+      var bg = type === 'success' ? '#059669' : type === 'error' ? '#dc2626' : '#2563eb';
+      t.style.cssText = 'background:' + bg + ';color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.18);opacity:0;transition:opacity .25s;';
+      t.textContent = msg;
+      c.appendChild(t);
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ t.style.opacity = '1'; }); });
+      setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 3000);
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // ---- Init ----
+    loadMappings();
+  </script>
+</body>
+</html>

@@ -714,3 +714,25 @@ class Church(Base):
     __table_args__ = (
         Index("ix_churches_presbytery_id", "presbytery_id"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Modality Mappings
+# ---------------------------------------------------------------------------
+
+class ModalityMapping(Base):
+    __tablename__ = "modality_mappings"
+
+    id         = Column(Integer, primary_key=True)
+    keyword    = Column(String(200), nullable=False)
+    sport_slug = Column(String(50), nullable=False)
+    active     = Column(Boolean, default=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    creator = relationship("User", foreign_keys=[created_by])
+
+    __table_args__ = (
+        Index("ix_modality_mappings_keyword", "keyword"),
+        Index("ix_modality_mappings_slug", "sport_slug"),
+    )
