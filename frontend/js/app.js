@@ -116,6 +116,49 @@ function initSidebar() {
   });
 }
 
+// --- Sidebar Collapse (desktop) ---
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById('sidebar');
+  const layout  = document.querySelector('.app-layout');
+  const btn     = document.getElementById('sidebar-collapse-btn');
+  if (!sidebar) return;
+
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  layout?.classList.toggle('sidebar-collapsed', isCollapsed);
+  if (btn) btn.innerHTML = isCollapsed ? '&#8250;' : '&#8249;';
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const label = item.querySelector('span:not(.nav-icon)');
+    if (isCollapsed && label) {
+      item.setAttribute('data-label', label.textContent.trim());
+    } else {
+      item.removeAttribute('data-label');
+    }
+  });
+
+  localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0');
+}
+
+function initSidebarCollapse() {
+  const sidebar = document.getElementById('sidebar');
+  const layout  = document.querySelector('.app-layout');
+  const btn     = document.getElementById('sidebar-collapse-btn');
+  if (!sidebar) return;
+
+  const isCollapsed = localStorage.getItem('sidebarCollapsed') === '1';
+  if (isCollapsed) {
+    sidebar.classList.add('collapsed');
+    layout?.classList.add('sidebar-collapsed');
+    if (btn) btn.innerHTML = '&#8250;';
+    document.querySelectorAll('.nav-item').forEach(item => {
+      const label = item.querySelector('span:not(.nav-icon)');
+      if (label) item.setAttribute('data-label', label.textContent.trim());
+    });
+  }
+
+  btn?.addEventListener('click', toggleSidebarCollapse);
+}
+
 // Highlight active nav item
 function setActiveNav() {
   const page = window.location.pathname.split('/').pop() || 'index.html';
@@ -274,6 +317,7 @@ function getParam(key) { return new URLSearchParams(window.location.search).get(
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
   initSidebar();
+  initSidebarCollapse();
   setActiveNav();
   loadUserInfo();
   document.getElementById('logout-btn')?.addEventListener('click', logout);
