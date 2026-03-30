@@ -96,10 +96,6 @@
           <span class="nav-icon"><img src="img/atleta.png" alt="Atletas" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Atletas</span>
         </a>
-        <a href="churches.html" class="nav-item" data-role="admin">
-          <span class="nav-icon"><img src="img/igrejas.png" alt="Igrejas" style="width:22px;height:22px;object-fit:contain;"></span>
-          <span>Igrejas</span>
-        </a>
         <a href="settings.html" class="nav-item active" data-role="admin">
           <span class="nav-icon"><img src="img/config.png" alt="Configurações" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Configurações</span>
@@ -113,7 +109,6 @@
             <div class="user-role" id="user-role">Administrador</div>
           </div>
         </div>
-        <a data-role="admin" href="register.html" class="btn btn-secondary btn-sm" style="width:100%;margin-top:12px;justify-content:center;">Criar novo usuário</a>
         <a href="profile.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">👤 Meu Perfil</a>
         <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center;">Sair</button>
       </div>
@@ -150,7 +145,7 @@
               </div>
             </a>
             <a href="register.html" class="shortcut-card">
-              <span class="sc-icon">👤</span>
+              <span class="sc-icon"><img src="img/usuario.png" alt="" style="width:28px;height:28px;object-fit:contain;"></span>
               <div>
                 <div class="sc-label">Criar Usuário</div>
                 <div class="sc-sub">Adicionar novo acesso</div>
@@ -211,6 +206,8 @@
               </tbody>
             </table>
           </div>
+          <!-- Paginação -->
+          <div id="mappings-pagination" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;border-top:1px solid var(--border-color);"></div>
         </div>
 
       </main>
@@ -282,6 +279,8 @@
 
     var _mappings = [];
     var _deleteId = null;
+    var _mapPage  = 1;
+    var _mapPageSize = 20;
 
     // ---- Slug helpers ----
     var SLUG_NAMES = {
@@ -312,9 +311,13 @@
       var tbody = document.getElementById('mappings-tbody');
       if (!_mappings.length) {
         tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum mapeamento cadastrado.</td></tr>';
+        renderMapPagination();
         return;
       }
-      tbody.innerHTML = _mappings.map(function(m) {
+      var total  = _mappings.length;
+      var offset = (_mapPage - 1) * _mapPageSize;
+      var page   = _mappings.slice(offset, offset + _mapPageSize);
+      tbody.innerHTML = page.map(function(m) {
         var badge = m.active
           ? '<span class="badge-active">Ativo</span>'
           : '<span class="badge-inactive">Inativo</span>';
@@ -328,6 +331,36 @@
           + '</td>'
           + '</tr>';
       }).join('');
+      renderMapPagination();
+    }
+
+    function renderMapPagination() {
+      var wrap = document.getElementById('mappings-pagination');
+      if (!wrap) return;
+      var total = _mappings.length;
+      var totalPages = Math.ceil(total / _mapPageSize);
+      if (totalPages <= 1) {
+        wrap.innerHTML = total ? '<span style="font-size:0.82rem;color:var(--text-secondary);">' + total + ' mapeamento' + (total !== 1 ? 's' : '') + '</span>' : '';
+        return;
+      }
+      var start = (_mapPage - 1) * _mapPageSize + 1;
+      var end   = Math.min(_mapPage * _mapPageSize, total);
+      var btns  = '';
+      btns += '<button onclick="goMapPage(' + (_mapPage - 1) + ')" ' + (_mapPage === 1 ? 'disabled' : '') + ' style="padding:4px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-primary);cursor:pointer;font-size:13px;">‹</button>';
+      for (var p = 1; p <= totalPages; p++) {
+        var active = p === _mapPage ? 'background:#2563eb;color:#fff;border-color:#2563eb;' : '';
+        btns += '<button onclick="goMapPage(' + p + ')" style="padding:4px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-primary);cursor:pointer;font-size:13px;' + active + '">' + p + '</button>';
+      }
+      btns += '<button onclick="goMapPage(' + (_mapPage + 1) + ')" ' + (_mapPage === totalPages ? 'disabled' : '') + ' style="padding:4px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-primary);cursor:pointer;font-size:13px;">›</button>';
+      wrap.innerHTML = '<span style="font-size:0.82rem;color:var(--text-secondary);">' + start + '–' + end + ' de ' + total + '</span>'
+        + '<div style="display:flex;gap:4px;">' + btns + '</div>';
+    }
+
+    function goMapPage(p) {
+      var max = Math.ceil(_mappings.length / _mapPageSize);
+      if (p < 1 || p > max) return;
+      _mapPage = p;
+      renderTable();
     }
 
     // ---- Live test ----
