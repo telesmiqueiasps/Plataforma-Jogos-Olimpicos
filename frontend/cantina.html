@@ -180,8 +180,8 @@
         <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">&#9776;</button>
         <span class="topbar-title" id="topbar-title">🏪 Cantina</span>
         <div class="topbar-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <a href="cantina-select.html" class="btn btn-secondary btn-sm" style="font-size:12px;">🔀 Trocar PDV</a>
-          <a href="cantina-consolidado.html" class="btn btn-secondary btn-sm" style="font-size:12px;">📊 Consolidado</a>
+          <button onclick="switchPdv()" class="btn btn-secondary btn-sm" id="btn-switch-pdv" style="font-size:12px;">🔀 Trocar PDV</button>
+          <a href="cantina-consolidado.html" class="btn btn-secondary btn-sm" id="btn-consolidado" style="font-size:12px;display:none;">📊 Consolidado</a>
           <button id="theme-toggle" onclick="if(typeof toggleTheme==='function')toggleTheme();else{const t=localStorage.getItem('sp_theme')==='dark'?'light':'dark';localStorage.setItem('sp_theme',t);document.documentElement.setAttribute('data-theme',t);this.innerHTML=t==='dark'?'☀️':'🌙';}" title="Alternar tema">🌙</button>
         </div>
       </header>
@@ -621,9 +621,24 @@
         titleEl.textContent = '🏪 Cantina — PDV ' + currentPdvId + ' · Olá, ' + _firstName + '!';
       }
       document.title = 'Cantina PDV ' + currentPdvId + ' — Jogos Olímpicos Sinodal PB';
+
+      // Botão trocar PDV: mostra o PDV de destino
+      var btnSwitch = document.getElementById('btn-switch-pdv');
+      if (btnSwitch) btnSwitch.textContent = '🔀 PDV ' + (currentPdvId === 1 ? 2 : 1);
+
+      // Botão consolidado: só para admin
+      var _userRole = _user ? _user.role : (localStorage.getItem('sp_role') || '');
+      var btnConsolid = document.getElementById('btn-consolidado');
+      if (btnConsolid && _userRole === 'admin') btnConsolid.style.display = '';
+
       initTabNav();
       loadPDV();
     });
+
+    function switchPdv() {
+      var next = currentPdvId === 1 ? 2 : 1;
+      window.location.href = 'cantina.html?pdv=' + next;
+    }
 
     // ================================================================
     //  Tab navigation
