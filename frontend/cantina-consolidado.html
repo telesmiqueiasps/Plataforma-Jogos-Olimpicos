@@ -376,6 +376,7 @@
     var _lastS1 = null, _lastS2 = null, _lastConsol = null;
     var _lastOrders1 = [], _lastOrders2 = [];
     var _lastProds1 = [], _lastProds2 = [];
+    var _lastReport1 = null, _lastReport2 = null;
 
     document.addEventListener('DOMContentLoaded', function() {
       requireAdminAccess();
@@ -446,18 +447,22 @@
       summaryEl.innerHTML = '<div class="page-loading"><div class="spinner"></div><span>Carregando...</span></div>';
       ordersEl.innerHTML = '';
       try {
-        var [consol, orders1, orders2, prods1, prods2] = await Promise.all([
+        var [consol, orders1, orders2, prods1, prods2, report1, report2] = await Promise.all([
           CantinAPI.cash(Object.assign({}, dateParams || {})),
           CantinAPI.orders(Object.assign({}, dateParams || {}, { pdv_id: 1 })),
           CantinAPI.orders(Object.assign({}, dateParams || {}, { pdv_id: 2 })),
           CantinAPI.products({ pdv_id: 1 }),
           CantinAPI.products({ pdv_id: 2 }),
+          CantinAPI.report(Object.assign({}, dateParams || {}, { pdv_id: 1 })),
+          CantinAPI.report(Object.assign({}, dateParams || {}, { pdv_id: 2 })),
         ]);
         _lastOrders1 = orders1;
         _lastOrders2 = orders2;
         _lastConsol = consol;
         _lastProds1 = prods1 || [];
         _lastProds2 = prods2 || [];
+        _lastReport1 = report1 || null;
+        _lastReport2 = report2 || null;
         // Agregar qtd vendida por product_id (apenas pedidos pagos)
         var qtySold1 = {}, qtySold2 = {};
         (orders1 || []).forEach(function(o) {
@@ -474,7 +479,7 @@
             });
           }
         });
-        renderSummary(consol, orders1, orders2);
+        renderSummary(consol, orders1, orders2, report1, report2);
         renderOrders(orders1, orders2);
         renderStock(_lastProds1, _lastProds2, qtySold1, qtySold2);
       } catch(e) {
@@ -484,7 +489,22 @@
 
     // ── Resumo por coluna ──────────────────────────────────────────────
 
-    function summaryColHtml(s, title, icon, colClass) {
+    function calcFinancials(topProducts) {
+      var totalReceita = 0, totalCusto = 0, semCusto = 0;
+      (topProducts || []).forEach(function(p) {
+        totalReceita += p.total || 0;
+        if (p.cost_price != null) {
+          totalCusto += p.cost_price * p.qty;
+        } else {
+          semCusto++;
+        }
+      });
+      var lucro = totalReceita - totalCusto;
+      var margem = totalReceita > 0 ? (lucro / totalReceita * 100) : 0;
+      return { receita: totalReceita, custo: totalCusto, lucro: lucro, margem: margem, semCusto: semCusto };
+    }
+
+    function summaryColHtml(s, title, icon, colClass, report) {
       var paidPct = s.orders_count > 0 ? Math.round((s.orders_paid / s.orders_count) * 100) : 0;
       var estornoRow = '';
       if ((s.total_refunded||0) > 0 || (s.orders_refunded||0) > 0) {
@@ -495,6 +515,19 @@
           '</div>' +
           '<span class="stat-value" style="color:#dc2626;">- R$ ' + formatMoney(s.total_refunded||0) + '</span>' +
         '</div>';
+      }
+      var finRows = '';
+      if (report && report.top_products) {
+        var fin = calcFinancials(report.top_products);
+        var lucroColor = fin.lucro >= 0 ? '#059669' : '#dc2626';
+        finRows =
+          statRow('🏭', 'Custo Total', 'R$ ' + formatMoney(fin.custo), '') +
+          '<div class="stat-row highlight">' +
+            '<div class="stat-row-left"><div class="stat-icon">📈</div><span class="stat-label">Lucro Bruto</span></div>' +
+            '<span class="stat-value" style="color:' + lucroColor + ';">R$ ' + formatMoney(fin.lucro) + '</span>' +
+          '</div>' +
+          statRow('📊', 'Margem Média', fin.margem.toFixed(1) + '%', '') +
+          (fin.semCusto > 0 ? '<div style="font-size:11px;color:#92400e;padding:4px 18px;background:#fef3c7;">⚠️ ' + fin.semCusto + ' produto(s) sem custo</div>' : '');
       }
       return '<div class="summary-col ' + colClass + '">' +
         '<div class="summary-col-header">' +
@@ -510,6 +543,7 @@
           statRow('🛒', 'Total Vendas', 'R$ ' + formatMoney(s.total_vendas||0), 'highlight') +
           estornoRow +
           statRow('💰', 'Saldo', 'R$ ' + formatMoney(s.saldo||0), '') +
+          finRows +
         '</div>' +
       '</div>';
     }
@@ -524,7 +558,7 @@
       '</div>';
     }
 
-    async function renderSummary(consol, orders1, orders2) {
+    async function renderSummary(consol, orders1, orders2, report1, report2) {
       var dateParams = getDateParams();
       var [s1, s2] = await Promise.all([
         CantinAPI.cash(Object.assign({}, dateParams || {}, { pdv_id: 1 })),
@@ -532,12 +566,45 @@
       ]);
       _lastS1 = s1;
       _lastS2 = s2;
+
+      // Report consolidado: unir top_products dos dois PDVs
+      var allTopProducts = [];
+      if (report1 && report1.top_products) allTopProducts = allTopProducts.concat(report1.top_products);
+      if (report2 && report2.top_products) allTopProducts = allTopProducts.concat(report2.top_products);
+      var reportConsol = { top_products: allTopProducts };
+
+      // Cards consolidados de análise financeira
+      var finTotal = calcFinancials(allTopProducts);
+      var finCor = finTotal.lucro >= 0 ? '#059669' : '#dc2626';
+      var finCards = '';
+      if (allTopProducts.length > 0) {
+        finCards =
+          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;">' +
+            financialCard('💰', 'R$ ' + formatMoney(finTotal.receita), 'Receita Total', '') +
+            financialCard('🏭', 'R$ ' + formatMoney(finTotal.custo), 'Custo Total', '') +
+            financialCard('📈', 'R$ ' + formatMoney(finTotal.lucro), 'Lucro Bruto', finCor) +
+            financialCard('📊', finTotal.margem.toFixed(1) + '%', 'Margem Média', finCor) +
+          '</div>' +
+          (finTotal.semCusto > 0
+            ? '<div style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;">⚠️ ' + finTotal.semCusto + ' produto(s) sem custo de custo cadastrado — análise financeira incompleta</div>'
+            : '');
+      }
+
       document.getElementById('summary-section').innerHTML =
+        finCards +
         '<div class="summary-cols">' +
-          summaryColHtml(s1, 'PDV 1', '🏪', 'pdv1') +
-          summaryColHtml(s2, 'PDV 2', '🏪', 'pdv2') +
-          summaryColHtml(consol, 'Total Consolidado', '📊', 'total') +
+          summaryColHtml(s1, 'PDV 1', '🏪', 'pdv1', report1) +
+          summaryColHtml(s2, 'PDV 2', '🏪', 'pdv2', report2) +
+          summaryColHtml(consol, 'Total Consolidado', '📊', 'total', reportConsol) +
         '</div>';
+    }
+
+    function financialCard(icon, value, label, color) {
+      return '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;">' +
+        '<div style="font-size:28px;margin-bottom:6px;">' + icon + '</div>' +
+        '<div style="font-size:20px;font-weight:800;color:' + (color || 'var(--accent-blue,#2563eb)') + ';">' + value + '</div>' +
+        '<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">' + label + '</div>' +
+      '</div>';
     }
 
     // ── Lista de pedidos ───────────────────────────────────────────────
@@ -611,14 +678,25 @@
       var el = document.getElementById('stock-section');
 
       function statsFor(prods, qtySold) {
-        var totalSold = 0;
-        prods.forEach(function(p){ totalSold += (qtySold[p.id] || 0); });
+        var totalSold = 0, totalInvestido = 0, totalCustoEst = 0, totalValorEst = 0;
+        prods.forEach(function(p) {
+          var sold = qtySold[p.id] || 0;
+          totalSold += sold;
+          totalValorEst += p.price * p.stock;
+          if (p.cost_price != null) {
+            totalInvestido += p.cost_price * (p.stock + sold);
+            totalCustoEst  += p.cost_price * p.stock;
+          }
+        });
         return {
-          total:     prods.length,
-          normal:    prods.filter(function(p){ return p.stock > p.min_stock; }).length,
-          low:       prods.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length,
-          empty:     prods.filter(function(p){ return p.stock === 0; }).length,
-          totalSold: totalSold,
+          total:         prods.length,
+          normal:        prods.filter(function(p){ return p.stock > p.min_stock; }).length,
+          low:           prods.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length,
+          empty:         prods.filter(function(p){ return p.stock === 0; }).length,
+          totalSold:     totalSold,
+          totalInvestido: totalInvestido,
+          totalCustoEst:  totalCustoEst,
+          totalValorEst:  totalValorEst,
         };
       }
 
@@ -638,10 +716,14 @@
           return ra - rb || a.name.localeCompare(b.name);
         });
 
+        var totCustoEst = 0, totValorEst = 0, totSold = 0;
         var rows = sorted.map(function(p) {
           var sold    = qtySold[p.id] || 0;
           var initial = p.stock + sold;
           var rowClass = p.stock === 0 ? 'zero-stock' : (p.stock <= p.min_stock ? 'low-stock' : '');
+          totSold     += sold;
+          totValorEst += p.price * p.stock;
+          if (p.cost_price != null) totCustoEst += p.cost_price * p.stock;
 
           var statusBadge;
           if (p.stock === 0)
@@ -661,24 +743,44 @@
               ? '<span style="font-weight:800;color:#d97706;">' + p.stock + '</span>'
               : '<span style="font-weight:800;">' + p.stock + '</span>';
 
+          var custoUnit = p.cost_price != null ? 'R$ ' + formatMoney(p.cost_price) : '<span style="color:var(--text-muted);">—</span>';
+          var custoEst  = p.cost_price != null ? 'R$ ' + formatMoney(p.cost_price * p.stock) : '<span style="color:var(--text-muted);">—</span>';
+          var valorEst  = 'R$ ' + formatMoney(p.price * p.stock);
+
           return '<tr class="' + rowClass + '">' +
             '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
             '<td><span style="background:var(--bg-tertiary,#f0f2f7);padding:2px 8px;border-radius:10px;font-size:11px;">' + escHtml(p.category || '—') + '</span></td>' +
             '<td style="text-align:right;font-weight:700;">R$ ' + formatMoney(p.price) + '</td>' +
+            '<td style="text-align:right;">' + custoUnit + '</td>' +
             '<td style="text-align:center;color:var(--text-secondary);">' + initial + '</td>' +
             '<td style="text-align:center;">' + soldCell + '</td>' +
             '<td style="text-align:center;">' + currentCell + '</td>' +
+            '<td style="text-align:right;">' + custoEst + '</td>' +
+            '<td style="text-align:right;font-weight:600;color:var(--accent-blue,#2563eb);">' + valorEst + '</td>' +
             '<td style="text-align:center;color:var(--text-muted);">' + p.min_stock + '</td>' +
             '<td style="text-align:center;">' + statusBadge + '</td>' +
             '</tr>';
         }).join('');
 
+        rows += '<tr style="font-weight:700;background:var(--bg-secondary);">' +
+          '<td colspan="3">Totais</td>' +
+          '<td></td><td></td>' +
+          '<td style="text-align:center;font-weight:800;color:#2563eb;">' + totSold + '</td>' +
+          '<td></td>' +
+          '<td style="text-align:right;">R$ ' + formatMoney(totCustoEst) + '</td>' +
+          '<td style="text-align:right;color:var(--accent-blue,#2563eb);">R$ ' + formatMoney(totValorEst) + '</td>' +
+          '<td></td><td></td>' +
+          '</tr>';
+
         return '<table class="stock-table"><thead><tr>' +
           '<th>Produto</th><th>Categoria</th>' +
           '<th style="text-align:right;">Preço</th>' +
+          '<th style="text-align:right;">Custo Unit.</th>' +
           '<th style="text-align:center;">Est. Inicial</th>' +
           '<th style="text-align:center;">Qtd. Vendida</th>' +
           '<th style="text-align:center;">Est. Atual</th>' +
+          '<th style="text-align:right;">Custo em Est.</th>' +
+          '<th style="text-align:right;">Val. em Est.</th>' +
           '<th style="text-align:center;">Mínimo</th>' +
           '<th style="text-align:center;">Status</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table>';
@@ -687,12 +789,21 @@
       var st1 = statsFor(prods1, qtySold1);
       var st2 = statsFor(prods2, qtySold2);
       var stAll = {
-        total:     st1.total     + st2.total,
-        normal:    st1.normal    + st2.normal,
-        low:       st1.low       + st2.low,
-        empty:     st1.empty     + st2.empty,
-        totalSold: st1.totalSold + st2.totalSold,
+        total:          st1.total          + st2.total,
+        normal:         st1.normal         + st2.normal,
+        low:            st1.low            + st2.low,
+        empty:          st1.empty          + st2.empty,
+        totalSold:      st1.totalSold      + st2.totalSold,
+        totalInvestido: st1.totalInvestido + st2.totalInvestido,
+        totalCustoEst:  st1.totalCustoEst  + st2.totalCustoEst,
+        totalValorEst:  st1.totalValorEst  + st2.totalValorEst,
       };
+
+      // Cobertura consolidada
+      var receitaTotal = (_lastS1 && _lastS2)
+        ? ((_lastS1.total_vendas||0) + (_lastS2.total_vendas||0))
+        : 0;
+      var cobertura = stAll.totalInvestido > 0 ? (receitaTotal / stAll.totalInvestido * 100) : null;
 
       // Pills consolidadas
       var html = '<div class="stock-pills">' +
@@ -701,6 +812,14 @@
         pill('✅', stAll.normal,     'Normal',         'normal') +
         pill('⚠️', stAll.low,        'Estoque Baixo',  'low') +
         pill('❌', stAll.empty,      'Sem Estoque',    stAll.empty > 0 ? 'empty' : '') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">' +
+        financialCard('💸', 'R$ ' + formatMoney(stAll.totalInvestido), 'Custo Total Investido', '') +
+        financialCard('🏭', 'R$ ' + formatMoney(stAll.totalCustoEst),  'Custo em Estoque', '') +
+        financialCard('🏪', 'R$ ' + formatMoney(stAll.totalValorEst),  'Valor em Estoque', 'var(--accent-blue,#2563eb)') +
+        (cobertura !== null
+          ? financialCard(cobertura >= 100 ? '✅' : '⚠️', cobertura.toFixed(1) + '%', 'Cobertura do Investimento', cobertura >= 100 ? '#059669' : '#dc2626')
+          : '') +
       '</div>';
 
       // PDV 1
@@ -741,7 +860,7 @@
         var dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
 
         // Gerar HTML do PDF
-        pdfEl.innerHTML = buildPdfHtml(_lastS1, _lastS2, _lastConsol, _lastOrders1, _lastOrders2, _lastProds1, _lastProds2, periodLabel, dateStr);
+        pdfEl.innerHTML = buildPdfHtml(_lastS1, _lastS2, _lastConsol, _lastOrders1, _lastOrders2, _lastProds1, _lastProds2, _lastReport1, _lastReport2, periodLabel, dateStr);
         pdfEl.classList.add('rendering');
 
         // Aguardar render
@@ -781,7 +900,7 @@
       }
     }
 
-    function buildPdfHtml(s1, s2, consol, orders1, orders2, prods1, prods2, periodLabel, dateStr) {
+    function buildPdfHtml(s1, s2, consol, orders1, orders2, prods1, prods2, report1, report2, periodLabel, dateStr) {
       var all = (orders1||[]).map(function(o){ return Object.assign({},o,{_pdv:1}); })
         .concat((orders2||[]).map(function(o){ return Object.assign({},o,{_pdv:2}); }))
         .sort(function(a,b){ return b.id - a.id; });
@@ -797,12 +916,30 @@
         '</div>' +
       '</div>';
 
+      // Análise financeira consolidada
+      var allTop = [];
+      if (report1 && report1.top_products) allTop = allTop.concat(report1.top_products);
+      if (report2 && report2.top_products) allTop = allTop.concat(report2.top_products);
+      var finC = calcFinancials(allTop);
+      var finCorPdf = finC.lucro >= 0 ? '#065f46' : '#dc2626';
+      if (allTop.length > 0) {
+        html += '<div style="display:flex;background:#f8f9fc;border:1px solid #e2e6ef;border-radius:10px;margin-bottom:16px;overflow:hidden;">' +
+          pdfFinCard('💰 Receita Total', 'R$ ' + formatMoney(finC.receita), '#1a1d2e') +
+          pdfFinCard('🏭 Custo Total', 'R$ ' + formatMoney(finC.custo), '#dc2626') +
+          pdfFinCard('📈 Lucro Bruto', 'R$ ' + formatMoney(finC.lucro), finCorPdf) +
+          pdfFinCard('📊 Margem Média', finC.margem.toFixed(1) + '%', finCorPdf) +
+        '</div>';
+        if (finC.semCusto > 0) {
+          html += '<div style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11px;">⚠️ ' + finC.semCusto + ' produto(s) sem custo cadastrado — análise incompleta</div>';
+        }
+      }
+
       // Resumo financeiro
-      html += '<div class="pdf-section-title">Resumo Financeiro</div>';
+      html += '<div class="pdf-section-title">Resumo Financeiro por PDV</div>';
       html += '<div class="pdf-cols">' +
-        buildPdfCol(s1, 'PDV 1', 'pdv1') +
-        buildPdfCol(s2, 'PDV 2', 'pdv2') +
-        buildPdfCol(consol, 'Total Consolidado', 'total') +
+        buildPdfCol(s1, 'PDV 1', 'pdv1', report1) +
+        buildPdfCol(s2, 'PDV 2', 'pdv2', report2) +
+        buildPdfCol(consol, 'Total Consolidado', 'total', { top_products: allTop }) +
       '</div>';
 
       // Tabela de pedidos
@@ -862,8 +999,12 @@
           var rb = b.stock === 0 ? 0 : (b.stock <= b.min_stock ? 1 : 2);
           return ra - rb || a.name.localeCompare(b.name);
         });
-        var totalSold = 0;
-        prods.forEach(function(p){ totalSold += (qtySold[p.id] || 0); });
+        var totalSold = 0, totCustoEst = 0, totValorEst = 0;
+        prods.forEach(function(p) {
+          totalSold   += (qtySold[p.id] || 0);
+          totValorEst += p.price * p.stock;
+          if (p.cost_price != null) totCustoEst += p.cost_price * p.stock;
+        });
 
         var rows = sorted.map(function(p) {
           var sold    = qtySold[p.id] || 0;
@@ -874,17 +1015,31 @@
             : p.stock <= p.min_stock
               ? '<span class="pdf-badge pdf-badge-pending">⚠️ Baixo</span>'
               : '<span class="pdf-badge pdf-badge-paid">Normal</span>';
+          var custoUnit = p.cost_price != null ? 'R$ ' + formatMoney(p.cost_price) : '—';
+          var custoEst  = p.cost_price != null ? 'R$ ' + formatMoney(p.cost_price * p.stock) : '—';
+          var valorEst  = 'R$ ' + formatMoney(p.price * p.stock);
           return '<tr style="' + rowStyle + '">' +
             '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
             '<td style="color:#4a5068;">' + escHtml(p.category || '—') + '</td>' +
             '<td style="text-align:right;">R$ ' + formatMoney(p.price) + '</td>' +
+            '<td style="text-align:right;color:#4a5068;">' + custoUnit + '</td>' +
             '<td style="text-align:center;color:#4a5068;">' + initial + '</td>' +
             '<td style="text-align:center;font-weight:700;color:' + (sold > 0 ? '#2563eb' : '#8b92a9') + ';">' + (sold > 0 ? sold : '—') + '</td>' +
             '<td style="text-align:center;font-weight:800;color:' + (p.stock === 0 ? '#dc2626' : p.stock <= p.min_stock ? '#d97706' : '#1a1d2e') + ';">' + p.stock + '</td>' +
-            '<td style="text-align:center;color:#8b92a9;">' + p.min_stock + '</td>' +
+            '<td style="text-align:right;">' + custoEst + '</td>' +
+            '<td style="text-align:right;font-weight:600;color:#2563eb;">' + valorEst + '</td>' +
             '<td style="text-align:center;">' + status + '</td>' +
             '</tr>';
         }).join('');
+
+        rows += '<tr style="background:#f8f9fc;font-weight:700;">' +
+          '<td colspan="5">Totais</td>' +
+          '<td style="text-align:center;color:#2563eb;">' + totalSold + '</td>' +
+          '<td></td>' +
+          '<td style="text-align:right;">R$ ' + formatMoney(totCustoEst) + '</td>' +
+          '<td style="text-align:right;color:#2563eb;">R$ ' + formatMoney(totValorEst) + '</td>' +
+          '<td></td>' +
+          '</tr>';
 
         var emptyCount = prods.filter(function(p){ return p.stock === 0; }).length;
         var lowCount   = prods.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length;
@@ -894,14 +1049,42 @@
           (lowCount   ? ' &nbsp;·&nbsp; <span style="color:#d97706;">' + lowCount + ' estoque baixo</span>' : '') +
           '</div>' +
           '<table class="pdf-orders-table">' +
-          '<thead><tr><th>Produto</th><th>Categoria</th><th style="text-align:right;">Preço</th><th style="text-align:center;">Est.Inicial</th><th style="text-align:center;">Vendido</th><th style="text-align:center;">Est.Atual</th><th style="text-align:center;">Mínimo</th><th style="text-align:center;">Status</th></tr></thead>' +
+          '<thead><tr><th>Produto</th><th>Cat.</th><th style="text-align:right;">Preço</th><th style="text-align:right;">Custo Unit.</th><th style="text-align:center;">Est.Inicial</th><th style="text-align:center;">Vendido</th><th style="text-align:center;">Est.Atual</th><th style="text-align:right;">Custo Est.</th><th style="text-align:right;">Val. Est.</th><th style="text-align:center;">Status</th></tr></thead>' +
           '<tbody>' + rows + '</tbody></table>';
       }
 
       if ((prods1 && prods1.length) || (prods2 && prods2.length)) {
         var qs1 = pdfQtySold(orders1);
         var qs2 = pdfQtySold(orders2);
+
+        // Calcular totais financeiros de estoque
+        function stockFinTotals(prods, qtySold) {
+          var inv = 0, custoEst = 0, valorEst = 0;
+          prods.forEach(function(p) {
+            var sold = qtySold[p.id] || 0;
+            valorEst += p.price * p.stock;
+            if (p.cost_price != null) {
+              inv      += p.cost_price * (p.stock + sold);
+              custoEst += p.cost_price * p.stock;
+            }
+          });
+          return { inv: inv, custoEst: custoEst, valorEst: valorEst };
+        }
+        var sf1 = stockFinTotals(prods1 || [], qs1);
+        var sf2 = stockFinTotals(prods2 || [], qs2);
+        var sfAll = { inv: sf1.inv + sf2.inv, custoEst: sf1.custoEst + sf2.custoEst, valorEst: sf1.valorEst + sf2.valorEst };
+        var recTotal = ((s1 && s1.total_vendas) || 0) + ((s2 && s2.total_vendas) || 0);
+        var cobPdf = sfAll.inv > 0 ? (recTotal / sfAll.inv * 100) : null;
+        var cobColor = cobPdf !== null ? (cobPdf >= 100 ? '#065f46' : '#dc2626') : '#4a5068';
+
         html += '<div class="pdf-section-title" style="margin-top:12px;">Estoque de Produtos</div>';
+        html += '<div style="display:flex;background:#f8f9fc;border:1px solid #e2e6ef;border-radius:10px;margin-bottom:12px;overflow:hidden;">' +
+          pdfFinCard('💸 Custo Total Investido', 'R$ ' + formatMoney(sfAll.inv), '#dc2626') +
+          pdfFinCard('🏭 Custo em Estoque', 'R$ ' + formatMoney(sfAll.custoEst), '#4a5068') +
+          pdfFinCard('🏪 Valor em Estoque', 'R$ ' + formatMoney(sfAll.valorEst), '#2563eb') +
+          (cobPdf !== null ? pdfFinCard((cobPdf >= 100 ? '✅' : '⚠️') + ' Cobertura do Investimento', cobPdf.toFixed(1) + '%', cobColor) : '') +
+        '</div>';
+
         html += pdfStockTable(prods1 || [], qs1, 'PDV 1', '#2563eb');
         html += pdfStockTable(prods2 || [], qs2, 'PDV 2', '#059669');
       }
@@ -914,12 +1097,21 @@
       return html;
     }
 
-    function buildPdfCol(s, title, colClass) {
+    function buildPdfCol(s, title, colClass, report) {
       if (!s) s = {};
       var paidPct = s.orders_count > 0 ? Math.round((s.orders_paid / s.orders_count) * 100) : 0;
       var estornoRow = (s.total_refunded||0) > 0 || (s.orders_refunded||0) > 0
         ? '<div class="pdf-stat"><span class="pdf-stat-label">↩️ Estornos (' + (s.orders_refunded||0) + ')</span><span class="pdf-stat-value" style="color:#dc2626;">- R$ ' + formatMoney(s.total_refunded||0) + '</span></div>'
         : '';
+      var finRows = '';
+      if (report && report.top_products) {
+        var fin = calcFinancials(report.top_products);
+        var lc = fin.lucro >= 0 ? '#065f46' : '#dc2626';
+        finRows =
+          '<div class="pdf-stat"><span class="pdf-stat-label">🏭 Custo Total</span><span class="pdf-stat-value" style="color:#dc2626;">R$ ' + formatMoney(fin.custo) + '</span></div>' +
+          '<div class="pdf-stat highlight"><span class="pdf-stat-label">📈 Lucro Bruto</span><span class="pdf-stat-value" style="color:' + lc + ';">R$ ' + formatMoney(fin.lucro) + '</span></div>' +
+          '<div class="pdf-stat"><span class="pdf-stat-label">📊 Margem Média</span><span class="pdf-stat-value" style="color:' + lc + ';">' + fin.margem.toFixed(1) + '%</span></div>';
+      }
       return '<div class="pdf-col ' + colClass + '">' +
         '<div class="pdf-col-head">' + title + '</div>' +
         '<div class="pdf-stat"><span class="pdf-stat-label">💵 Dinheiro</span><span class="pdf-stat-value">R$ ' + formatMoney(s.total_dinheiro||0) + '</span></div>' +
@@ -928,6 +1120,14 @@
         estornoRow +
         '<div class="pdf-stat"><span class="pdf-stat-label">💰 Saldo</span><span class="pdf-stat-value">R$ ' + formatMoney(s.saldo||0) + '</span></div>' +
         '<div class="pdf-stat"><span class="pdf-stat-label">🧾 Pagos/Total</span><span class="pdf-stat-value">' + (s.orders_paid||0) + '/' + (s.orders_count||0) + ' (' + paidPct + '%)</span></div>' +
+        finRows +
+      '</div>';
+    }
+
+    function pdfFinCard(label, value, color) {
+      return '<div style="flex:1;padding:12px 8px;text-align:center;border-right:1px solid #e2e6ef;">' +
+        '<div style="font-size:14px;font-weight:800;color:' + color + ';">' + value + '</div>' +
+        '<div style="font-size:9px;color:#4a5068;margin-top:3px;text-transform:uppercase;letter-spacing:.5px;">' + label + '</div>' +
       '</div>';
     }
 
