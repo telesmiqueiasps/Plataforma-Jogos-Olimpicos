@@ -345,6 +345,34 @@
             </div>
           </div>
 
+          <!-- Análise de Custo x Lucro -->
+          <div id="financial-cards" class="cash-grid" style="margin-bottom:16px;"></div>
+          <div id="cost-warning" style="display:none;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;"></div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">💰 Análise de Custo x Lucro por Produto</span></div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table class="prod-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th style="text-align:right;">Custo Unit.</th>
+                      <th style="text-align:right;">Preço Venda</th>
+                      <th style="text-align:right;">Margem %</th>
+                      <th style="text-align:center;">Qtd Vendida</th>
+                      <th style="text-align:right;">Custo Total</th>
+                      <th style="text-align:right;">Receita</th>
+                      <th style="text-align:right;">Lucro</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cost-analysis-tbody">
+                    <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- ======================================================= -->
@@ -432,12 +460,24 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Preço (R$) *</label>
+            <label>Preço de Venda (R$) *</label>
             <input type="number" id="product-price" class="form-control" placeholder="5.00" step="0.01" min="0">
+            <div id="price-hint" style="display:none;color:#059669;font-size:13px;margin-top:4px;"></div>
+            <button type="button" id="apply-suggested" style="display:none;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;margin-top:4px;">Aplicar preço sugerido</button>
           </div>
           <div class="form-group">
             <label>Estoque inicial</label>
             <input type="number" id="product-stock" class="form-control" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Preço de Custo (R$)</label>
+            <input type="number" id="prod-cost" class="form-control" placeholder="0.00" step="0.01" min="0" oninput="updateSuggestedPrice()">
+          </div>
+          <div class="form-group">
+            <label>Margem de Lucro (%)</label>
+            <input type="number" id="prod-margin" class="form-control" placeholder="0" step="1" min="0" max="1000" oninput="updateSuggestedPrice()">
           </div>
         </div>
         <div class="form-row">
@@ -946,6 +986,25 @@
       preview.innerHTML = '<img src="' + escHtml(url) + '" style="width:60px;height:60px;border-radius:8px;object-fit:cover;" onerror="this.parentElement.innerHTML=\'🛒\'">';
     }
 
+    function updateSuggestedPrice() {
+      var cost = parseFloat(document.getElementById('prod-cost').value) || 0;
+      var margin = parseFloat(document.getElementById('prod-margin').value) || 0;
+      if (cost > 0 && margin > 0) {
+        var suggested = cost * (1 + margin / 100);
+        var hint = document.getElementById('price-hint');
+        hint.textContent = '💡 Preço sugerido: R$ ' + suggested.toFixed(2);
+        hint.style.display = 'block';
+        var applyBtn = document.getElementById('apply-suggested');
+        applyBtn.style.display = 'inline-block';
+        applyBtn.onclick = function() {
+          document.getElementById('product-price').value = suggested.toFixed(2);
+        };
+      } else {
+        document.getElementById('price-hint').style.display = 'none';
+        document.getElementById('apply-suggested').style.display = 'none';
+      }
+    }
+
     function openProductModal(product) {
       document.getElementById('modal-product-title').textContent = product && product.id ? 'Editar Produto' : 'Novo Produto';
       document.getElementById('product-id').value = product && product.id ? product.id : '';
@@ -956,6 +1015,10 @@
       document.getElementById('product-min-stock').value = product ? product.min_stock : '5';
       document.getElementById('product-active').checked = product ? product.active : true;
       document.getElementById('product-desc').value = product ? (product.description || '') : '';
+      document.getElementById('prod-cost').value = product && product.cost_price != null ? product.cost_price : '';
+      document.getElementById('prod-margin').value = product && product.profit_margin != null ? product.profit_margin : '';
+      document.getElementById('price-hint').style.display = 'none';
+      document.getElementById('apply-suggested').style.display = 'none';
       var imageUrl = product ? (product.image_url || '') : '';
       document.getElementById('product-image-url').value = imageUrl;
       previewProductImage(imageUrl);
@@ -971,6 +1034,8 @@
         previewProductImage('');
         return;
       }
+      var costVal = parseFloat(document.getElementById('prod-cost').value);
+      var marginVal = parseFloat(document.getElementById('prod-margin').value);
       var data = {
         name: document.getElementById('product-name').value.trim(),
         category: document.getElementById('product-category').value.trim() || null,
@@ -980,6 +1045,8 @@
         active: document.getElementById('product-active').checked,
         description: document.getElementById('product-desc').value.trim() || null,
         image_url: imageUrl || null,
+        cost_price: (!isNaN(costVal) && costVal > 0) ? costVal : null,
+        profit_margin: (!isNaN(marginVal) && marginVal > 0) ? marginVal : null,
       };
       if (!data.name || isNaN(data.price)) { showToast('Preencha nome e preço.', 'error'); return; }
       var btn = document.getElementById('btn-save-product');
@@ -1288,8 +1355,92 @@
         reportData = await CantinAPI.report(reportParams);
         renderReportSummary(reportData);
         renderTopProducts(reportData.top_products || []);
+        renderCostAnalysis(reportData.top_products || []);
       } catch(e) {
         showToast('Erro ao carregar relatório: ' + e.message, 'error');
+      }
+    }
+
+    function renderCostAnalysis(topProducts) {
+      var totalReceita = 0, totalCusto = 0, totalQty = 0, semCusto = 0;
+      var rows = '';
+
+      topProducts.forEach(function(p) {
+        var qty = p.qty;
+        var price = p.price != null ? p.price : (qty > 0 ? p.total / qty : 0);
+        var cost = p.cost_price;
+        var receita = p.total;
+        totalQty += qty;
+
+        if (cost != null) {
+          var custoTotal = cost * qty;
+          var lucro = receita - custoTotal;
+          var margem = receita > 0 ? ((lucro / receita) * 100) : 0;
+          totalReceita += receita;
+          totalCusto += custoTotal;
+          var lucroCor = lucro >= 0 ? '#059669' : '#dc2626';
+          rows += '<tr>' +
+            '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+            '<td style="text-align:right;">R$ ' + formatMoney(cost) + '</td>' +
+            '<td style="text-align:right;">R$ ' + formatMoney(price) + '</td>' +
+            '<td style="text-align:right;">' + margem.toFixed(1) + '%</td>' +
+            '<td style="text-align:center;font-weight:700;">' + qty + '</td>' +
+            '<td style="text-align:right;">R$ ' + formatMoney(custoTotal) + '</td>' +
+            '<td style="text-align:right;">R$ ' + formatMoney(receita) + '</td>' +
+            '<td style="text-align:right;font-weight:700;color:' + lucroCor + ';">R$ ' + formatMoney(lucro) + '</td>' +
+            '</tr>';
+        } else {
+          semCusto++;
+          totalReceita += receita;
+          rows += '<tr>' +
+            '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+            '<td style="text-align:center;color:var(--text-muted);">—</td>' +
+            '<td style="text-align:right;">R$ ' + formatMoney(price) + '</td>' +
+            '<td style="text-align:center;color:var(--text-muted);">—</td>' +
+            '<td style="text-align:center;font-weight:700;">' + qty + '</td>' +
+            '<td style="text-align:center;color:var(--text-muted);">—</td>' +
+            '<td style="text-align:right;">R$ ' + formatMoney(receita) + '</td>' +
+            '<td style="text-align:center;color:var(--text-muted);">—</td>' +
+            '</tr>';
+        }
+      });
+
+      var lucroTotal = totalReceita - totalCusto;
+      var margemMedia = totalReceita > 0 ? (lucroTotal / totalReceita * 100) : 0;
+      var lucroTotalCor = lucroTotal >= 0 ? '#059669' : '#dc2626';
+
+      if (topProducts.length > 0) {
+        rows += '<tr style="font-weight:700;background:var(--bg-secondary);">' +
+          '<td>Total</td>' +
+          '<td style="text-align:center;">—</td>' +
+          '<td style="text-align:center;">—</td>' +
+          '<td style="text-align:right;">' + margemMedia.toFixed(1) + '%</td>' +
+          '<td style="text-align:center;">' + totalQty + ' itens</td>' +
+          '<td style="text-align:right;">R$ ' + formatMoney(totalCusto) + '</td>' +
+          '<td style="text-align:right;">R$ ' + formatMoney(totalReceita) + '</td>' +
+          '<td style="text-align:right;color:' + lucroTotalCor + ';">R$ ' + formatMoney(lucroTotal) + '</td>' +
+          '</tr>';
+      } else {
+        rows = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhuma venda registrada no período.</td></tr>';
+      }
+
+      document.getElementById('cost-analysis-tbody').innerHTML = rows;
+
+      var lucroCorCard = lucroTotal >= 0 ? 'var(--accent-teal,#00d4aa)' : '#dc2626';
+      document.getElementById('financial-cards').innerHTML =
+        cashCard('💰', 'R$ ' + formatMoney(totalReceita), 'Receita Total') +
+        cashCard('🏭', 'R$ ' + formatMoney(totalCusto), 'Custo Total') +
+        '<div class="cash-card"><div class="c-icon">📈</div>' +
+          '<div class="c-value" style="color:' + lucroCorCard + ';">R$ ' + formatMoney(lucroTotal) + '</div>' +
+          '<div class="c-label">Lucro Bruto</div></div>' +
+        cashCard('📊', margemMedia.toFixed(1) + '%', 'Margem Média');
+
+      var warningEl = document.getElementById('cost-warning');
+      if (semCusto > 0) {
+        warningEl.textContent = '⚠️ ' + semCusto + ' produto(s) sem custo cadastrado — análise incompleta';
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
       }
     }
 
@@ -1458,11 +1609,12 @@
         // Buscar todos os dados
         var dateParams = getDateParams();
         var params = Object.assign({}, dateParams || {}, { pdv_id: currentPdvId });
-        var [summary, orders, flows, stockProducts] = await Promise.all([
+        var [summary, orders, flows, stockProducts, reportForPdf] = await Promise.all([
           CantinAPI.cash(params),
           CantinAPI.orders(params),
           CantinAPI.cashFlow(params),
           CantinAPI.products({ pdv_id: currentPdvId }),
+          CantinAPI.report(params),
         ]);
 
         // Movimentações manuais — excluir registros antigos de estorno (já contabilizados nos pedidos)
@@ -1534,7 +1686,7 @@
           m.balance = running;
         });
 
-        var html = buildExtratoPDFHTML(pdfTotals, movements, stockProducts || []);
+        var html = buildExtratoPDFHTML(pdfTotals, movements, stockProducts || [], (reportForPdf && reportForPdf.top_products) || []);
         var area = document.getElementById('pdf-render-area');
         area.innerHTML = html;
         await new Promise(function(r){ setTimeout(r, 500); });
@@ -1559,7 +1711,7 @@
       }
     }
 
-    function buildExtratoPDFHTML(pdfTotals, movements, stockProducts) {
+    function buildExtratoPDFHTML(pdfTotals, movements, stockProducts, topProducts) {
       var styles = '<style>* { box-sizing:border-box; margin:0; padding:0; } body { font-family:Arial,sans-serif; font-size:11px; color:#1a1d2e; background:#fff; } table { border-collapse:collapse; width:100%; } th { background:#2563eb; color:#fff; padding:7px 10px; text-align:left; font-size:10px; text-transform:uppercase; } td { padding:6px 10px; border-bottom:1px solid #e2e6ef; font-size:11px; } tr:nth-child(even) td { background:#f8f9fc; } .entrada { color:#065f46; font-weight:700; } .saida { color:#991b1b; font-weight:700; } .estorno { color:#7f1d1d; font-weight:700; } .stock-empty td { background:#fff0f0; } .stock-low td { background:#fffbeb; }</style>';
 
       var now = new Date();
@@ -1650,7 +1802,85 @@
         stockHtml += '</table></div>';
       }
 
-      return '<div style="width:794px;background:#fff;">' + styles + header + summaryHtml + tableHtml + stockHtml + footer + '</div>';
+      // Análise financeira
+      var finHtml = '';
+      if (topProducts && topProducts.length) {
+        var finTotalReceita = 0, finTotalCusto = 0, finTotalQty = 0, finSemCusto = 0;
+        var finRows = '';
+        topProducts.forEach(function(p) {
+          var qty = p.qty;
+          var price = p.price != null ? p.price : (qty > 0 ? p.total / qty : 0);
+          var cost = p.cost_price;
+          finTotalQty += qty;
+          finTotalReceita += p.total;
+          if (cost != null) {
+            var custoTotal = cost * qty;
+            var lucro = p.total - custoTotal;
+            var margem = p.total > 0 ? ((lucro / p.total) * 100) : 0;
+            finTotalCusto += custoTotal;
+            var lucroBg = lucro >= 0 ? '#f0fdf4' : '#fee2e2';
+            var lucroColor = lucro >= 0 ? '#065f46' : '#991b1b';
+            finRows += '<tr style="background:' + lucroBg + ';">' +
+              '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+              '<td style="text-align:right;">R$ ' + formatMoney(cost) + '</td>' +
+              '<td style="text-align:right;">R$ ' + formatMoney(price) + '</td>' +
+              '<td style="text-align:right;">' + margem.toFixed(1) + '%</td>' +
+              '<td style="text-align:center;font-weight:700;">' + qty + '</td>' +
+              '<td style="text-align:right;">R$ ' + formatMoney(custoTotal) + '</td>' +
+              '<td style="text-align:right;">R$ ' + formatMoney(p.total) + '</td>' +
+              '<td style="text-align:right;font-weight:700;color:' + lucroColor + ';">R$ ' + formatMoney(lucro) + '</td>' +
+              '</tr>';
+          } else {
+            finSemCusto++;
+            finRows += '<tr>' +
+              '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
+              '<td style="text-align:center;color:#8b92a9;">—</td>' +
+              '<td style="text-align:right;">R$ ' + formatMoney(price) + '</td>' +
+              '<td style="text-align:center;color:#8b92a9;">—</td>' +
+              '<td style="text-align:center;font-weight:700;">' + qty + '</td>' +
+              '<td style="text-align:center;color:#8b92a9;">—</td>' +
+              '<td style="text-align:right;">R$ ' + formatMoney(p.total) + '</td>' +
+              '<td style="text-align:center;color:#8b92a9;">—</td>' +
+              '</tr>';
+          }
+        });
+        var finLucro = finTotalReceita - finTotalCusto;
+        var finMargemMedia = finTotalReceita > 0 ? (finLucro / finTotalReceita * 100) : 0;
+        var finLucroColor = finLucro >= 0 ? '#065f46' : '#dc2626';
+        finRows += '<tr style="background:#f8f9fc;font-weight:700;">' +
+          '<td>Total</td>' +
+          '<td style="text-align:center;">—</td>' +
+          '<td style="text-align:center;">—</td>' +
+          '<td style="text-align:right;">' + finMargemMedia.toFixed(1) + '%</td>' +
+          '<td style="text-align:center;">' + finTotalQty + ' itens</td>' +
+          '<td style="text-align:right;">R$ ' + formatMoney(finTotalCusto) + '</td>' +
+          '<td style="text-align:right;">R$ ' + formatMoney(finTotalReceita) + '</td>' +
+          '<td style="text-align:right;color:' + finLucroColor + ';">R$ ' + formatMoney(finLucro) + '</td>' +
+          '</tr>';
+        var finResultLabel = finLucro >= 0 ? 'LUCRO' : 'PREJUÍZO';
+        var finSumCards = '<div style="display:flex;background:#f8f9fc;border-bottom:1px solid #e2e6ef;margin-bottom:0;">' +
+          pdfSumCard('Receita Total', 'R$ ' + formatMoney(finTotalReceita)) +
+          pdfSumCard('Custo Total', '<span style="color:#dc2626;">R$ ' + formatMoney(finTotalCusto) + '</span>') +
+          pdfSumCard('Lucro Bruto', '<span style="color:' + finLucroColor + ';font-weight:900;">R$ ' + formatMoney(finLucro) + '</span>') +
+          pdfSumCard('Margem Média', '<span style="color:' + finLucroColor + ';">' + finMargemMedia.toFixed(1) + '%</span>') +
+          '</div>';
+        finHtml = '<div style="margin-top:4px;padding:10px 28px 4px;font-size:13px;font-weight:700;border-top:2px solid #2563eb;">' +
+          '💰 Análise Financeira Detalhada' +
+          '</div>' +
+          '<div style="padding:0 28px 6px;">' + finSumCards + '</div>' +
+          '<div style="padding:0 28px 4px;"><table>' +
+          '<tr><th>Produto</th><th style="text-align:right;">Custo Unit.</th><th style="text-align:right;">Preço</th><th style="text-align:right;">Margem%</th><th style="text-align:center;">Qtd</th><th style="text-align:right;">Custo Total</th><th style="text-align:right;">Receita</th><th style="text-align:right;">Lucro</th></tr>' +
+          finRows +
+          '</table></div>' +
+          '<div style="padding:10px 28px 6px;text-align:right;">' +
+          '<span style="font-size:13px;font-weight:900;color:' + finLucroColor + ';">Resultado: ' + finResultLabel + ' de R$ ' + formatMoney(Math.abs(finLucro)) + '</span>' +
+          '</div>' +
+          (finSemCusto > 0
+            ? '<div style="padding:0 28px 10px;font-size:10px;color:#8b92a9;">* ' + finSemCusto + ' produto(s) sem preço de custo cadastrado não foram incluídos nesta análise.</div>'
+            : '');
+      }
+
+      return '<div style="width:794px;background:#fff;">' + styles + header + summaryHtml + tableHtml + stockHtml + finHtml + footer + '</div>';
     }
 
     function pdfSumCard(label, value) {

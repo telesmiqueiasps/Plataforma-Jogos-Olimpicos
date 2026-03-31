@@ -530,9 +530,11 @@ class CantinProduct(Base):
     stock       = Column(Integer, default=0)
     min_stock   = Column(Integer, default=5)
     active      = Column(Boolean, default=True)
-    image_url   = Column(String(2000), nullable=True)
-    created_at  = Column(DateTime(timezone=True), server_default=func.now())
-    pdv_id      = Column(Integer, default=1, nullable=False)
+    image_url     = Column(String(2000), nullable=True)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+    pdv_id        = Column(Integer, default=1, nullable=False)
+    cost_price    = Column(Numeric(10, 2), nullable=True)
+    profit_margin = Column(Numeric(5, 2), nullable=True)
 
     order_items = relationship("CantinOrderItem", back_populates="product")
 

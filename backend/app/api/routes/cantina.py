@@ -32,6 +32,8 @@ class ProductCreate(BaseModel):
     active: bool = True
     image_url: Optional[str] = None
     pdv_id: int = 1
+    cost_price: Optional[float] = None
+    profit_margin: Optional[float] = None
 
 
 class ProductUpdate(BaseModel):
@@ -43,6 +45,8 @@ class ProductUpdate(BaseModel):
     min_stock: Optional[int] = None
     active: Optional[bool] = None
     image_url: Optional[str] = None
+    cost_price: Optional[float] = None
+    profit_margin: Optional[float] = None
 
 
 class StockAdjust(BaseModel):
@@ -105,6 +109,8 @@ def _product_out(p: CantinProduct) -> dict:
         "image_url": p.image_url,
         "created_at": p.created_at.isoformat() if p.created_at else None,
         "pdv_id": p.pdv_id if hasattr(p, "pdv_id") and p.pdv_id is not None else 1,
+        "cost_price": float(p.cost_price) if p.cost_price is not None else None,
+        "profit_margin": float(p.profit_margin) if p.profit_margin is not None else None,
     }
 
 
@@ -234,6 +240,8 @@ def create_product(
         active=data.active,
         image_url=data.image_url,
         pdv_id=data.pdv_id,
+        cost_price=data.cost_price,
+        profit_margin=data.profit_margin,
     )
     db.add(p)
     db.commit()
@@ -679,11 +687,30 @@ def get_report(
 
     # Produtos mais vendidos (apenas pedidos pagos, excluindo estornados)
     product_sales: dict = {}
+    _product_cache: dict = {}
     for order in paid_orders:
         for item in order.items:
             key = item.product_name
             if key not in product_sales:
-                product_sales[key] = {"name": key, "qty": 0, "total": 0.0}
+                cost_price = None
+                profit_margin_val = None
+                if item.product_id:
+                    if item.product_id not in _product_cache:
+                        prod = db.query(CantinProduct).filter(CantinProduct.id == item.product_id).first()
+                        if prod:
+                            _product_cache[item.product_id] = prod
+                    prod = _product_cache.get(item.product_id)
+                    if prod:
+                        cost_price = float(prod.cost_price) if prod.cost_price is not None else None
+                        profit_margin_val = float(prod.profit_margin) if prod.profit_margin is not None else None
+                product_sales[key] = {
+                    "name": key,
+                    "qty": 0,
+                    "total": 0.0,
+                    "price": float(item.unit_price),
+                    "cost_price": cost_price,
+                    "profit_margin": profit_margin_val,
+                }
             product_sales[key]["qty"] += item.quantity
             product_sales[key]["total"] += float(item.subtotal)
 
