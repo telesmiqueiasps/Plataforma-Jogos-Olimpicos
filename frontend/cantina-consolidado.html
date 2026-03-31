@@ -800,9 +800,8 @@
       };
 
       // Cobertura consolidada
-      var receitaTotal = (_lastS1 && _lastS2)
-        ? ((_lastS1.total_vendas||0) + (_lastS2.total_vendas||0))
-        : 0;
+      var receitaTotal = ((_lastReport1 && _lastReport1.total_vendas) || 0) +
+                         ((_lastReport2 && _lastReport2.total_vendas) || 0);
       var cobertura = stAll.totalInvestido > 0 ? (receitaTotal / stAll.totalInvestido * 100) : null;
 
       // Pills consolidadas
