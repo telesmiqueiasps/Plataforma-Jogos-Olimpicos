@@ -416,15 +416,18 @@
                       <th>Produto</th>
                       <th>Categoria</th>
                       <th style="text-align:right;">Preço</th>
+                      <th style="text-align:right;">Custo Unit.</th>
                       <th style="text-align:center;">Est. Inicial</th>
                       <th style="text-align:center;">Qtd. Vendida</th>
                       <th style="text-align:center;">Est. Atual</th>
+                      <th style="text-align:right;">Custo em Est.</th>
+                      <th style="text-align:right;">Val. em Est.</th>
                       <th style="text-align:center;">Mínimo</th>
                       <th style="text-align:center;">Status</th>
                     </tr>
                   </thead>
                   <tbody id="stock-tab-tbody">
-                    <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>
+                    <tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1512,6 +1515,23 @@
       var totalSold = 0;
       products.forEach(function(p){ totalSold += (qtySold[p.id] || 0); });
 
+      // Totais financeiros
+      var totalInvestido = 0, totalCustoEmEstoque = 0, totalValorEmEstoque = 0;
+      var semCustoCount = 0;
+      products.forEach(function(p) {
+        var sold = qtySold[p.id] || 0;
+        var initial = p.stock + sold;
+        totalValorEmEstoque += p.price * p.stock;
+        if (p.cost_price != null) {
+          totalInvestido      += p.cost_price * initial;
+          totalCustoEmEstoque += p.cost_price * p.stock;
+        } else {
+          semCustoCount++;
+        }
+      });
+      var cobertura = totalInvestido > 0 && reportData
+        ? (reportData.total_vendas / totalInvestido * 100) : null;
+
       document.getElementById('stock-tab-summary').innerHTML =
         cashCard('📦', total, 'Produtos') +
         cashCard('🛒', totalSold, 'Unid. Vendidas') +
@@ -1519,11 +1539,19 @@
         cashCard('⚠️', low, 'Estoque Baixo') +
         (empty > 0
           ? '<div class="cash-card"><div class="c-icon">❌</div><div class="c-value danger">' + empty + '</div><div class="c-label">Sem Estoque</div></div>'
-          : cashCard('❌', 0, 'Sem Estoque'));
+          : cashCard('❌', 0, 'Sem Estoque')) +
+        '<div class="cash-card"><div class="c-icon">💸</div><div class="c-value" style="font-size:16px;">R$ ' + formatMoney(totalInvestido) + '</div><div class="c-label">Custo Total Investido</div></div>' +
+        '<div class="cash-card"><div class="c-icon">🏭</div><div class="c-value" style="font-size:16px;">R$ ' + formatMoney(totalCustoEmEstoque) + '</div><div class="c-label">Custo em Estoque</div></div>' +
+        '<div class="cash-card"><div class="c-icon">🏪</div><div class="c-value" style="font-size:16px;">R$ ' + formatMoney(totalValorEmEstoque) + '</div><div class="c-label">Valor em Estoque</div></div>' +
+        (cobertura !== null
+          ? '<div class="cash-card"><div class="c-icon">' + (cobertura >= 100 ? '✅' : '⚠️') + '</div>' +
+            '<div class="c-value" style="font-size:16px;color:' + (cobertura >= 100 ? 'var(--accent-teal,#00d4aa)' : '#dc2626') + ';">' + cobertura.toFixed(1) + '%</div>' +
+            '<div class="c-label">Cobertura do Investimento</div></div>'
+          : '');
 
       var tbody = document.getElementById('stock-tab-tbody');
       if (!products.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum produto cadastrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum produto cadastrado.</td></tr>';
         return;
       }
 
@@ -1558,17 +1586,41 @@
             ? '<span style="font-weight:800;color:#d97706;">' + p.stock + '</span>'
             : '<span style="font-weight:800;">' + p.stock + '</span>';
 
+        var custoUnitCell = p.cost_price != null
+          ? 'R$ ' + formatMoney(p.cost_price)
+          : '<span style="color:var(--text-muted);">—</span>';
+        var custoEstCell = p.cost_price != null
+          ? 'R$ ' + formatMoney(p.cost_price * p.stock)
+          : '<span style="color:var(--text-muted);">—</span>';
+        var valorEstCell = 'R$ ' + formatMoney(p.price * p.stock);
+
         html += '<tr class="' + rowClass + '">' +
           '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
           '<td><span style="background:var(--bg-tertiary,#f0f2f7);padding:2px 8px;border-radius:10px;font-size:11px;">' + escHtml(p.category || '—') + '</span></td>' +
           '<td style="text-align:right;font-weight:700;">R$ ' + formatMoney(p.price) + '</td>' +
+          '<td style="text-align:right;">' + custoUnitCell + '</td>' +
           '<td style="text-align:center;color:var(--text-secondary);">' + initial + '</td>' +
           '<td style="text-align:center;">' + soldCell + '</td>' +
           '<td style="text-align:center;">' + currentCell + '</td>' +
+          '<td style="text-align:right;">' + custoEstCell + '</td>' +
+          '<td style="text-align:right;font-weight:600;color:var(--accent-blue,#2563eb);">' + valorEstCell + '</td>' +
           '<td style="text-align:center;color:var(--text-muted);">' + p.min_stock + '</td>' +
           '<td style="text-align:center;">' + statusBadge + '</td>' +
           '</tr>';
       });
+
+      // Linha de totais
+      html += '<tr style="font-weight:700;background:var(--bg-secondary);">' +
+        '<td colspan="3">Totais</td>' +
+        '<td style="text-align:right;">—</td>' +
+        '<td style="text-align:center;">—</td>' +
+        '<td style="text-align:center;font-weight:800;color:#2563eb;">' + totalSold + '</td>' +
+        '<td style="text-align:center;">—</td>' +
+        '<td style="text-align:right;">R$ ' + formatMoney(totalCustoEmEstoque) + '</td>' +
+        '<td style="text-align:right;color:var(--accent-blue,#2563eb);">R$ ' + formatMoney(totalValorEmEstoque) + '</td>' +
+        '<td></td><td></td>' +
+        '</tr>';
+
       tbody.innerHTML = html;
     }
 
@@ -1776,6 +1828,25 @@
         });
         var emptyCount = stockProducts.filter(function(p){ return p.stock === 0; }).length;
         var lowCount   = stockProducts.filter(function(p){ return p.stock > 0 && p.stock <= p.min_stock; }).length;
+        var pdfTotalInvestido = 0, pdfTotalCustoEst = 0, pdfTotalValorEst = 0;
+        sortedStock.forEach(function(p) {
+          pdfTotalValorEst += p.price * p.stock;
+          if (p.cost_price != null) {
+            pdfTotalInvestido += p.cost_price * p.stock;
+            pdfTotalCustoEst  += p.cost_price * p.stock;
+          }
+        });
+        var pdfCobertura = pdfTotalInvestido > 0 ? (pdfTotals.total_vendas / pdfTotalInvestido * 100) : null;
+        var pdfCoberturaHtml = pdfCobertura !== null
+          ? pdfSumCard('Cobertura do Investimento', '<span style="color:' + (pdfCobertura >= 100 ? '#065f46' : '#dc2626') + ';font-weight:900;">' + pdfCobertura.toFixed(1) + '%</span>')
+          : '';
+        var pdfStockSumCards = '<div style="display:flex;background:#f8f9fc;border-bottom:1px solid #e2e6ef;margin-bottom:0;">' +
+          pdfSumCard('Total Vendas', 'R$ ' + formatMoney(pdfTotals.total_vendas)) +
+          pdfSumCard('Custo Total Investido', '<span style="color:#dc2626;">R$ ' + formatMoney(pdfTotalInvestido) + '</span>') +
+          pdfSumCard('Custo em Estoque', 'R$ ' + formatMoney(pdfTotalCustoEst)) +
+          pdfSumCard('Valor em Estoque', '<span style="color:#2563eb;">R$ ' + formatMoney(pdfTotalValorEst) + '</span>') +
+          pdfCoberturaHtml +
+          '</div>';
         stockHtml = '<div style="margin-top:4px;padding:10px 28px 4px;font-size:13px;font-weight:700;border-top:2px solid #2563eb;">' +
           'Situação do Estoque' +
           '<span style="margin-left:12px;font-size:11px;font-weight:400;color:#4a5068;">' +
@@ -1783,22 +1854,33 @@
             (emptyCount ? ' · <span style="color:#dc2626;font-weight:700;">' + emptyCount + ' sem estoque</span>' : '') +
             (lowCount   ? ' · <span style="color:#d97706;font-weight:700;">' + lowCount + ' estoque baixo</span>' : '') +
           '</span></div>' +
+          '<div style="padding:0 28px 6px;">' + pdfStockSumCards + '</div>' +
           '<div style="padding:0 28px 16px;"><table>' +
-          '<tr><th>Produto</th><th>Categoria</th><th style="text-align:right;">Preço</th><th style="text-align:center;">Estoque Atual</th><th style="text-align:center;">Mínimo</th><th style="text-align:center;">Status</th></tr>';
+          '<tr><th>Produto</th><th>Cat.</th><th style="text-align:right;">Preço</th><th style="text-align:right;">Custo Unit.</th><th style="text-align:center;">Est. Atual</th><th style="text-align:right;">Custo em Est.</th><th style="text-align:right;">Val. em Est.</th><th style="text-align:center;">Status</th></tr>';
         sortedStock.forEach(function(p) {
           var rowClass = p.stock === 0 ? 'stock-empty' : (p.stock <= p.min_stock ? 'stock-low' : '');
           var status = p.stock === 0 ? '<span style="color:#991b1b;font-weight:700;">Sem Estoque</span>' :
                        p.stock <= p.min_stock ? '<span style="color:#92400e;font-weight:700;">⚠️ Baixo</span>' :
                        '<span style="color:#065f46;font-weight:600;">Normal</span>';
+          var custoUnit = p.cost_price != null ? 'R$ ' + formatMoney(p.cost_price) : '—';
+          var custoEst  = p.cost_price != null ? 'R$ ' + formatMoney(p.cost_price * p.stock) : '—';
+          var valorEst  = 'R$ ' + formatMoney(p.price * p.stock);
           stockHtml += '<tr class="' + rowClass + '">' +
             '<td style="font-weight:600;">' + escHtml(p.name) + '</td>' +
             '<td style="color:#4a5068;">' + escHtml(p.category || '—') + '</td>' +
             '<td style="text-align:right;">R$ ' + formatMoney(p.price) + '</td>' +
+            '<td style="text-align:right;color:#4a5068;">' + custoUnit + '</td>' +
             '<td style="text-align:center;font-weight:800;color:' + (p.stock === 0 ? '#dc2626' : p.stock <= p.min_stock ? '#d97706' : '#1a1d2e') + ';">' + p.stock + '</td>' +
-            '<td style="text-align:center;color:#8b92a9;">' + p.min_stock + '</td>' +
+            '<td style="text-align:right;">' + custoEst + '</td>' +
+            '<td style="text-align:right;font-weight:600;color:#2563eb;">' + valorEst + '</td>' +
             '<td style="text-align:center;">' + status + '</td>' +
             '</tr>';
         });
+        stockHtml += '<tr style="font-weight:700;background:#f8f9fc;">' +
+          '<td colspan="5">Totais</td>' +
+          '<td style="text-align:right;">R$ ' + formatMoney(pdfTotalCustoEst) + '</td>' +
+          '<td style="text-align:right;color:#2563eb;">R$ ' + formatMoney(pdfTotalValorEst) + '</td>' +
+          '<td></td></tr>';
         stockHtml += '</table></div>';
       }
 
