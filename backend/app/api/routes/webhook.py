@@ -45,6 +45,7 @@ def map_ticket_to_slug_db(ticket_name: str, db: Session) -> str:
     """
     Mapeia nome do ingresso para slug buscando na tabela modality_mappings.
     Usa keyword mais longa (mais específica) primeiro.
+    Se não encontrar, tenta usar a lógica padrão do modality_mapper.
     """
     if not ticket_name:
         return None
@@ -55,7 +56,10 @@ def map_ticket_to_slug_db(ticket_name: str, db: Session) -> str:
         kw = _normalize_for_mapping(mapping.keyword)
         if kw and kw in normalized:
             return mapping.sport_slug
-    return None
+    
+    # Fallback: tentar com lógica automática do modality_mapper
+    from app.api.routes.modality_mapper import map_ticket_to_slug
+    return map_ticket_to_slug(ticket_name)
 
 
 def extract_modalities(body: dict, db: Session) -> tuple:

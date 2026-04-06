@@ -1,5 +1,6 @@
 import json
 from app.api.routes.webhook import extract_modalities
+from app.db.session import SessionLocal
 
 # Payload do usuário
 payload = {
@@ -26,5 +27,10 @@ payload = {
     "modalidade_04_7963117": ""
 }
 
-modalities = extract_modalities(payload)
-print("Modalidades extraídas:", modalities)
+db = SessionLocal()
+try:
+    modalities, raw_names = extract_modalities(payload, db)
+    print("Modalidades extraídas:", modalities)
+    print("Nomes originais:", raw_names)
+finally:
+    db.close()
