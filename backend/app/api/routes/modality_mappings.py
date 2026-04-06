@@ -17,14 +17,16 @@ router = APIRouter(prefix="/modality-mappings", tags=["Mapeamentos de Modalidade
 
 # Nomes legíveis por slug (fallback caso não exista no cadastro de esportes)
 _SLUG_LABELS = {
-    "futsal":     "Futsal",
-    "volleyball": "Vôlei",
-    "basketball": "Basquete",
-    "running":    "Corrida",
-    "tenis_mesa": "Tênis de Mesa",
-    "domino":     "Dominó",
-    "xadrez":     "Xadrez",
-    "dama":       "Dama",
+    "futsal":           "Futsal",
+    "futsal_masculino": "Futsal Masculino",
+    "futsal_feminino":  "Futsal Feminino",
+    "volleyball":       "Vôlei",
+    "basketball":       "Basquete",
+    "running":          "Corrida",
+    "tenis_mesa":       "Tênis de Mesa",
+    "domino":           "Dominó",
+    "xadrez":           "Xadrez",
+    "dama":             "Dama",
 }
 
 

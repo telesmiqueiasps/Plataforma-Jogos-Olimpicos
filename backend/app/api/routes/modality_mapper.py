@@ -42,6 +42,10 @@ def map_ticket_to_slug(ticket_name: str) -> str:
     name = normalize(ticket_name)
 
     # FUTSAL — verificar antes de qualquer outra coisa
+    if "futsal masculino" in name or ("futsal" in name and "masculino" in name):
+        return "futsal_masculino"
+    if "futsal feminino" in name or ("futsal" in name and "feminino" in name):
+        return "futsal_feminino"
     if "futsal" in name or "futebol de salao" in name or "futebol" in name:
         return "futsal"
 
@@ -80,6 +84,8 @@ def slug_to_label(slug: str) -> str:
     """Converte slug da modalidade para nome amigável para exibição."""
     mapping = {
         "futsal": "Futsal",
+        "futsal_masculino": "Futsal Masculino",
+        "futsal_feminino": "Futsal Feminino",
         "volleyball": "Vôlei",
         "basketball": "Basquete",
         "running": "Corrida",

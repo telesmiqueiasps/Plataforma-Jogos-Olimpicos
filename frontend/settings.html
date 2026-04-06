@@ -223,14 +223,16 @@
         <label class="form-label">Palavra-chave</label>
         <input type="text" id="modal-keyword" class="form-control"
           placeholder="ex: futsal, vôlei misto, categoria A...">
-        <div class="field-hint">A busca é case-insensitive e parcial. "futsal" já encontra "Futsal Masculino [Quadra 01] (R$ 20,00)".</div>
+        <div class="field-hint">A busca é case-insensitive e parcial. Use palavras como "Futsal Masculino" e "Futsal Feminino" para diferenciar corretamente.</div>
       </div>
 
       <div class="form-group" style="margin-bottom:16px;">
         <label class="form-label">Modalidade</label>
         <select id="modal-slug" class="form-control">
           <option value="">Selecione...</option>
-          <option value="futsal">⚽ Futsal</option>
+          <option value="futsal_masculino">⚽ Futsal Masculino</option>
+          <option value="futsal_feminino">⚽ Futsal Feminino</option>
+          <option value="futsal">⚽ Futsal (Genérico)</option>
           <option value="volleyball">🏐 Vôlei</option>
           <option value="basketball">🏀 Basquete</option>
           <option value="running">🏃 Corrida</option>
@@ -283,12 +285,12 @@
 
     // ---- Slug helpers ----
     var SLUG_NAMES = {
-      futsal:'Futsal', volleyball:'Vôlei', basketball:'Basquete',
+      futsal:'Futsal', futsal_masculino:'Futsal Masculino', futsal_feminino:'Futsal Feminino', volleyball:'Vôlei', basketball:'Basquete',
       running:'Corrida', tenis_mesa:'Tênis de Mesa',
       domino:'Dominó', xadrez:'Xadrez', dama:'Dama'
     };
     var SLUG_ICONS = {
-      futsal:'⚽', volleyball:'🏐', basketball:'🏀', running:'🏃',
+      futsal:'⚽', futsal_masculino:'⚽', futsal_feminino:'⚽', volleyball:'🏐', basketball:'🏀', running:'🏃',
       tenis_mesa:'🏓', domino:'🎲', xadrez:'♟️', dama:'♟️'
     };
     function slugLabel(slug) {
