@@ -159,8 +159,8 @@ async def receive_einscricoes_payment(
         return {"status": "error", "reason": "JSON inválido"}
 
     order_status = str(body.get("order_status", "")).lower()
-    if order_status not in ("ok", "aprovado", "approved", "paid", "confirmed", ""):
-        logger.info(f"Ignorando webhook com status: {order_status}")
+    if order_status not in ("ok", "aprovado", "approved", "paid", "confirmed", "confirmado", "pago", "concluido", "concluído", ""):
+        logger.warning(f"Webhook ignorado — order_status inesperado: '{order_status}' | body: {body}")
         return {"status": "ignored", "reason": f"Status não aprovado: {order_status}"}
 
     first_name = body.get("first_name", "")
