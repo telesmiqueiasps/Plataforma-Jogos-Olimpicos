@@ -982,6 +982,7 @@
     const TIEBREAKER_LABELS = {
       points: 'Pontos', wins: 'Vitórias', draws: 'Empates', losses: 'Derrotas',
       goal_difference: 'Saldo de Gols', goals_scored: 'Gols Pró', head_to_head: 'Confronto Direto',
+      yellow_cards: 'Cartões Amarelos (↓ menor vence)', red_cards: 'Cartões Vermelhos (↓ menor vence)', fouls: 'Faltas (↓ menor vence)',
       set_difference: 'Saldo de Sets', set_average: 'Índice de Sets',
       points_average: 'Índice de Pontos (sets)', points_scored: 'Pontos Feitos',
       // Basquete
@@ -1681,7 +1682,7 @@
           document.getElementById('cfg-red-expulsion').checked  = cfg.red_card_expulsion ?? false;
           tiebreakerOrder = cfg.tiebreaker_order?.length
             ? cfg.tiebreaker_order
-            : ['points', 'wins', 'goal_difference', 'goals_scored', 'head_to_head'];
+            : ['goal_difference', 'red_cards', 'yellow_cards', 'fouls', 'wins', 'draws', 'losses'];
         }
 
         document.getElementById('cfg-classifieds').value = cfg.classifieds_per_group ?? 2;
@@ -1918,11 +1919,15 @@
                 ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Saldo</th><th>S.Avg</th><th class="pts">Pts</th>'
                 : bball
                   ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
-                  : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
+                  : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th title="Cartões amarelos">🟨</th><th title="Cartões vermelhos">🟥</th><th title="Faltas">F</th><th class="pts" title="Critérios de desempate: Saldo de gols → Vermelhos → Amarelos → Faltas → Vitórias → Empates → Derrotas">Pts</th>'}
             </tr></thead>
             <tbody>
-              ${standings.map((s) => `
-                <tr>
+              ${standings.map((s, idx) => {
+                const samePts = idx > 0 && standings[idx - 1].points === s.points;
+                const rowStyle = samePts ? 'background:#fffbeb10;' : '';
+                const ptsTip = samePts ? 'title="Empatado em pontos — verificando critérios de desempate"' : '';
+                return `
+                <tr style="${rowStyle}">
                   <td class="pos">${s.position}</td>
                   <td style="font-weight:500;">${s.team_name}</td>
                   ${vball
@@ -1940,9 +1945,9 @@
                          <td>${s.draws}</td><td>${s.losses}</td>
                          <td>${s.goals_for}</td><td>${s.goals_against}</td>
                          <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                         <td class="pts">${s.points}</td>`}
-                </tr>
-              `).join('')}
+                         <td>${s.yellow_cards ?? 0}</td><td>${s.red_cards ?? 0}</td><td>${s.fouls ?? 0}</td>
+                         <td class="pts" ${ptsTip}>${s.points}</td>`}
+                </tr>`}).join('')}
             </tbody>
           </table></div>`
         : `<div style="color:var(--text-secondary); font-size:12px; margin-top:8px;">Nenhum jogo disputado ainda.</div>`;
@@ -2420,10 +2425,13 @@
                               ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Avg</th><th class="pts">Pts</th>'
                               : _bball
                                 ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
-                                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts">Pts</th>'}
+                                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th title="Cartões amarelos">🟨</th><th title="Cartões vermelhos">🟥</th><th title="Faltas">F</th><th class="pts" title="Critérios de desempate: Saldo de gols → Vermelhos → Amarelos → Faltas → Vitórias → Empates → Derrotas">Pts</th>'}
                           </tr></thead>
                           <tbody>
-                            ${st.map(s => `<tr>
+                            ${st.map((s, idx) => {
+                              const samePts = idx > 0 && st[idx - 1].points === s.points;
+                              const ptsTip = samePts ? 'title="Empatado em pontos — verificando critérios de desempate"' : '';
+                              return `<tr style="${samePts ? 'background:#fffbeb10;' : ''}">
                               <td class="pos">${s.position}</td>
                               <td style="font-weight:500;">${s.team_name}</td>
                               ${_vball
@@ -2439,8 +2447,9 @@
                                   : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
                                      <td>${s.goals_for}</td><td>${s.goals_against}</td>
                                      <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                                     <td class="pts">${s.points}</td>`}
-                            </tr>`).join('')}
+                                     <td>${s.yellow_cards ?? 0}</td><td>${s.red_cards ?? 0}</td><td>${s.fouls ?? 0}</td>
+                                     <td class="pts" ${ptsTip}>${s.points}</td>`}
+                            </tr>`}).join('')}
                           </tbody>
                         </table></div>` : `<div style="color:var(--text-secondary);font-size:12px;">Sem jogos disputados.</div>`}
                     </div>`;

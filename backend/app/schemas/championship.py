@@ -126,6 +126,10 @@ class StandingEntry(BaseModel):
     goals_against: int
     goal_diff: int
     points: int
+    # Campos extras para futsal: cartões e faltas (usados no desempate)
+    yellow_cards: int = 0
+    red_cards: int = 0
+    fouls: int = 0
     # Campos extras para vôlei (None para outras modalidades)
     sets_won: Optional[int] = None
     sets_lost: Optional[int] = None

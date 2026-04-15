@@ -475,7 +475,7 @@
               ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th>Avg</th><th class="pts-col">Pts</th>'
               : isBball
                 ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts-col">Tab</th>'
-                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th class="pts-col">Pts</th>'}
+                : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th title="Cartões amarelos">🟨</th><th title="Cartões vermelhos">🟥</th><th title="Faltas">F</th><th class="pts-col" title="Critérios de desempate: Saldo de gols → Vermelhos → Amarelos → Faltas → Vitórias → Empates → Derrotas">Pts</th>'}
           </tr>
         </thead>
         <tbody>
@@ -486,9 +486,11 @@
             const displayName = s[nameField] || '?';
             const initials = displayName.substring(0, 2).toUpperCase();
             const avatarColor = avatarColors[i % avatarColors.length];
+            const samePts = i > 0 && rows[i - 1].points === s.points;
             const rowClass = isLeader ? 'leader-row' : (isClassified ? 'classified-row' : '');
+            const ptsTip = samePts ? 'title="Empatado em pontos — verificando critérios de desempate"' : '';
             return `
-            <tr class="${rowClass}">
+            <tr class="${rowClass}" style="${samePts && !isLeader && !isClassified ? 'background:rgba(255,251,235,0.04);' : ''}">
               <td style="text-align:center;">
                 ${medal
                   ? `<span style="font-size:18px;" title="${displayName}">${medal}</span>`
@@ -517,7 +519,8 @@
                   : `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
                      <td>${s.goals_for}</td><td>${s.goals_against}</td>
                      <td>${s.goal_diff >= 0 ? '+' : ''}${s.goal_diff}</td>
-                     <td class="pts-col">${s.points}</td>`}
+                     <td>${s.yellow_cards ?? 0}</td><td>${s.red_cards ?? 0}</td><td>${s.fouls ?? 0}</td>
+                     <td class="pts-col" ${ptsTip}>${s.points}</td>`}
             </tr>`}).join('')}
         </tbody>
       </table></div>`;

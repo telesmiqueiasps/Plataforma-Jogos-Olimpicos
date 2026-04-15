@@ -12,6 +12,7 @@ from functools import cmp_to_key
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_organizer
@@ -1128,7 +1129,7 @@ def _build_standings(
     pts_loss     = rules.get("points_loss", 0)
     tiebreakers  = rules.get(
         "tiebreaker_order",
-        ["points", "wins", "goal_difference", "goals_scored"],
+        ["goal_difference", "red_cards", "yellow_cards", "fouls", "wins", "draws", "losses"],
     )
 
     # Monta dicionário de estatísticas por time
@@ -1150,6 +1151,7 @@ def _build_standings(
             team_id=tid, team_name=name,
             games_played=0, wins=0, draws=0, losses=0,
             goals_for=0, goals_against=0, goal_diff=0, points=0,
+            yellow_cards=0, red_cards=0, fouls=0,
         )
         for tid, name in team_names.items()
     }
@@ -1218,6 +1220,41 @@ def _build_standings(
     for e in entry.values():
         e["goal_diff"] = e["goals_for"] - e["goals_against"]
 
+    # Buscar cartões e faltas por time via GameEvent
+    all_game_ids = [g.id for g in finished_games]
+    if all_game_ids:
+        for team_id in entry:
+            entry[team_id]["yellow_cards"] = (
+                db.query(func.count(GameEvent.id))
+                .join(Game, GameEvent.game_id == Game.id)
+                .filter(
+                    Game.id.in_(all_game_ids),
+                    GameEvent.team_id == team_id,
+                    GameEvent.event_type == "yellow_card",
+                )
+                .scalar() or 0
+            )
+            entry[team_id]["red_cards"] = (
+                db.query(func.count(GameEvent.id))
+                .join(Game, GameEvent.game_id == Game.id)
+                .filter(
+                    Game.id.in_(all_game_ids),
+                    GameEvent.team_id == team_id,
+                    GameEvent.event_type == "red_card",
+                )
+                .scalar() or 0
+            )
+            entry[team_id]["fouls"] = (
+                db.query(func.count(GameEvent.id))
+                .join(Game, GameEvent.game_id == Game.id)
+                .filter(
+                    Game.id.in_(all_game_ids),
+                    GameEvent.team_id == team_id,
+                    GameEvent.event_type == "foul",
+                )
+                .scalar() or 0
+            )
+
     # Comparador com critérios configuráveis
     def compare(a: dict, b: dict) -> int:
         for tb in tiebreakers:
@@ -1225,10 +1262,20 @@ def _build_standings(
                 diff = b["points"] - a["points"]
             elif tb == "wins":
                 diff = b["wins"] - a["wins"]
+            elif tb == "draws":
+                diff = b["draws"] - a["draws"]
+            elif tb == "losses":
+                diff = a["losses"] - b["losses"]
             elif tb == "goal_difference":
                 diff = b["goal_diff"] - a["goal_diff"]
             elif tb == "goals_scored":
                 diff = b["goals_for"] - a["goals_for"]
+            elif tb == "yellow_cards":
+                diff = a["yellow_cards"] - b["yellow_cards"]
+            elif tb == "red_cards":
+                diff = a["red_cards"] - b["red_cards"]
+            elif tb == "fouls":
+                diff = a["fouls"] - b["fouls"]
             elif tb == "head_to_head":
                 ap = h2h.get(a["team_id"], {}).get(b["team_id"], {}).get("pts", 0)
                 bp = h2h.get(b["team_id"], {}).get(a["team_id"], {}).get("pts", 0)
