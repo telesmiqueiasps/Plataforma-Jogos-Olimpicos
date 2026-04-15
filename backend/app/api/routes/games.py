@@ -160,6 +160,51 @@ def set_result(
         return game.result
 
     elif sport_slug in ("volleyball", "tenis_mesa"):
+        best_of = int((game.championship.rules_config or {}).get("best_of", 3)) if game.championship else 3
+        sets_to_win = 2 if best_of == 3 else (3 if best_of == 5 else 4)
+
+        # --- W.O. ---
+        if data.wo:
+            wo_team = data.wo  # "home" ou "away" (quem não compareceu)
+            if wo_team == "home":
+                home_score, away_score = 0, sets_to_win
+            else:
+                home_score, away_score = sets_to_win, 0
+
+            extra = dict(game.extra_data or {})
+            extra["wo"]         = wo_team
+            extra["wo_penalty"] = -2
+            extra["volleyball"] = {
+                "sets": [],
+                "table_points": {
+                    "home": -2 if wo_team == "home" else 3,
+                    "away": -2 if wo_team == "away" else 3,
+                },
+            }
+            game.extra_data = extra
+
+            if game.result:
+                game.result.home_score = home_score
+                game.result.away_score = away_score
+                game.result.notes      = data.notes
+                game.result.updated_by = current_user.id
+            else:
+                result = GameResult(
+                    game_id=game_id,
+                    home_score=home_score,
+                    away_score=away_score,
+                    notes=data.notes,
+                    created_by=current_user.id,
+                )
+                db.add(result)
+                game.result = result
+
+            game.status = "finished"
+            db.commit()
+            db.refresh(game)
+            return game.result
+
+        # --- Jogo normal: sets ---
         if not data.sets:
             raise HTTPException(status_code=400, detail=f"Para {sport_slug}, envie 'sets' no body")
 
@@ -167,13 +212,14 @@ def set_result(
         home_score = sum(1 for s in data.sets if s.home_points > s.away_points)
         away_score = sum(1 for s in data.sets if s.away_points > s.home_points)
 
-        best_of = int((game.championship.rules_config or {}).get("best_of", 5)) if game.championship else 5
         home_table_pts, away_table_pts = calculate_match_points(home_score, away_score, best_of)
         notes = data.notes
 
         # Salva sets detalhados e pontos de tabela no extra_data do jogo
-        # Usa "volleyball" como chave padrão para compatibilidade com volleyball_service
         extra = dict(game.extra_data or {})
+        # Limpa eventual WO anterior
+        extra.pop("wo", None)
+        extra.pop("wo_penalty", None)
         extra["volleyball"] = {
             "sets": [
                 {"home_points": s.home_points, "away_points": s.away_points}

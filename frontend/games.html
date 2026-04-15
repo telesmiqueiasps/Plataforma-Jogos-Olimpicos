@@ -269,13 +269,33 @@
         </div>
         <!-- Vôlei: sets por set -->
         <div id="result-volleyball-section" style="display:none;">
-          <div style="margin-bottom:10px; font-weight:600; font-size:14px;">Placar por Set</div>
-          <div id="vball-sets-list"></div>
-          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-            <button type="button" class="btn btn-sm btn-secondary" onclick="addVballSet()">+ Adicionar Set</button>
-            <button type="button" class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="removeVballSet()">– Remover Último</button>
+          <div style="margin-bottom:12px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="vb-wo-check" onchange="toggleWO()">
+              <span style="font-weight:600;color:#dc2626;">⚠️ W.O. (ausência de equipe)</span>
+            </label>
           </div>
-          <div id="vball-summary" style="margin-top:12px; padding:10px 14px; background:var(--bg-tertiary); border-radius:8px; font-size:13px;"></div>
+          <div id="wo-section" style="display:none;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:8px;padding:12px;margin-bottom:12px;">
+            <p style="color:#fca5a5;font-size:13px;margin:0 0 10px;">Selecione qual equipe <strong>não compareceu</strong>:</p>
+            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;">
+              <input type="radio" name="wo-team" value="home" id="wo-home">
+              <span id="wo-home-label" style="font-weight:600;">Time Mandante</span> não compareceu
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="radio" name="wo-team" value="away" id="wo-away">
+              <span id="wo-away-label" style="font-weight:600;">Time Visitante</span> não compareceu
+            </label>
+            <p style="color:#fca5a5;font-size:12px;margin:10px 0 0;">A equipe ausente perde <strong>2 pontos</strong> na classificação. A equipe presente vence por W.O.</p>
+          </div>
+          <div id="sets-section">
+            <div style="margin-bottom:10px; font-weight:600; font-size:14px;">Placar por Set</div>
+            <div id="vball-sets-list"></div>
+            <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="addVballSet()">+ Adicionar Set</button>
+              <button type="button" class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="removeVballSet()">– Remover Último</button>
+            </div>
+            <div id="vball-summary" style="margin-top:12px; padding:10px 14px; background:var(--bg-tertiary); border-radius:8px; font-size:13px;"></div>
+          </div>
         </div>
         <!-- Basquete: quartos -->
         <div id="result-basketball-section" style="display:none;">
@@ -624,10 +644,13 @@
 
       const isVball  = currentChamp?.sport?.slug === 'volleyball';
       const isBball  = currentChamp?.sport?.slug === 'basketball';
-      const vballSetsData = isVball && g.extra_data?.volleyball?.sets;
-      const vballSetsStr = vballSetsData
-        ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;">(${vballSetsData.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
-        : '';
+      const gameWO_g = isVball && g.extra_data?.wo;
+      const vballSetsData = isVball && !gameWO_g && g.extra_data?.volleyball?.sets;
+      const vballSetsStr = gameWO_g
+        ? `<div style="font-size:10px;color:#f87171;margin-top:2px;white-space:nowrap;font-weight:600;">W.O. (${gameWO_g === 'home' ? (g.home_team?.name || 'Mandante') : (g.away_team?.name || 'Visitante')} não compareceu)</div>`
+        : vballSetsData
+          ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;">(${vballSetsData.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
+          : '';
       const bballData = isBball && g.extra_data?.basketball;
       const bballQuartersStr = bballData?.quarters
         ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
@@ -964,6 +987,16 @@
         ${suddenDeathBadge}${winner}`;
     }
 
+    // ---- Vôlei: W.O. ----
+    function toggleWO() {
+      const isWO = document.getElementById('vb-wo-check').checked;
+      document.getElementById('wo-section').style.display    = isWO ? 'block' : 'none';
+      document.getElementById('sets-section').style.display  = isWO ? 'none'  : 'block';
+      const finalizeBtn = document.getElementById('result-finalize-btn');
+      if (finalizeBtn) finalizeBtn.disabled = !isWO;
+      if (!isWO) updateVballSummary();
+    }
+
     // ---- Vôlei: gerenciamento de sets ----
     let vballSets = [];
 
@@ -1059,14 +1092,36 @@
       document.getElementById('result-finalize-bball-btn').style.display  = isBball  ? '' : 'none';
 
       if (isVball) {
-        // Pré-preenche sets se já existem
-        const existing = game.extra_data?.volleyball?.sets;
-        const bestOf = currentChamp?.rules_config?.best_of || 5;
-        const defaultSets = bestOf === 3 ? 2 : 3;
-        vballSets = existing
-          ? existing.map(s => ({ home: String(s.home_points), away: String(s.away_points) }))
-          : Array.from({ length: defaultSets }, () => ({ home: '', away: '' }));
-        renderVballSets();
+        // Resetar estado WO
+        const woCheck = document.getElementById('vb-wo-check');
+        if (woCheck) { woCheck.checked = false; }
+        document.getElementById('wo-section').style.display   = 'none';
+        document.getElementById('sets-section').style.display = 'block';
+        document.getElementById('wo-home-label').textContent  = homeName;
+        document.getElementById('wo-away-label').textContent  = awayName;
+        // Desmarcar rádios
+        ['wo-home', 'wo-away'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.checked = false;
+        });
+
+        // Verificar se jogo já tem WO registrado
+        const existingWO = game.extra_data?.wo;
+        if (existingWO) {
+          if (woCheck) woCheck.checked = true;
+          const radioEl = document.getElementById(`wo-${existingWO}`);
+          if (radioEl) radioEl.checked = true;
+          toggleWO();
+        } else {
+          // Pré-preenche sets se já existem
+          const existing = game.extra_data?.volleyball?.sets;
+          const bestOf = currentChamp?.rules_config?.best_of || 3;
+          const defaultSets = bestOf === 3 ? 2 : 3;
+          vballSets = existing
+            ? existing.map(s => ({ home: String(s.home_points), away: String(s.away_points) }))
+            : Array.from({ length: defaultSets }, () => ({ home: '', away: '' }));
+          renderVballSets();
+        }
       } else if (isBball) {
         // Pré-preenche quartos se já existem
         const existingBball = game.extra_data?.basketball;
@@ -1172,33 +1227,47 @@
       const alertEl = document.getElementById('result-alert');
       alertEl.style.display = 'none';
 
-      const bestOf = currentChamp?.rules_config?.best_of || 5;
-      const setsToWin = bestOf === 3 ? 2 : 3;
+      const isWO = document.getElementById('vb-wo-check')?.checked;
 
-      const filled = vballSets.filter(s => s.home !== '' && s.away !== '');
-      if (!filled.length) {
-        alertEl.textContent = 'Informe ao menos um set completo.';
-        alertEl.style.display = 'flex';
-        return;
-      }
-      if (finalize) {
-        const homeSets = filled.filter(s => parseInt(s.home) > parseInt(s.away)).length;
-        const awaySets = filled.filter(s => parseInt(s.away) > parseInt(s.home)).length;
-        if (homeSets < setsToWin && awaySets < setsToWin) {
-          alertEl.textContent = `Nenhuma equipe atingiu ${setsToWin} sets vencidos. Complete o resultado.`;
+      let payload;
+      if (isWO) {
+        const woTeam = document.querySelector('input[name="wo-team"]:checked')?.value;
+        if (!woTeam) {
+          alertEl.textContent = 'Selecione qual equipe não compareceu.';
           alertEl.style.display = 'flex';
           return;
         }
+        payload = { wo: woTeam, finalize: true };
+      } else {
+        const bestOf = currentChamp?.rules_config?.best_of || 3;
+        const setsToWin = bestOf === 3 ? 2 : 3;
+
+        const filled = vballSets.filter(s => s.home !== '' && s.away !== '');
+        if (!filled.length) {
+          alertEl.textContent = 'Informe ao menos um set completo.';
+          alertEl.style.display = 'flex';
+          return;
+        }
+        if (finalize) {
+          const homeSets = filled.filter(s => parseInt(s.home) > parseInt(s.away)).length;
+          const awaySets = filled.filter(s => parseInt(s.away) > parseInt(s.home)).length;
+          if (homeSets < setsToWin && awaySets < setsToWin) {
+            alertEl.textContent = `Nenhuma equipe atingiu ${setsToWin} sets vencidos. Complete o resultado.`;
+            alertEl.style.display = 'flex';
+            return;
+          }
+        }
+        payload = {
+          sets: filled.map(s => ({ home_points: parseInt(s.home) || 0, away_points: parseInt(s.away) || 0 })),
+          finalize,
+        };
       }
-      const payload = {
-        sets: filled.map(s => ({ home_points: parseInt(s.home) || 0, away_points: parseInt(s.away) || 0 })),
-        finalize,
-      };
+
       btnLoading(btn, true, 'Salvando...');
       try {
         await GamesAPI.setResult(currentGameForModal.id, payload);
         closeModal('modal-result');
-        showToast(finalize ? 'Partida encerrada!' : 'Sets salvos! Continue o jogo.', 'success');
+        showToast(isWO ? 'W.O. registrado!' : (finalize ? 'Partida encerrada!' : 'Sets salvos! Continue o jogo.'), 'success');
         loadGames(currentChamp.id);
       } catch (err) {
         alertEl.textContent = err.message;

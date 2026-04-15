@@ -61,6 +61,7 @@ class GameResultBody(BaseModel):
     """Body flexível — aceita futsal (home_score/away_score), vôlei (sets) e basquete (quarters).
     Para vôlei/basquete, finalize=False salva sem encerrar (status fica 'live').
     finalize=True (padrão) encerra a partida e muda status para 'finished'.
+    Para W.O. no vôlei, enviar wo="home" ou wo="away" (quem não compareceu).
     """
     home_score: Optional[int] = None
     away_score: Optional[int] = None
@@ -69,6 +70,7 @@ class GameResultBody(BaseModel):
     quarters: Optional[List[BasketballQuarter]] = None
     overtime: Optional[BasketballQuarter] = None
     finalize: Optional[bool] = True
+    wo: Optional[str] = None  # "home" ou "away" — para W.O. no vôlei
 
 
 class GameResultOut(BaseModel):

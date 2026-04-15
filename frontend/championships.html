@@ -983,10 +983,11 @@
       points: 'Pontos', wins: 'Vitórias', draws: 'Empates', losses: 'Derrotas',
       goal_difference: 'Saldo de Gols', goals_scored: 'Gols Pró', head_to_head: 'Confronto Direto',
       yellow_cards: 'Cartões Amarelos (↓ menor vence)', red_cards: 'Cartões Vermelhos (↓ menor vence)', fouls: 'Faltas (↓ menor vence)',
-      set_difference: 'Saldo de Sets', set_average: 'Índice de Sets',
-      points_average: 'Índice de Pontos (sets)', points_scored: 'Pontos Feitos',
-      // Basquete
-      table_points: 'Pontos na Tabela', point_difference: 'Saldo de Pontos',
+      set_difference: 'Saldo de Sets', set_average: 'Índice de Sets (S.Avg)',
+      points_average: 'Índice de Pontos (P.Avg)', points_scored: 'Pontos Feitos',
+      point_average: 'Índice de Pontos (P.Avg)',
+      // Basquete / Vôlei
+      table_points: 'Pontos de Tabela (↑ maior vence)', point_difference: 'Saldo de Pontos',
       confronto_direto: 'Confronto Direto', saldo_pontos: 'Saldo de Pontos',
       pontos_convertidos: 'Pontos Convertidos', pontos_sofridos: 'Pontos Sofridos',
       // Tabuleiro
@@ -1295,7 +1296,7 @@
           best_of: bestOf,
           pts_win_easy: 3, pts_win_hard: 2,
           pts_loss_close: 1, pts_loss_easy: 0,
-          tiebreaker_order: ['points', 'wins', 'set_difference', 'set_average', 'points_average'],
+          tiebreaker_order: ['wins', 'table_points', 'set_average', 'point_average'],
         };
         data.extra_data = { best_of: bestOf };
       } else if (selSport?.slug === 'basketball') {
@@ -1658,7 +1659,7 @@
           document.getElementById('cfg-vball-pts-loss-easy').value  = cfg.pts_loss_easy  ?? 0;
           tiebreakerOrder = cfg.tiebreaker_order?.length
             ? cfg.tiebreaker_order
-            : ['points', 'wins', 'set_difference', 'set_average', 'points_average'];
+            : ['wins', 'table_points', 'set_average', 'point_average'];
         } else if (bball) {
           // Basquete
           document.getElementById('cfg-bball-quarter-count').value    = cfg.quarter_count       ?? 4;
@@ -1916,7 +1917,7 @@
             <thead><tr>
               <th class="pos">#</th><th>Equipe</th>
               ${vball
-                ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Saldo</th><th>S.Avg</th><th class="pts">Pts</th>'
+                ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th title="Índice de Sets">S.Avg</th><th title="Índice de Pontos">P.Avg</th><th class="pts">Pts</th>'
                 : bball
                   ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
                   : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th title="Cartões amarelos">🟨</th><th title="Cartões vermelhos">🟥</th><th title="Faltas">F</th><th class="pts" title="Critérios de desempate: Saldo de gols → Vermelhos → Amarelos → Faltas → Vitórias → Empates → Derrotas">Pts</th>'}
@@ -1924,7 +1925,8 @@
             <tbody>
               ${standings.map((s, idx) => {
                 const samePts = idx > 0 && standings[idx - 1].points === s.points;
-                const rowStyle = samePts ? 'background:#fffbeb10;' : '';
+                const isWO = s.points < 0;
+                const rowStyle = isWO ? 'background:rgba(220,38,38,0.06);' : (samePts ? 'background:#fffbeb10;' : '');
                 const ptsTip = samePts ? 'title="Empatado em pontos — verificando critérios de desempate"' : '';
                 return `
                 <tr style="${rowStyle}">
@@ -1933,9 +1935,9 @@
                   ${vball
                     ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                        <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
-                       <td>${(s.set_difference ?? 0) >= 0 ? '+' : ''}${s.set_difference ?? 0}</td>
                        <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
-                       <td class="pts">${s.points}</td>`
+                       <td>${s.point_average != null ? s.point_average.toFixed(3) : '—'}</td>
+                       <td class="pts" style="${isWO ? 'color:#ef4444;' : ''}">${s.points}${isWO ? ' ⚠️' : ''}</td>`
                     : bball
                       ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                          <td>${s.goals_for}</td><td>${s.goals_against}</td>
@@ -2112,8 +2114,11 @@
           const groupLabel = (g.extra_data?.group) ? ` · Grupo ${g.extra_data.group}` : '';
           const vball = isVolleyball();
           const isBball = isBasketball();
-          const volleySets = vball && g.extra_data?.volleyball?.sets;
-          const setsStr = volleySets ? `<div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">(${volleySets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>` : '';
+          const gameWO = vball && g.extra_data?.wo;
+          const volleySets = vball && !gameWO && g.extra_data?.volleyball?.sets;
+          const setsStr = gameWO
+            ? `<div style="font-size:10px;color:#f87171;white-space:nowrap;font-weight:600;">W.O. (${gameWO === 'home' ? (g.home_team?.name || 'Mandante') : (g.away_team?.name || 'Visitante')} não compareceu)</div>`
+            : volleySets ? `<div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">(${volleySets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>` : '';
           const bballData = isBball && g.extra_data?.basketball;
           const bballStr = bballData?.quarters
             ? `<div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">(${bballData.quarters.map((q,i) => `${i+1}ºQ: ${q.home_points}-${q.away_points}`).join(' | ')}${bballData.overtime ? ` | Prórr: ${bballData.overtime.home_points}-${bballData.overtime.away_points}` : ''})</div>`
@@ -2422,7 +2427,7 @@
                         <div class="table-responsive"><table class="standings-table">
                           <thead><tr><th class="pos">#</th><th>Equipe</th>
                             ${_vball
-                              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>S.Avg</th><th class="pts">Pts</th>'
+                              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th title="Índice de Sets">S.Avg</th><th title="Índice de Pontos">P.Avg</th><th class="pts">Pts</th>'
                               : _bball
                                 ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts">Tab.Pts</th>'
                                 : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th title="Cartões amarelos">🟨</th><th title="Cartões vermelhos">🟥</th><th title="Faltas">F</th><th class="pts" title="Critérios de desempate: Saldo de gols → Vermelhos → Amarelos → Faltas → Vitórias → Empates → Derrotas">Pts</th>'}
@@ -2430,15 +2435,17 @@
                           <tbody>
                             ${st.map((s, idx) => {
                               const samePts = idx > 0 && st[idx - 1].points === s.points;
+                              const isWO = s.points < 0;
                               const ptsTip = samePts ? 'title="Empatado em pontos — verificando critérios de desempate"' : '';
-                              return `<tr style="${samePts ? 'background:#fffbeb10;' : ''}">
+                              return `<tr style="${isWO ? 'background:rgba(220,38,38,0.06);' : (samePts ? 'background:#fffbeb10;' : '')}">
                               <td class="pos">${s.position}</td>
                               <td style="font-weight:500;">${s.team_name}</td>
                               ${_vball
                                 ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                                    <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
                                    <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
-                                   <td class="pts">${s.points}</td>`
+                                   <td>${s.point_average != null ? s.point_average.toFixed(3) : '—'}</td>
+                                   <td class="pts" style="${isWO ? 'color:#ef4444;' : ''}">${s.points}${isWO ? ' ⚠️' : ''}</td>`
                                 : _bball
                                   ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                                      <td>${s.goals_for}</td><td>${s.goals_against}</td>

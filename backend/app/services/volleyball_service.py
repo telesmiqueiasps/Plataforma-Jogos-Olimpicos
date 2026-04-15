@@ -8,12 +8,12 @@ from functools import cmp_to_key
 from typing import Optional
 
 
-def calculate_match_points(home_sets: int, away_sets: int, best_of: int = 5) -> tuple[int, int]:
+def calculate_match_points(home_sets: int, away_sets: int, best_of: int = 3) -> tuple[int, int]:
     """
-    Retorna (pontos_mandante, pontos_visitante) pelo sistema brasileiro de vôlei/tênis de mesa.
-    - Melhor de 3: vence quem chegar a 2 sets (2-0 = 3/0 pts; 2-1 = 2/1 pts)
-    - Melhor de 5: vence quem chegar a 3 sets (3-0/3-1 = 3/0 pts; 3-2 = 2/1 pts)
-    - Melhor de 7: vence quem chegar a 4 sets (4-0/4-1/4-2 = 3/0 pts; 4-3 = 2/1 pts)
+    Retorna (pontos_mandante, pontos_visitante) pelo sistema brasileiro de vôlei.
+    - Melhor de 3: vence com 2 sets (2-0 = 3/0 pts; 2-1 = 2/1 pts)
+    - Melhor de 5: vence com 3 sets (3-0/3-1 = 3/0 pts; 3-2 = 2/1 pts)
+    - Melhor de 7: vence com 4 sets (4-0/4-1/4-2 = 3/0 pts; 4-3 = 2/1 pts)
     """
     if best_of == 3:
         sets_to_win = 2
@@ -21,7 +21,7 @@ def calculate_match_points(home_sets: int, away_sets: int, best_of: int = 5) -> 
         sets_to_win = 3
     else:  # best_of == 7
         sets_to_win = 4
-    max_close = sets_to_win - 1  # 1 para B3; 2 para B5; 3 para B7
+    max_close = sets_to_win - 1  # sets do perdedor numa vitória apertada
 
     if home_sets == sets_to_win:
         return (2, 1) if away_sets == max_close else (3, 0)
@@ -45,8 +45,8 @@ def calculate_volleyball_standings(
 
     Retorna lista de dicts com todos os campos necessários para StandingEntry.
     """
-    # Configuração de melhor-de (3, 5 ou 7); afeta quantos sets são necessários para vencer
-    best_of = int(rules_config.get("best_of", 5))
+    # Configuração de melhor-de (3, 5 ou 7)
+    best_of = int(rules_config.get("best_of", 3))
     if best_of == 3:
         sets_to_win = 2
     elif best_of == 5:
@@ -56,14 +56,15 @@ def calculate_volleyball_standings(
     max_close = sets_to_win - 1
 
     # Pontuação configurável (padrão: 3-2-1-0)
-    pts_win_easy  = int(rules_config.get("pts_win_easy",  3))   # vitória fácil (ex: 3-0 ou 3-1)
-    pts_win_hard  = int(rules_config.get("pts_win_hard",  2))   # vitória apertada (ex: 3-2 ou 2-1)
-    pts_loss_close = int(rules_config.get("pts_loss_close", 1)) # derrota apertada
-    pts_loss_easy  = int(rules_config.get("pts_loss_easy",  0)) # derrota fácil
+    pts_win_easy   = int(rules_config.get("pts_win_easy",   3))
+    pts_win_hard   = int(rules_config.get("pts_win_hard",   2))
+    pts_loss_close = int(rules_config.get("pts_loss_close", 1))
+    pts_loss_easy  = int(rules_config.get("pts_loss_easy",  0))
+    pts_wo_loser   = int(rules_config.get("pts_wo_loser",  -2))
 
     tiebreakers = rules_config.get(
         "tiebreaker_order",
-        ["points", "wins", "set_difference", "set_average", "points_average"],
+        ["wins", "table_points", "set_average", "point_average"],
     )
 
     entry: dict[int, dict] = {
@@ -81,7 +82,8 @@ def calculate_volleyball_standings(
             "set_average":    0.0,
             "points_scored":  0,
             "points_against": 0,
-            "points_average": 0.0,
+            "point_average":  0.0,
+            "points_average": 0.0,  # alias de compatibilidade
             # Aliases para compatibilidade com StandingEntry (futsal-style)
             "goals_for":      0,
             "goals_against":  0,
@@ -97,12 +99,42 @@ def calculate_volleyball_standings(
         if not g.result:
             continue
 
-        home_id  = g.home_team_id
-        away_id  = g.away_team_id
+        home_id = g.home_team_id
+        away_id = g.away_team_id
+
+        extra_g = g.extra_data or {}
+
+        # --- W.O. ---
+        wo = extra_g.get("wo")
+        if wo:
+            wo_penalty = extra_g.get("wo_penalty", pts_wo_loser)
+            if wo == "home":
+                # Mandante não compareceu
+                if home_id in entry:
+                    entry[home_id]["points"]       += wo_penalty
+                    entry[home_id]["losses"]        += 1
+                    entry[home_id]["games_played"]  += 1
+                if away_id in entry:
+                    entry[away_id]["points"]       += 3
+                    entry[away_id]["wins"]          += 1
+                    entry[away_id]["games_played"]  += 1
+            else:
+                # Visitante não compareceu
+                if away_id in entry:
+                    entry[away_id]["points"]       += wo_penalty
+                    entry[away_id]["losses"]        += 1
+                    entry[away_id]["games_played"]  += 1
+                if home_id in entry:
+                    entry[home_id]["points"]       += 3
+                    entry[home_id]["wins"]          += 1
+                    entry[home_id]["games_played"]  += 1
+            continue
+
+        # --- Jogo normal ---
         home_sets = g.result.home_score
         away_sets = g.result.away_score
 
-        # Determina pontos do jogo por resultado (usa sets_to_win dinâmico)
+        # Determina pontos do jogo por resultado
         if home_sets == sets_to_win:
             if away_sets == max_close:
                 home_pts, away_pts = pts_win_hard, pts_loss_close
@@ -117,8 +149,7 @@ def calculate_volleyball_standings(
             home_pts, away_pts = 0, 0
 
         # Pontos individuais (parciais dos sets) do extra_data do jogo
-        extra_g    = g.extra_data or {}
-        vball_data = extra_g.get("volleyball", {})
+        vball_data  = extra_g.get("volleyball", {})
         sets_detail = vball_data.get("sets", [])
 
         home_pts_scored = sum(s.get("home_points", 0) for s in sets_detail)
@@ -137,7 +168,7 @@ def calculate_volleyball_standings(
             e["points"]         += pts_earned
             e["points_scored"]  += pts_s
             e["points_against"] += pts_a
-            if pts_earned >= pts_win_hard:   # 2 ou 3 pts = vitória
+            if pts_earned >= pts_win_hard:  # 2 ou 3 pts = vitória
                 e["wins"] += 1
             else:
                 e["losses"] += 1
@@ -158,31 +189,34 @@ def calculate_volleyball_standings(
     for e in entry.values():
         e["set_difference"] = e["sets_won"] - e["sets_lost"]
         e["set_average"]    = (
-            e["sets_won"] / e["sets_lost"] if e["sets_lost"] > 0
-            else float(e["sets_won"])
+            round(e["sets_won"] / e["sets_lost"], 3) if e["sets_lost"] > 0
+            else (999.0 if e["sets_won"] > 0 else 0.0)
         )
-        e["points_average"] = (
-            e["points_scored"] / e["points_against"] if e["points_against"] > 0
-            else float(e["points_scored"])
+        e["point_average"]  = (
+            round(e["points_scored"] / e["points_against"], 3) if e["points_against"] > 0
+            else (999.0 if e["points_scored"] > 0 else 0.0)
         )
-        # Aliases
+        e["points_average"] = e["point_average"]  # alias de compatibilidade
+        # Aliases futsal-style
         e["goals_for"]     = e["sets_won"]
         e["goals_against"] = e["sets_lost"]
         e["goal_diff"]     = e["set_difference"]
 
     def compare(a: dict, b: dict) -> int:
         for tb in tiebreakers:
-            if tb == "points":
+            if tb in ("points", "table_points"):
                 diff = b["points"] - a["points"]
             elif tb == "wins":
                 diff = b["wins"] - a["wins"]
+            elif tb == "losses":
+                diff = a["losses"] - b["losses"]
             elif tb == "set_difference":
                 diff = b["set_difference"] - a["set_difference"]
             elif tb == "set_average":
                 diff_f = b["set_average"] - a["set_average"]
                 diff = 1 if diff_f > 0 else (-1 if diff_f < 0 else 0)
-            elif tb == "points_average":
-                diff_f = b["points_average"] - a["points_average"]
+            elif tb in ("point_average", "points_average"):
+                diff_f = b["point_average"] - a["point_average"]
                 diff = 1 if diff_f > 0 else (-1 if diff_f < 0 else 0)
             elif tb == "head_to_head":
                 ap = h2h.get(a["team_id"], {}).get(b["team_id"], {}).get("pts", 0)

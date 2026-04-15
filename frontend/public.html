@@ -472,7 +472,7 @@
             <th style="text-align:center;width:44px;">#</th>
             <th style="text-align:left;">${isTenis ? 'Jogador' : 'Equipe'}</th>
             ${(isVball || isTenis)
-              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th>Saldo</th><th>Avg</th><th class="pts-col">Pts</th>'
+              ? '<th>J</th><th>V</th><th>D</th><th>S+</th><th>S-</th><th title="Índice de Sets">S.Avg</th><th title="Índice de Pontos">P.Avg</th><th class="pts-col">Pts</th>'
               : isBball
                 ? '<th>J</th><th>V</th><th>D</th><th>Pts+</th><th>Pts-</th><th>Saldo</th><th class="pts-col">Tab</th>'
                 : '<th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th title="Cartões amarelos">🟨</th><th title="Cartões vermelhos">🟥</th><th title="Faltas">F</th><th class="pts-col" title="Critérios de desempate: Saldo de gols → Vermelhos → Amarelos → Faltas → Vitórias → Empates → Derrotas">Pts</th>'}
@@ -506,11 +506,12 @@
                 </div>
               </td>
               ${(isVball || isTenis)
-                ? `<td>${s.games_played ?? s.j ?? 0}</td><td>${s.wins ?? s.v ?? 0}</td><td>${s.losses ?? s.d ?? 0}</td>
+                ? (() => { const _p = s.points ?? s.pontos ?? 0; const _wo = _p < 0; return `
+                   <td>${s.games_played ?? s.j ?? 0}</td><td>${s.wins ?? s.v ?? 0}</td><td>${s.losses ?? s.d ?? 0}</td>
                    <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
-                   <td>${((s.set_difference ?? s.saldo_sets) ?? 0) >= 0 ? '+' : ''}${(s.set_difference ?? s.saldo_sets) ?? 0}</td>
-                   <td>${(s.set_average != null ? s.set_average.toFixed(3) : null) ?? (s.pontos_average != null ? s.pontos_average.toFixed(3) : '—')}</td>
-                   <td class="pts-col">${s.points ?? s.pontos ?? 0}</td>`
+                   <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
+                   <td>${(s.point_average ?? s.points_average ?? s.pontos_average) != null ? (s.point_average ?? s.points_average ?? s.pontos_average).toFixed(3) : '—'}</td>
+                   <td class="pts-col" style="${_wo ? 'color:#ef4444;font-weight:700;' : ''}">${_p}${_wo ? ' ⚠️' : ''}</td>`; })()
                 : isBball
                   ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                      <td>${s.goals_for}</td><td>${s.goals_against}</td>
@@ -788,10 +789,13 @@
     const isBball = currentChamp?.sport?.slug === 'basketball';
     const isTenisGame = currentChamp?.sport?.slug === 'tenis_mesa';
     const isFutsal = currentChamp?.sport?.slug === 'futsal';
-    const vballSets = isVball && g.extra_data?.volleyball?.sets;
+    const gameWO_pub = isVball && g.extra_data?.wo;
+    const vballSets = isVball && !gameWO_pub && g.extra_data?.volleyball?.sets;
     const tenisSets = isTenisGame && g.extra_data?.sets;
     const bballData = isBball && g.extra_data?.basketball;
-    const setsDetail = vballSets
+    const setsDetail = gameWO_pub
+      ? `<div style="font-size:10px; color:#f87171; margin-top:3px; white-space:nowrap; font-weight:600;">W.O.</div>`
+      : vballSets
       ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${vballSets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
       : tenisSets
         ? `<div style="font-size:10px; color:var(--text-secondary); margin-top:3px; white-space:nowrap;">(${tenisSets.map(s => `${s.home_points}-${s.away_points}`).join(', ')})</div>`
