@@ -4,8 +4,11 @@ services/volleyball_service.py
 Lógica de pontuação e classificação para Vôlei.
 """
 
+import logging
 from functools import cmp_to_key
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_match_points(home_sets: int, away_sets: int, best_of: int = 3) -> tuple[int, int]:
@@ -159,8 +162,13 @@ def calculate_volleyball_standings(
             or []
         )
 
+        logger.info(f"Game {g.id}: result.extra_data={g.result.extra_data if g.result else None}")
+        logger.info(f"Game {g.id}: sets_detail={sets_detail}")
+
         home_pts_scored = sum(s.get("home_points", 0) for s in sets_detail)
         away_pts_scored = sum(s.get("away_points", 0) for s in sets_detail)
+
+        logger.info(f"Game {g.id}: home_pts_scored={home_pts_scored}, away_pts_scored={away_pts_scored}")
 
         for tid, opp, sets_w, sets_l, pts_earned, pts_s, pts_a in [
             (home_id, away_id, home_sets, away_sets, home_pts, home_pts_scored, away_pts_scored),
