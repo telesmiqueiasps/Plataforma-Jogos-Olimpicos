@@ -13,7 +13,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, require_organizer
 from app.db.models import (
@@ -1020,7 +1020,11 @@ def _build_volleyball_standings(
             group_ids = {t["id"] for t in group_data["teams"]}
             team_names = {tid: name for tid, name in team_names.items() if tid in group_ids}
 
-    q = db.query(Game).filter(Game.championship_id == champ.id, Game.status == "finished")
+    q = db.query(Game).options(
+        joinedload(Game.result),
+        joinedload(Game.home_team),
+        joinedload(Game.away_team),
+    ).filter(Game.championship_id == champ.id, Game.status == "finished")
     effective_phase = (phase or "groups") if group_upper else phase
     if effective_phase:
         q = q.filter(Game.phase == effective_phase)
