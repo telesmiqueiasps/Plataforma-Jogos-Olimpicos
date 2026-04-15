@@ -102,12 +102,15 @@ def calculate_volleyball_standings(
         home_id = g.home_team_id
         away_id = g.away_team_id
 
-        extra_g = g.extra_data or {}
+        # Lê extra_data do resultado (fonte primária) com fallback para game.extra_data
+        result_extra = (g.result.extra_data or {}) if g.result else {}
+        game_extra   = g.extra_data or {}
 
         # --- W.O. ---
-        wo = extra_g.get("wo")
+        # Verifica em result.extra_data primeiro (novo), depois em game.extra_data (legado)
+        wo = result_extra.get("wo") or game_extra.get("wo")
         if wo:
-            wo_penalty = extra_g.get("wo_penalty", pts_wo_loser)
+            wo_penalty = result_extra.get("wo_penalty") or game_extra.get("wo_penalty") or pts_wo_loser
             if wo == "home":
                 # Mandante não compareceu
                 if home_id in entry:
@@ -148,9 +151,13 @@ def calculate_volleyball_standings(
         else:
             home_pts, away_pts = 0, 0
 
-        # Pontos individuais (parciais dos sets) do extra_data do jogo
-        vball_data  = extra_g.get("volleyball", {})
-        sets_detail = vball_data.get("sets", [])
+        # Pontos individuais (parciais dos sets):
+        # Prioridade: result.extra_data["sets"] → game.extra_data["volleyball"]["sets"]
+        sets_detail = (
+            result_extra.get("sets")
+            or game_extra.get("volleyball", {}).get("sets")
+            or []
+        )
 
         home_pts_scored = sum(s.get("home_points", 0) for s in sets_detail)
         away_pts_scored = sum(s.get("away_points", 0) for s in sets_detail)

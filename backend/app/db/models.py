@@ -10,7 +10,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSON, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -319,6 +319,8 @@ class GameResult(Base):
     home_score = Column(Integer, nullable=False, default=0)
     away_score = Column(Integer, nullable=False, default=0)
     notes      = Column(Text, comment="Observações: W.O., prorrogação, etc.")
+    extra_data = Column(JSONB, nullable=True,
+                        comment="Dados extras do resultado: sets de vôlei, W.O., pontos de tabela")
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 

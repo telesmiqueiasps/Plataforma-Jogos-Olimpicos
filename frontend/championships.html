@@ -1001,6 +1001,13 @@
       return currentChamp?.sport?.slug === 'volleyball';
     }
 
+    function formatAvg(value) {
+      if (value === null || value === undefined) return '—';
+      if (value >= 999) return 'Max';
+      if (value === 0) return '0.000';
+      return value.toFixed(3);
+    }
+
     function isBasketball() {
       return currentChamp?.sport?.slug === 'basketball';
     }
@@ -1935,8 +1942,8 @@
                   ${vball
                     ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                        <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
-                       <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
-                       <td>${s.point_average != null ? s.point_average.toFixed(3) : '—'}</td>
+                       <td>${formatAvg(s.set_average)}</td>
+                       <td>${formatAvg(s.point_average)}</td>
                        <td class="pts" style="${isWO ? 'color:#ef4444;' : ''}">${s.points}${isWO ? ' ⚠️' : ''}</td>`
                     : bball
                       ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
@@ -2443,8 +2450,8 @@
                               ${_vball
                                 ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
                                    <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
-                                   <td>${s.set_average != null ? s.set_average.toFixed(3) : '—'}</td>
-                                   <td>${s.point_average != null ? s.point_average.toFixed(3) : '—'}</td>
+                                   <td>${formatAvg(s.set_average)}</td>
+                                   <td>${formatAvg(s.point_average)}</td>
                                    <td class="pts" style="${isWO ? 'color:#ef4444;' : ''}">${s.points}${isWO ? ' ⚠️' : ''}</td>`
                                 : _bball
                                   ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>

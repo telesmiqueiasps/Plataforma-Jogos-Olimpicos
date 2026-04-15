@@ -171,22 +171,31 @@ def set_result(
             else:
                 home_score, away_score = sets_to_win, 0
 
+            table_pts = {
+                "home": -2 if wo_team == "home" else 3,
+                "away": -2 if wo_team == "away" else 3,
+            }
+            # Salva na game.extra_data (lido pelo frontend para exibição)
             extra = dict(game.extra_data or {})
             extra["wo"]         = wo_team
             extra["wo_penalty"] = -2
-            extra["volleyball"] = {
-                "sets": [],
-                "table_points": {
-                    "home": -2 if wo_team == "home" else 3,
-                    "away": -2 if wo_team == "away" else 3,
-                },
-            }
+            extra["volleyball"] = {"sets": [], "table_points": table_pts}
             game.extra_data = extra
+
+            # Salva na result.extra_data (lido pelo volleyball_service)
+            result_extra = {
+                "sport":        "volleyball",
+                "wo":           wo_team,
+                "wo_penalty":   -2,
+                "sets":         [],
+                "table_points": table_pts,
+            }
 
             if game.result:
                 game.result.home_score = home_score
                 game.result.away_score = away_score
                 game.result.notes      = data.notes
+                game.result.extra_data = result_extra
                 game.result.updated_by = current_user.id
             else:
                 result = GameResult(
@@ -194,6 +203,7 @@ def set_result(
                     home_score=home_score,
                     away_score=away_score,
                     notes=data.notes,
+                    extra_data=result_extra,
                     created_by=current_user.id,
                 )
                 db.add(result)
@@ -214,25 +224,33 @@ def set_result(
 
         home_table_pts, away_table_pts = calculate_match_points(home_score, away_score, best_of)
         notes = data.notes
+        sets_list = [
+            {"home_points": s.home_points, "away_points": s.away_points}
+            for s in data.sets
+        ]
 
-        # Salva sets detalhados e pontos de tabela no extra_data do jogo
+        # Salva na game.extra_data (lido pelo frontend para exibição)
         extra = dict(game.extra_data or {})
-        # Limpa eventual WO anterior
         extra.pop("wo", None)
         extra.pop("wo_penalty", None)
         extra["volleyball"] = {
-            "sets": [
-                {"home_points": s.home_points, "away_points": s.away_points}
-                for s in data.sets
-            ],
+            "sets": sets_list,
             "table_points": {"home": home_table_pts, "away": away_table_pts},
         }
         game.extra_data = extra
 
+        # Salva na result.extra_data (lido pelo volleyball_service)
+        result_extra = {
+            "sport":        "volleyball",
+            "sets":         sets_list,
+            "table_points": {"home": home_table_pts, "away": away_table_pts},
+        }
+
         if game.result:
             game.result.home_score = home_score
             game.result.away_score = away_score
-            game.result.notes = notes
+            game.result.notes      = notes
+            game.result.extra_data = result_extra
             game.result.updated_by = current_user.id
         else:
             result = GameResult(
@@ -240,6 +258,7 @@ def set_result(
                 home_score=home_score,
                 away_score=away_score,
                 notes=notes,
+                extra_data=result_extra,
                 created_by=current_user.id,
             )
             db.add(result)
