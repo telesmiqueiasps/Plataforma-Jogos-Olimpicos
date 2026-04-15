@@ -1364,10 +1364,12 @@
       // Filtrar tipos de evento por esporte
       const _sportSlug = currentChamp?.sport?.slug;
       const _evTypeEl = document.getElementById('event-type');
-      if (_sportSlug === 'futsal') {
+      const _isFutsal = _sportSlug === 'futsal' || _sportSlug === 'futsal_masculino' || _sportSlug === 'futsal_feminino';
+      if (_isFutsal) {
         _evTypeEl.innerHTML = '<option value="goal">🥅 Gol</option>' +
           '<option value="yellow_card">🟨 Cartão Amarelo</option>' +
-          '<option value="red_card">🟥 Cartão Vermelho</option>';
+          '<option value="red_card">🟥 Cartão Vermelho</option>' +
+          '<option value="foul">⚠️ Falta</option>';
       } else {
         _evTypeEl.innerHTML = '<option value="goal">🥅 Gol</option>' +
           '<option value="yellow_card">🟨 Cartão Amarelo</option>' +
