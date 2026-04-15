@@ -456,10 +456,10 @@
     }
   }
 
-  function formatAvg(value) {
+  function formatAvg(value, gamesPlayed) {
     if (value === null || value === undefined) return '—';
+    if (gamesPlayed === 0) return '—';
     if (value >= 999) return 'Max';
-    if (value === 0) return '0.000';
     return value.toFixed(3);
   }
 
@@ -516,8 +516,8 @@
                 ? (() => { const _p = s.points ?? s.pontos ?? 0; const _wo = _p < 0; return `
                    <td>${s.games_played ?? s.j ?? 0}</td><td>${s.wins ?? s.v ?? 0}</td><td>${s.losses ?? s.d ?? 0}</td>
                    <td>${s.sets_won ?? 0}</td><td>${s.sets_lost ?? 0}</td>
-                   <td>${formatAvg(s.set_average)}</td>
-                   <td>${formatAvg(s.point_average ?? s.points_average ?? s.pontos_average)}</td>
+                   <td>${formatAvg(s.set_average, s.games_played)}</td>
+                   <td>${formatAvg(s.points_average, s.games_played)}</td>
                    <td class="pts-col" style="${_wo ? 'color:#ef4444;font-weight:700;' : ''}">${_p}${_wo ? ' ⚠️' : ''}</td>`; })()
                 : isBball
                   ? `<td>${s.games_played}</td><td>${s.wins}</td><td>${s.losses}</td>
