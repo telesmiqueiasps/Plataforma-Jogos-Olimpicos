@@ -17,7 +17,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_secretaria
-from app.db.models import Credential, RegistrationPayment, User
+from app.db.models import Athlete, Credential, RegistrationPayment, User
 from app.db.session import get_db
 from app.services import email_service
 from app.api.routes.modality_mapper import map_ticket_to_slug
@@ -159,6 +159,8 @@ def _serialize(c: Credential, db: Session) -> dict:
         "payment_verified": is_payment_verified(c, db),
         "payment_modalities": c.payment_modalities or [],
         "payment_mismatch": recalculate_payment_mismatch(c, db),
+        "athlete_id": c.athlete_id,
+        "athlete_name": c.athlete.name if c.athlete else None,
     }
 
 
@@ -388,6 +390,27 @@ def approve_credential(
     cred.reviewed_by = current_user.id
     cred.reviewed_at = datetime.now(timezone.utc)
     cred.rejection_reason = None
+
+    # Cadastro automático de atleta
+    athlete_created = False
+    is_athlete = bool(
+        cred.participation_type and "atleta" in cred.participation_type.lower()
+    )
+    if is_athlete:
+        existing = db.query(Athlete).filter(
+            func.lower(Athlete.name) == cred.full_name.lower().strip()
+        ).first()
+        if existing:
+            cred.athlete_id = existing.id
+            logger.info(f"Atleta já existia: {cred.full_name} (ID: {existing.id})")
+        else:
+            new_athlete = Athlete(name=cred.full_name.strip(), active=True)
+            db.add(new_athlete)
+            db.flush()
+            cred.athlete_id = new_athlete.id
+            athlete_created = True
+            logger.info(f"Atleta criado automaticamente: {cred.full_name} (ID: {new_athlete.id})")
+
     db.commit()
     db.refresh(cred)
 
@@ -413,7 +436,9 @@ def approve_credential(
     t.daemon = True
     t.start()
 
-    return _serialize(cred, db)
+    result = _serialize(cred, db)
+    result["athlete_created"] = athlete_created
+    return result
 
 
 @router.put("/{cred_id}/reject")

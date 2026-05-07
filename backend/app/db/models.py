@@ -649,8 +649,12 @@ class Credential(Base):
     payment_modalities  = Column(JSON, nullable=True)   # slugs das modalidades pagas
     payment_mismatch    = Column(Boolean, default=False)
 
+    # Vínculo com atleta cadastrado na plataforma (preenchido automaticamente ao aprovar)
+    athlete_id        = Column(Integer, ForeignKey("athletes.id", ondelete="SET NULL"), nullable=True)
+
     reviewer          = relationship("User", foreign_keys=[reviewed_by])
     checkin_user      = relationship("User", foreign_keys=[checked_in_by])
+    athlete           = relationship("Athlete", foreign_keys=[athlete_id])
     pastor_approver   = relationship("User", foreign_keys=[pastor_approved_by])
     guardian_approver = relationship("User", foreign_keys=[guardian_approved_by])
 
