@@ -4,12 +4,26 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user
 from app.core.security import create_access_token
+from app.db.models import User
 from app.db.session import get_db
 from app.schemas.user import Token, UserCreate, UserOut
 from app.services.user_service import authenticate_user, create_user, get_user_by_email
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
+
+# Tempo de expiração por role (em minutos)
+_EXPIRE_MINUTES: dict[str, int] = {
+    "secretaria": 720,  # 12h
+    "cantina":    720,  # 12h
+    "admin":      480,  # 8h
+    "organizer":  240,  # 4h
+}
+
+
+def _expire_for(role: str) -> timedelta:
+    return timedelta(minutes=_EXPIRE_MINUTES.get(role, 240))
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -28,9 +42,18 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
             detail="Credenciais inválidas",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    expire_minutes = 720 if user.role in ("secretaria", "cantina") else None
     token = create_access_token(
         data={"sub": str(user.id)},
-        expires_delta=timedelta(minutes=expire_minutes) if expire_minutes else None,
+        expires_delta=_expire_for(user.role),
+    )
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/refresh", response_model=Token)
+def refresh_token(current_user: User = Depends(get_current_user)):
+    """Renova o token com o mesmo tempo de expiração do role do usuário."""
+    token = create_access_token(
+        data={"sub": str(current_user.id)},
+        expires_delta=_expire_for(current_user.role),
     )
     return {"access_token": token, "token_type": "bearer"}

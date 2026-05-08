@@ -106,3 +106,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// Renovação proativa: verifica a cada 30 min se o token expira em menos de 60 min
+function startTokenRefresh() {
+  setInterval(async function() {
+    var token = localStorage.getItem('sp_token');
+    if (!token) return;
+    try {
+      var payload = JSON.parse(atob(token.split('.')[1]));
+      var timeLeft = payload.exp * 1000 - Date.now();
+      if (timeLeft > 0 && timeLeft < 60 * 60 * 1000) {
+        if (typeof tryRenewToken === 'function') await tryRenewToken();
+      }
+    } catch {}
+  }, 30 * 60 * 1000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('sp_token')) startTokenRefresh();
+});

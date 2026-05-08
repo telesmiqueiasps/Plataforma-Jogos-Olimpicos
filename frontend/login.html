@@ -142,7 +142,17 @@
         try {
           const user = await AuthAPI.me();
           setAuth(data.access_token, user);
-          window.location.href = user.role === 'cantina' ? 'cantina.html' : 'dashboard.html';
+          const redirectUrl = localStorage.getItem('sp_redirect_after_login');
+          if (redirectUrl) {
+            localStorage.removeItem('sp_redirect_after_login');
+            window.location.href = redirectUrl;
+          } else if (user.role === 'cantina') {
+            window.location.href = 'cantina.html';
+          } else if (user.role === 'secretaria') {
+            window.location.href = 'secretaria.html';
+          } else {
+            window.location.href = 'dashboard.html';
+          }
         } catch {
           localStorage.setItem('sp_token', data.access_token);
           window.location.href = 'dashboard.html';

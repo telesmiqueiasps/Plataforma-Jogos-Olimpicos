@@ -1,5 +1,39 @@
 const API_BASE = 'https://sports-platform-api.onrender.com';
 
+async function tryRenewToken() {
+  try {
+    const token = localStorage.getItem('sp_token');
+    if (!token) return false;
+    const res = await fetch(API_BASE + '/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('sp_token', data.access_token);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function handleSessionExpired() {
+  const currentPage = window.location.pathname + window.location.search;
+  if (!window.location.pathname.endsWith('login.html')) {
+    localStorage.setItem('sp_redirect_after_login', currentPage);
+  }
+  localStorage.removeItem('sp_token');
+  localStorage.removeItem('sp_user');
+  localStorage.removeItem('sp_role');
+  localStorage.removeItem('sp_user_name');
+  if (typeof showToast === 'function') {
+    showToast('Sessão expirada. Redirecionando para login...', 'warning');
+  }
+  setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+}
+
 async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('sp_token');
   const isForm = options.body instanceof URLSearchParams;
@@ -15,18 +49,22 @@ async function apiFetch(path, options = {}) {
     throw new Error('Sem conexão com o servidor. Verifique sua internet.');
   }
 
-  if (res.status === 401 && !path.includes('/auth/login')) {
-    localStorage.removeItem('sp_token');
-    localStorage.removeItem('sp_user');
-    localStorage.removeItem('sp_role');
-    localStorage.removeItem('sp_user_name');
-    if (!window.location.pathname.endsWith('login.html')) {
-      if (typeof showToast === 'function') {
-        showToast('Sessão expirada. Redirecionando para login...', 'warning', 3000);
+  // 401: tentar renovar token uma vez antes de deslogar
+  if (res.status === 401 && !path.includes('/auth/')) {
+    const renewed = await tryRenewToken();
+    if (renewed) {
+      headers['Authorization'] = `Bearer ${localStorage.getItem('sp_token')}`;
+      try {
+        res = await fetch(API_BASE + path, { ...options, headers });
+      } catch {
+        handleSessionExpired();
+        throw new Error('Sessão expirada');
       }
-      setTimeout(() => { window.location.href = 'login.html'; }, 2000);
     }
-    throw new Error('Sessão expirada. Faça login novamente.');
+    if (res.status === 401) {
+      handleSessionExpired();
+      throw new Error('Sessão expirada');
+    }
   }
 
   if (!res.ok) {
