@@ -354,6 +354,7 @@ async def list_payments(
         cred = creds_by_email.get(p.email.lower()) if p.email else None
         result.append({
             "id": p.id,
+            "full_name": p.full_name,
             "name": p.full_name,
             "cpf": p.cpf,
             "email": p.email,
