@@ -176,6 +176,46 @@
     </div>
   </div>
 
+  <!-- Modal: Atletas da Equipe -->
+  <div class="modal-overlay" id="modal-team-athletes">
+    <div class="modal" style="max-width:680px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="team-athletes-title"></div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;" id="team-athletes-sport"></div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-team-athletes')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Seção 1: atletas atuais -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-weight:600;font-size:14px;">Atletas na equipe</span>
+          <span id="team-athlete-count" style="font-size:13px;color:var(--text-secondary);background:var(--bg-tertiary);border-radius:12px;padding:2px 10px;border:1px solid var(--border);"></span>
+        </div>
+        <div id="current-athletes-list" style="max-height:200px;overflow-y:auto;margin-bottom:20px;"></div>
+
+        <!-- Divider -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <hr style="flex:1;border:none;border-top:1px solid var(--border);">
+          <span style="font-size:13px;font-weight:600;color:var(--text-secondary);white-space:nowrap;">➕ Adicionar Atletas</span>
+          <hr style="flex:1;border:none;border-top:1px solid var(--border);">
+        </div>
+
+        <!-- Seção 2: busca para adicionar -->
+        <input type="text" id="athlete-search-input" class="form-control"
+          placeholder="🔍 Buscar atleta por nome..."
+          oninput="searchAthletesToAdd()"
+          style="margin-bottom:12px;">
+        <div id="athletes-to-add-list" style="max-height:250px;overflow-y:auto;">
+          <p style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px;">Digite para buscar atletas</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-team-athletes')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <script src="js/api.js"></script>
@@ -283,7 +323,7 @@
                   <td>${fmtDate(t.created_at)}</td>
                   <td>
                     <div class="actions">
-                      <a href="athletes.html?team_id=${t.id}" class="btn btn-sm btn-secondary">Ver Atletas</a>
+                      <button class="btn btn-sm btn-secondary" onclick="openTeamAthletesModal(${t.id}, '${t.name.replace(/'/g, "\\'")}', '${((t.sports && t.sports.length ? t.sports.map(s => s.name).join(', ') : t.sport && t.sport.name ? t.sport.name : '')).replace(/'/g, "\\'")}')">👥 Ver Atletas</button>
                       <button class="btn btn-sm btn-secondary" onclick="openEditTeamModal(${t.id})">✏️ Editar</button>
                       <button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="deleteTeam(${t.id}, '${t.name.replace(/'/g, "\\'")}')">🗑️ Excluir</button>
                     </div>
@@ -470,6 +510,129 @@
         }
       }
     });
+
+    // ===== MODAL ATLETAS DA EQUIPE =====
+    let currentTeamId = null;
+    let currentTeamAthletes = [];
+    let athleteSearchTimeout = null;
+
+    async function openTeamAthletesModal(teamId, teamName, sportName) {
+      currentTeamId = teamId;
+      document.getElementById('team-athletes-title').textContent = teamName;
+      document.getElementById('team-athletes-sport').textContent = sportName;
+      document.getElementById('current-athletes-list').innerHTML =
+        '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px;">Carregando...</p>';
+      document.getElementById('athlete-search-input').value = '';
+      document.getElementById('athletes-to-add-list').innerHTML =
+        '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px;">Digite para buscar atletas</p>';
+      openModal('modal-team-athletes');
+      await loadTeamAthletes(teamId);
+      setTimeout(() => document.getElementById('athlete-search-input').focus(), 150);
+    }
+
+    async function loadTeamAthletes(teamId) {
+      try {
+        const res = await TeamsAPI.athletes(teamId);
+        const athletes = Array.isArray(res) ? res : (res.athletes || []);
+        currentTeamAthletes = athletes.map(a => a.id);
+        renderCurrentAthletes(athletes);
+      } catch(e) {
+        document.getElementById('current-athletes-list').innerHTML =
+          '<p style="color:#dc2626;font-size:13px;text-align:center;padding:8px;">Erro ao carregar atletas</p>';
+      }
+    }
+
+    function renderCurrentAthletes(athletes) {
+      const container = document.getElementById('current-athletes-list');
+      const countEl = document.getElementById('team-athlete-count');
+      if (countEl) countEl.textContent = athletes.length + (athletes.length === 1 ? ' atleta' : ' atletas');
+      if (!athletes.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:16px;font-size:13px;">Nenhum atleta vinculado. Adicione atletas abaixo.</p>';
+        return;
+      }
+      container.innerHTML = athletes.map(a => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:6px;margin-bottom:4px;background:var(--bg-secondary);">
+          <div>
+            <span style="font-weight:600;font-size:14px;">${a.name}</span>
+            <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">${a.number != null ? '#' + a.number : ''} ${a.position || ''}</span>
+          </div>
+          <button onclick="removeAthleteFromTeam(${a.id}, '${a.name.replace(/'/g, "\\'")}')"
+            style="background:transparent;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">
+            ✕ Remover
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function searchAthletesToAdd() {
+      clearTimeout(athleteSearchTimeout);
+      const query = document.getElementById('athlete-search-input').value.trim();
+      if (!query) {
+        document.getElementById('athletes-to-add-list').innerHTML =
+          '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px;">Digite para buscar atletas</p>';
+        return;
+      }
+      athleteSearchTimeout = setTimeout(() => fetchAthletesToAdd(query), 300);
+    }
+
+    async function fetchAthletesToAdd(query) {
+      const container = document.getElementById('athletes-to-add-list');
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px;">🔍 Buscando...</p>';
+      try {
+        const result = await AthletesAPI.list({ search: query, limit: 20 });
+        const athletes = Array.isArray(result) ? result : [];
+        const available = athletes.filter(a => !currentTeamAthletes.includes(a.id));
+        if (!available.length) {
+          container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px;">Nenhum atleta encontrado ou todos já estão na equipe</p>';
+          return;
+        }
+        container.innerHTML = available.map(a => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:6px;margin-bottom:4px;transition:background 0.15s;"
+               onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+            <div>
+              <span style="font-weight:600;font-size:14px;">${a.name}</span>
+              <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">${a.number != null ? '#' + a.number : ''} ${a.position || ''}</span>
+            </div>
+            <button id="add-btn-${a.id}"
+              onclick="addAthleteToTeam(${a.id}, '${a.name.replace(/'/g, "\\'")}')"
+              style="background:#2563eb;color:white;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600;">
+              + Adicionar
+            </button>
+          </div>
+        `).join('');
+      } catch(e) {
+        container.innerHTML = `<p style="color:#dc2626;font-size:13px;text-align:center;padding:8px;">Erro ao buscar: ${e.message}</p>`;
+      }
+    }
+
+    async function addAthleteToTeam(athleteId, athleteName) {
+      const btn = document.getElementById('add-btn-' + athleteId);
+      if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+      try {
+        await AthletesAPI.linkTeam(athleteId, currentTeamId);
+        if (btn) { btn.textContent = '✓ Adicionado'; btn.style.background = '#059669'; }
+        currentTeamAthletes.push(athleteId);
+        await loadTeamAthletes(currentTeamId);
+        showToast('✅ ' + athleteName + ' adicionado à equipe!', 'success');
+      } catch(e) {
+        if (btn) { btn.textContent = '+ Adicionar'; btn.disabled = false; btn.style.background = '#2563eb'; }
+        showToast('Erro: ' + e.message, 'error');
+      }
+    }
+
+    async function removeAthleteFromTeam(athleteId, athleteName) {
+      if (!confirm('Remover ' + athleteName + ' da equipe?')) return;
+      try {
+        await AthletesAPI.unlinkTeam(athleteId, currentTeamId);
+        currentTeamAthletes = currentTeamAthletes.filter(id => id !== athleteId);
+        await loadTeamAthletes(currentTeamId);
+        showToast(athleteName + ' removido da equipe', 'info');
+        const query = document.getElementById('athlete-search-input').value.trim();
+        if (query) await fetchAthletesToAdd(query);
+      } catch(e) {
+        showToast('Erro: ' + e.message, 'error');
+      }
+    }
 
     loadSports();
     loadTeams();

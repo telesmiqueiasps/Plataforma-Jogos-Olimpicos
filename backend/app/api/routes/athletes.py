@@ -32,6 +32,8 @@ def list_athletes(
     team_id: Optional[int] = Query(None, description="Filtra por equipe"),
     active: Optional[bool] = Query(None, description="Filtra por status ativo"),
     free: Optional[bool] = Query(None, description="Se true, retorna apenas atletas sem equipe"),
+    search: Optional[str] = Query(None, description="Busca por nome"),
+    limit: Optional[int] = Query(None, description="Limite de resultados"),
     db: Session = Depends(get_db),
 ):
     q = db.query(Athlete)
@@ -41,7 +43,12 @@ def list_athletes(
         q = q.filter(Athlete.active == active)
     if free is True:
         q = q.filter(Athlete.team_id.is_(None))
-    return q.order_by(Athlete.name).all()
+    if search:
+        q = q.filter(Athlete.name.ilike(f'%{search}%'))
+    q = q.order_by(Athlete.name)
+    if limit:
+        q = q.limit(limit)
+    return q.all()
 
 
 @router.post("/", response_model=AthleteOut, status_code=status.HTTP_201_CREATED)
