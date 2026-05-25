@@ -544,18 +544,21 @@ class CantinProduct(Base):
 class CantinOrder(Base):
     __tablename__ = "cantin_orders"
 
-    id             = Column(Integer, primary_key=True)
-    order_number   = Column(Integer, nullable=False)
-    status         = Column(String(20), default="pending")   # pending, paid, cancelled
-    payment_method = Column(String(20), nullable=True)       # dinheiro, pix
-    total          = Column(Numeric(10, 2), nullable=False, default=0)
-    notes          = Column(String(300), nullable=True)
-    created_by     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at     = Column(DateTime(timezone=True), server_default=func.now())
-    refunded_at    = Column(DateTime(timezone=True), nullable=True)
-    refunded_by    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    refund_reason  = Column(String(300), nullable=True)
-    pdv_id         = Column(Integer, default=1, nullable=False)
+    id               = Column(Integer, primary_key=True)
+    order_number     = Column(Integer, nullable=False)
+    status           = Column(String(20), default="pending")   # pending, paid, cancelled
+    payment_method   = Column(String(20), nullable=True)       # dinheiro, pix, debito, credito
+    total            = Column(Numeric(10, 2), nullable=False, default=0)
+    original_total   = Column(Numeric(10, 2), nullable=True)
+    card_fee_percent = Column(Numeric(5, 2), nullable=True)
+    card_fee_amount  = Column(Numeric(10, 2), nullable=True)
+    notes            = Column(String(300), nullable=True)
+    created_by       = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at       = Column(DateTime(timezone=True), server_default=func.now())
+    refunded_at      = Column(DateTime(timezone=True), nullable=True)
+    refunded_by      = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    refund_reason    = Column(String(300), nullable=True)
+    pdv_id           = Column(Integer, default=1, nullable=False)
 
     items = relationship("CantinOrderItem", back_populates="order", cascade="all, delete-orphan")
 
@@ -573,6 +576,17 @@ class CantinOrderItem(Base):
 
     order   = relationship("CantinOrder", back_populates="items")
     product = relationship("CantinProduct", back_populates="order_items")
+
+
+class CantinPDVConfig(Base):
+    __tablename__ = "cantin_pdv_config"
+
+    id         = Column(Integer, primary_key=True)
+    pdv_id     = Column(Integer, nullable=False, unique=True)
+    debit_fee  = Column(Numeric(5, 2), default=0.00)
+    credit_fee = Column(Numeric(5, 2), default=0.00)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
 
 class CantinCashFlow(Base):

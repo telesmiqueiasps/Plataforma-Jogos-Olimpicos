@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_cantina
-from app.db.models import CantinCashFlow, CantinOrder, CantinOrderItem, CantinProduct, User
+from app.db.models import CantinCashFlow, CantinOrder, CantinOrderItem, CantinPDVConfig, CantinProduct, User
 from app.db.session import get_db
 
 router = APIRouter(prefix="/cantina", tags=["Cantina"])
@@ -63,6 +63,12 @@ class OrderCreate(BaseModel):
     payment_method: Optional[str] = None
     notes: Optional[str] = None
     pdv_id: int = 1
+    card_fee_percent: Optional[float] = None
+
+
+class PDVConfigUpdate(BaseModel):
+    debit_fee: float
+    credit_fee: float
 
 
 class OrderStatusUpdate(BaseModel):
@@ -133,6 +139,9 @@ def _order_out(o: CantinOrder, users: dict = None) -> dict:
         "status": o.status,
         "payment_method": o.payment_method,
         "total": float(o.total),
+        "original_total": float(o.original_total) if o.original_total is not None else None,
+        "card_fee_percent": float(o.card_fee_percent) if o.card_fee_percent is not None else None,
+        "card_fee_amount": float(o.card_fee_amount) if o.card_fee_amount is not None else None,
         "notes": o.notes,
         "created_by": o.created_by,
         "created_by_name": u.get(o.created_by),
@@ -200,6 +209,50 @@ def _parse_date_range(date_from: Optional[str], date_to: Optional[str]):
 def _next_order_number(db: Session) -> int:
     max_number = db.query(func.max(CantinOrder.order_number)).scalar() or 0
     return int(max_number) + 1
+
+
+# ---------------------------------------------------------------------------
+# CONFIGURAÇÃO DE TAXAS POR PDV
+# ---------------------------------------------------------------------------
+
+def _pdv_config_out(c: CantinPDVConfig) -> dict:
+    return {
+        "id": c.id,
+        "pdv_id": c.pdv_id,
+        "debit_fee": float(c.debit_fee) if c.debit_fee is not None else 0.0,
+        "credit_fee": float(c.credit_fee) if c.credit_fee is not None else 0.0,
+        "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+    }
+
+
+@router.get("/config/{pdv_id}")
+def get_pdv_config(pdv_id: int, db: Session = Depends(get_db)):
+    config = db.query(CantinPDVConfig).filter(CantinPDVConfig.pdv_id == pdv_id).first()
+    if not config:
+        return {"id": None, "pdv_id": pdv_id, "debit_fee": 0.0, "credit_fee": 0.0, "updated_at": None}
+    return _pdv_config_out(config)
+
+
+@router.put("/config/{pdv_id}")
+def update_pdv_config(
+    pdv_id: int,
+    data: PDVConfigUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_cantina),
+):
+    if not (0 <= data.debit_fee <= 100) or not (0 <= data.credit_fee <= 100):
+        raise HTTPException(status_code=400, detail="Taxas devem ser entre 0% e 100%")
+    config = db.query(CantinPDVConfig).filter(CantinPDVConfig.pdv_id == pdv_id).first()
+    if not config:
+        config = CantinPDVConfig(pdv_id=pdv_id, debit_fee=data.debit_fee, credit_fee=data.credit_fee, updated_by=current_user.id)
+        db.add(config)
+    else:
+        config.debit_fee = data.debit_fee
+        config.credit_fee = data.credit_fee
+        config.updated_by = current_user.id
+    db.commit()
+    db.refresh(config)
+    return _pdv_config_out(config)
 
 
 # ---------------------------------------------------------------------------
@@ -356,11 +409,22 @@ def create_order(
         total += subtotal
         order_items.append((product, item_in.quantity, subtotal))
 
+    original_total = total
+    card_fee_percent = None
+    card_fee_amount = None
+    if data.payment_method in ("debito", "credito") and data.card_fee_percent is not None:
+        card_fee_percent = data.card_fee_percent
+        card_fee_amount = round(total * (card_fee_percent / 100), 2)
+        total = round(total + card_fee_amount, 2)
+
     order = CantinOrder(
         order_number=_next_order_number(db),
         status="paid" if data.payment_method else "pending",
         payment_method=data.payment_method,
         total=total,
+        original_total=original_total if card_fee_amount else None,
+        card_fee_percent=card_fee_percent,
+        card_fee_amount=card_fee_amount,
         notes=data.notes,
         created_by=current_user.id,
         pdv_id=data.pdv_id,
@@ -505,6 +569,9 @@ def get_cash_summary(
 
     total_dinheiro = sum(float(o.total) for o in paid_orders if o.payment_method == "dinheiro")
     total_pix = sum(float(o.total) for o in paid_orders if o.payment_method == "pix")
+    total_debito = sum(float(o.total) for o in paid_orders if o.payment_method == "debito")
+    total_credito = sum(float(o.total) for o in paid_orders if o.payment_method == "credito")
+    total_cartao = total_debito + total_credito
     total_vendas = sum(float(o.total) for o in paid_orders)
     total_refunded = sum(float(o.total) for o in refunded_orders)
 
@@ -524,6 +591,9 @@ def get_cash_summary(
         "total_vendas": total_vendas,
         "total_dinheiro": total_dinheiro,
         "total_pix": total_pix,
+        "total_debito": total_debito,
+        "total_credito": total_credito,
+        "total_cartao": total_cartao,
         "total_entradas": total_entradas,
         "total_saidas": total_saidas,
         "total_refunded": total_refunded,
@@ -625,6 +695,8 @@ def get_cash_consolidated(
         total_vendas = sum(float(o.total) for o in paid)
         total_dinheiro = sum(float(o.total) for o in paid if o.payment_method == "dinheiro")
         total_pix = sum(float(o.total) for o in paid if o.payment_method == "pix")
+        total_debito = sum(float(o.total) for o in paid if o.payment_method == "debito")
+        total_credito = sum(float(o.total) for o in paid if o.payment_method == "credito")
         total_refunded = sum(float(o.total) for o in refunded)
         total_entradas = sum(float(f.amount) for f in flows if f.type == "entrada")
         total_saidas = sum(
@@ -635,6 +707,9 @@ def get_cash_consolidated(
             "total_vendas": total_vendas,
             "total_dinheiro": total_dinheiro,
             "total_pix": total_pix,
+            "total_debito": total_debito,
+            "total_credito": total_credito,
+            "total_cartao": total_debito + total_credito,
             "total_entradas": total_entradas,
             "total_saidas": total_saidas,
             "total_refunded": total_refunded,
@@ -684,6 +759,8 @@ def get_report(
     total_vendas = sum(float(o.total) for o in paid_orders)
     total_dinheiro = sum(float(o.total) for o in paid_orders if o.payment_method == "dinheiro")
     total_pix = sum(float(o.total) for o in paid_orders if o.payment_method == "pix")
+    total_debito = sum(float(o.total) for o in paid_orders if o.payment_method == "debito")
+    total_credito = sum(float(o.total) for o in paid_orders if o.payment_method == "credito")
 
     # Produtos mais vendidos (apenas pedidos pagos, excluindo estornados)
     product_sales: dict = {}
@@ -743,6 +820,9 @@ def get_report(
         "total_vendas": total_vendas,
         "total_dinheiro": total_dinheiro,
         "total_pix": total_pix,
+        "total_debito": total_debito,
+        "total_credito": total_credito,
+        "total_cartao": total_debito + total_credito,
         "orders_paid": len(paid_orders),
         "top_products": top_products,
         "category_sales": list(category_sales.values()),

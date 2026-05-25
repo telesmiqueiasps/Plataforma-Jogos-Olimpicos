@@ -212,6 +212,8 @@ const CantinAPI = {
   cashFlow: (params) => apiFetch('/api/cantina/cash/flow' + (params ? '?' + new URLSearchParams(params) : '')),
   addCashFlow: (data) => apiFetch('/api/cantina/cash/flow', { method: 'POST', body: JSON.stringify(data) }),
   report: (params) => apiFetch('/api/cantina/report' + (params ? '?' + new URLSearchParams(params) : '')),
+  getPdvConfig: (pdvId) => apiFetch(`/api/cantina/config/${pdvId}`),
+  savePdvConfig: (pdvId, data) => apiFetch(`/api/cantina/config/${pdvId}`, { method: 'PUT', body: JSON.stringify(data) }),
 };
 
 // --- Presbyteries ---

@@ -103,6 +103,17 @@
     .date-filter-bar select, .date-filter-bar input[type=date] { font-size:13px; padding:5px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg-secondary); color:var(--text-primary); font-family:inherit; cursor:pointer; }
     .date-custom-range { display:none; align-items:center; gap:8px; flex-wrap:wrap; }
     .date-custom-range.visible { display:flex; }
+
+    /* ---- Card payment modal ---- */
+    .card-type-btn { padding:16px 12px; border:2px solid var(--border); border-radius:10px; background:var(--bg-card); cursor:pointer; text-align:center; transition:border-color .15s,background .15s; font-family:inherit; width:100%; }
+    .card-type-btn:hover { border-color:#2563eb; }
+    .card-type-btn.selected { border-color:#2563eb; background:#eff6ff; }
+    .card-type-btn .ct-icon { font-size:28px; margin-bottom:6px; }
+    .card-type-btn .ct-label { font-weight:700; font-size:14px; }
+    .card-type-btn .ct-fee { font-size:12px; color:var(--text-muted); margin-top:3px; }
+    .card-summary-box { background:var(--bg-secondary); border-radius:10px; padding:14px 16px; text-align:center; margin-top:14px; }
+    .card-summary-box .cs-fee { font-size:13px; color:var(--text-secondary); margin-bottom:4px; }
+    .card-summary-box .cs-total { font-size:24px; font-weight:900; color:#2563eb; }
   </style>
 </head>
 <body>
@@ -212,6 +223,7 @@
               <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
                 🛒 Carrinho
                 <button onclick="clearCart()" style="margin-left:auto;font-size:11px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;">Limpar</button>
+                <button onclick="openTaxModal()" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;color:var(--text-secondary);cursor:pointer;font-family:inherit;" title="Configurar taxas de cartão">⚙️ Taxas</button>
               </h3>
               <div id="cart-items">
                 <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;">Nenhum item adicionado</div>
@@ -223,6 +235,7 @@
               <div class="pay-btns">
                 <button class="btn btn-primary" onclick="openTrocoModal()" id="btn-pay-cash">💵 Dinheiro</button>
                 <button class="btn btn-primary" onclick="confirmOrder('pix')" id="btn-pay-pix">📱 PIX</button>
+                <button class="btn btn-primary" onclick="openCardPaymentModal()" id="btn-pay-card" style="grid-column:span 2;background:#7c3aed;">💳 Cartão</button>
               </div>
               <div id="cart-note" style="margin-top:10px;">
                 <input type="text" id="order-notes" class="form-control" placeholder="Observação (opcional)" style="font-size:12px;">
@@ -620,6 +633,76 @@
     </div>
   </div>
 
+  <!-- Modal: Configurar taxas de cartão -->
+  <div class="modal-overlay" id="modal-tax-config">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <span class="modal-title" id="tax-config-modal-title">⚙️ Taxas de Cartão — PDV</span>
+        <button class="modal-close" onclick="closeTaxModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">As taxas são repassadas ao cliente no momento da venda. Defina 0% para não cobrar taxa.</p>
+        <div class="form-group">
+          <label>💳 Taxa Débito (%)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="debit-fee-input" class="form-control" min="0" max="100" step="0.01" placeholder="Ex: 1.50" oninput="updateTaxPreview()">
+            <span style="color:var(--text-muted);font-weight:600;">%</span>
+          </div>
+          <p class="form-hint">Ex: pedido R$100 com 1,5% → cliente paga R$101,50</p>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label>💳 Taxa Crédito (%)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="credit-fee-input" class="form-control" min="0" max="100" step="0.01" placeholder="Ex: 3.00" oninput="updateTaxPreview()">
+            <span style="color:var(--text-muted);font-weight:600;">%</span>
+          </div>
+          <p class="form-hint">Ex: pedido R$100 com 3% → cliente paga R$103,00</p>
+        </div>
+        <div id="tax-preview" style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:13px;line-height:1.8;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeTaxModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-tax" onclick="saveTaxConfig()">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pagamento com cartão -->
+  <div class="modal-overlay" id="modal-card-payment">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <span class="modal-title">💳 Pagamento com Cartão</span>
+        <button class="modal-close" onclick="closeModal('modal-card-payment')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Total do pedido</div>
+          <div id="card-original-total" style="font-size:32px;font-weight:900;color:var(--accent-blue,#2563eb);">R$ 0,00</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
+          <button class="card-type-btn" id="btn-card-debit" onclick="selectCardType('debito')">
+            <div class="ct-icon">💳</div>
+            <div class="ct-label">Débito</div>
+            <div class="ct-fee" id="debit-fee-label">+0%</div>
+          </button>
+          <button class="card-type-btn" id="btn-card-credit" onclick="selectCardType('credito')">
+            <div class="ct-icon">💳</div>
+            <div class="ct-label">Crédito</div>
+            <div class="ct-fee" id="credit-fee-label">+0%</div>
+          </button>
+        </div>
+        <div id="card-summary-box" class="card-summary-box" style="display:none;">
+          <div class="cs-fee">Taxa: <span id="card-fee-pct">0%</span> = <span id="card-fee-amt">R$ 0,00</span></div>
+          <div class="cs-total">Total a cobrar: <span id="card-final-total">R$ 0,00</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-card-payment')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-confirm-card" onclick="confirmCardPayment()" disabled style="background:#7c3aed;opacity:.5;">✅ Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
   <!-- Hidden PDF area -->
   <div id="pdf-render-area"
@@ -639,6 +722,9 @@
     var currentOrderFilter = '';
     var currentCategoryFilter = '';
     var _pendingPaymentMethod = null;
+    var pdvTaxConfig = { debit_fee: 0, credit_fee: 0 };
+    var _cardSelectedType = null;
+    var _cardOriginalTotal = 0;
 
     // PDV atual lido da URL (?pdv=1 ou ?pdv=2)
     var currentPdvId = (function() {
@@ -672,6 +758,7 @@
 
       initTabNav();
       loadPDV();
+      loadTaxConfig();
     });
 
     function switchPdv() {
@@ -903,18 +990,22 @@
       await confirmOrder('dinheiro');
     }
 
-    async function confirmOrder(paymentMethod) {
+    async function confirmOrder(paymentMethod, cardFeePercent) {
       if (cart.length === 0) { showToast('Adicione itens ao carrinho primeiro.', 'error'); return; }
       var items = cart.map(function(ci) {
         return { product_id: ci.product.id, quantity: ci.quantity };
       });
       var notes = document.getElementById('order-notes').value.trim();
-      var btn = document.getElementById('btn-pay-' + (paymentMethod === 'dinheiro' ? 'cash' : 'pix'));
+      var btnId = paymentMethod === 'dinheiro' ? 'btn-pay-cash' : paymentMethod === 'pix' ? 'btn-pay-pix' : 'btn-pay-card';
+      var btn = document.getElementById(btnId);
       if (btn) btnLoading(btn, true, 'Registrando...');
       try {
-        var order = await CantinAPI.createOrder({ items: items, payment_method: paymentMethod, notes: notes || null, pdv_id: currentPdvId });
-        var total = 'R$ ' + formatMoney(order.total);
-        showToast('✅ Pedido #' + order.order_number + ' registrado! Total: ' + total, 'success', 4000);
+        var orderData = { items: items, payment_method: paymentMethod, notes: notes || null, pdv_id: currentPdvId };
+        if (cardFeePercent != null) orderData.card_fee_percent = cardFeePercent;
+        var order = await CantinAPI.createOrder(orderData);
+        var totalStr = 'R$ ' + formatMoney(order.total);
+        var cardLabel = paymentMethod === 'debito' ? ' [Débito]' : paymentMethod === 'credito' ? ' [Crédito]' : '';
+        showToast('✅ Pedido #' + order.order_number + ' registrado! Total: ' + totalStr + cardLabel, 'success', 4000);
         clearCart();
         await loadPDV();
       } catch(e) {
@@ -1187,9 +1278,13 @@
           '<div class="c-value danger">R$ ' + formatMoney(s.total_refunded || 0) + '</div>' +
           '<div class="c-label">Estornos (' + (s.orders_refunded || 0) + ')</div></div>';
       }
+      var cartaoCard = (s.total_cartao > 0)
+        ? cashCard('💳', 'R$ ' + formatMoney(s.total_cartao || 0), 'Cartão (Déb+Cré)')
+        : '';
       container.innerHTML =
         cashCard('💵', 'R$ ' + formatMoney(s.total_dinheiro || 0), 'Dinheiro') +
         cashCard('📱', 'R$ ' + formatMoney(s.total_pix || 0), 'PIX') +
+        cartaoCard +
         cashCard('💰', 'R$ ' + formatMoney(s.total_vendas || 0), 'Total Vendas') +
         cashCard('📈', 'R$ ' + formatMoney(s.saldo || 0), 'Saldo') +
         cashCard('🧾', s.orders_paid + '/' + s.orders_count, 'Pedidos Pagos/Total') +
@@ -1248,7 +1343,17 @@
           refundInfo +
           '<div class="order-footer">' +
             '<span class="order-total">R$ ' + formatMoney(o.total) + '</span>' +
-            '<span style="font-size:12px;color:var(--text-muted);">' + (o.payment_method ? '💳 ' + o.payment_method : '') + '</span>' +
+            (function() {
+              var pm = o.payment_method || '';
+              var pmIcon = pm === 'dinheiro' ? '💵' : pm === 'pix' ? '📱' : pm ? '💳' : '';
+              var pmLabel = pmIcon ? (pmIcon + ' ' + pm) : '';
+              var feeInfo = '';
+              if ((pm === 'debito' || pm === 'credito') && o.card_fee_percent > 0) {
+                feeInfo = ' <span style="font-size:10px;color:#7c3aed;background:#ede9fe;border-radius:4px;padding:1px 5px;">' +
+                  '+' + o.card_fee_percent + '% = R$ ' + formatMoney(o.card_fee_amount) + '</span>';
+              }
+              return '<span style="font-size:12px;color:var(--text-muted);">' + escHtml(pmLabel) + feeInfo + '</span>';
+            })() +
             byInfo +
             '<span class="order-time">' + fmtTime(o.created_at) + '</span>' +
             '<div style="display:flex;gap:6px;">' + actionBtns + '</div>' +
@@ -1625,10 +1730,14 @@
     }
 
     function renderReportSummary(r) {
+      var cartaoCard = (r.total_cartao > 0)
+        ? cashCard('💳', 'R$ ' + formatMoney(r.total_cartao || 0), 'Cartão (Déb+Cré)')
+        : '';
       document.getElementById('report-summary').innerHTML =
         cashCard('💰', 'R$ ' + formatMoney(r.total_vendas || 0), 'Total Arrecadado') +
         cashCard('💵', 'R$ ' + formatMoney(r.total_dinheiro || 0), 'Dinheiro') +
         cashCard('📱', 'R$ ' + formatMoney(r.total_pix || 0), 'PIX') +
+        cartaoCard +
         cashCard('🧾', r.orders_paid || 0, 'Pedidos Finalizados');
     }
 
@@ -1970,6 +2079,107 @@
         '<div style="font-size:16px;font-weight:800;color:#2563eb;">' + value + '</div>' +
         '<div style="font-size:9px;color:#4a5068;margin-top:3px;text-transform:uppercase;letter-spacing:.5px;">' + label + '</div>' +
         '</div>';
+    }
+
+    // ================================================================
+    //  Taxas de cartão (configuração)
+    // ================================================================
+    async function loadTaxConfig() {
+      try {
+        var config = await CantinAPI.getPdvConfig(currentPdvId);
+        pdvTaxConfig = { debit_fee: parseFloat(config.debit_fee || 0), credit_fee: parseFloat(config.credit_fee || 0) };
+      } catch(e) {
+        pdvTaxConfig = { debit_fee: 0, credit_fee: 0 };
+      }
+    }
+
+    async function openTaxModal() {
+      await loadTaxConfig();
+      var titleEl = document.getElementById('tax-config-modal-title');
+      if (titleEl) titleEl.textContent = '⚙️ Taxas de Cartão — PDV ' + currentPdvId;
+      document.getElementById('debit-fee-input').value = pdvTaxConfig.debit_fee || 0;
+      document.getElementById('credit-fee-input').value = pdvTaxConfig.credit_fee || 0;
+      updateTaxPreview();
+      openModal('modal-tax-config');
+    }
+
+    function closeTaxModal() {
+      closeModal('modal-tax-config');
+    }
+
+    function updateTaxPreview() {
+      var debit  = parseFloat(document.getElementById('debit-fee-input').value) || 0;
+      var credit = parseFloat(document.getElementById('credit-fee-input').value) || 0;
+      document.getElementById('tax-preview').innerHTML =
+        '<strong>Prévia (pedido de R$ 50,00):</strong><br>' +
+        '💳 Débito (+' + debit + '%): <strong>R$ ' + formatMoney(50 * (1 + debit / 100)) + '</strong><br>' +
+        '💳 Crédito (+' + credit + '%): <strong>R$ ' + formatMoney(50 * (1 + credit / 100)) + '</strong>';
+    }
+
+    async function saveTaxConfig() {
+      var debit  = parseFloat(document.getElementById('debit-fee-input').value) || 0;
+      var credit = parseFloat(document.getElementById('credit-fee-input').value) || 0;
+      if (debit < 0 || debit > 100 || credit < 0 || credit > 100) {
+        showToast('Taxas devem ser entre 0% e 100%', 'error'); return;
+      }
+      var btn = document.getElementById('btn-save-tax');
+      btnLoading(btn, true);
+      try {
+        await CantinAPI.savePdvConfig(currentPdvId, { debit_fee: debit, credit_fee: credit });
+        pdvTaxConfig = { debit_fee: debit, credit_fee: credit };
+        closeTaxModal();
+        showToast('✅ Taxas salvas!', 'success');
+      } catch(e) {
+        showToast('Erro ao salvar: ' + e.message, 'error');
+      } finally {
+        btnLoading(btn, false);
+      }
+    }
+
+    // ================================================================
+    //  Pagamento com cartão
+    // ================================================================
+    function openCardPaymentModal() {
+      if (cart.length === 0) { showToast('Adicione itens ao carrinho primeiro.', 'error'); return; }
+      _cardOriginalTotal = cart.reduce(function(s, ci){ return s + ci.product.price * ci.quantity; }, 0);
+      _cardSelectedType = null;
+
+      document.getElementById('card-original-total').textContent = 'R$ ' + formatMoney(_cardOriginalTotal);
+      document.getElementById('debit-fee-label').textContent = '+' + (pdvTaxConfig.debit_fee || 0) + '%';
+      document.getElementById('credit-fee-label').textContent = '+' + (pdvTaxConfig.credit_fee || 0) + '%';
+      document.getElementById('card-summary-box').style.display = 'none';
+      document.getElementById('btn-card-debit').classList.remove('selected');
+      document.getElementById('btn-card-credit').classList.remove('selected');
+      var confirmBtn = document.getElementById('btn-confirm-card');
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.5';
+      openModal('modal-card-payment');
+    }
+
+    function selectCardType(type) {
+      _cardSelectedType = type;
+      var fee = type === 'debito' ? (pdvTaxConfig.debit_fee || 0) : (pdvTaxConfig.credit_fee || 0);
+      var feeAmount = _cardOriginalTotal * (fee / 100);
+      var finalTotal = _cardOriginalTotal + feeAmount;
+
+      document.getElementById('btn-card-debit').classList.toggle('selected', type === 'debito');
+      document.getElementById('btn-card-credit').classList.toggle('selected', type === 'credito');
+
+      document.getElementById('card-fee-pct').textContent = fee + '%';
+      document.getElementById('card-fee-amt').textContent = 'R$ ' + formatMoney(feeAmount);
+      document.getElementById('card-final-total').textContent = 'R$ ' + formatMoney(finalTotal);
+      document.getElementById('card-summary-box').style.display = 'block';
+
+      var confirmBtn = document.getElementById('btn-confirm-card');
+      confirmBtn.disabled = false;
+      confirmBtn.style.opacity = '1';
+    }
+
+    async function confirmCardPayment() {
+      if (!_cardSelectedType) return;
+      var fee = _cardSelectedType === 'debito' ? (pdvTaxConfig.debit_fee || 0) : (pdvTaxConfig.credit_fee || 0);
+      closeModal('modal-card-payment');
+      await confirmOrder(_cardSelectedType, fee);
     }
 
     // ================================================================
