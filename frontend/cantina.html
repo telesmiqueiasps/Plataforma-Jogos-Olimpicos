@@ -1945,7 +1945,7 @@
             pdfSumCard('Taxa Déb. Maquininha', '<span style="color:#d97706;">- R$ ' + formatMoney(pdfTotals.total_debit_fees || 0) + '</span>') +
             pdfSumCard('Taxa Cré. Maquininha', '<span style="color:#d97706;">- R$ ' + formatMoney(pdfTotals.total_credit_fees || 0) + '</span>') +
             pdfSumCard('Custo Total Taxas', '<span style="color:#dc2626;font-weight:900;">- R$ ' + formatMoney(totalFees) + '</span>') +
-            pdfSumCard('Líquido Cartão', '<span style="color:#065f46;font-weight:900;">R$ ' + formatMoney(totalDebito + totalCredito - totalFees) + '</span>') +
+            pdfSumCard('Líquido Cartão', '<span style="color:#065f46;font-weight:900;">R$ ' + formatMoney(totalDebito + totalCredito) + '</span>') +
             '</div>'
           : '');
 
