@@ -105,13 +105,13 @@
     .date-custom-range.visible { display:flex; }
 
     /* ---- Card payment modal ---- */
-    .card-type-btn { padding:16px 12px; border:2px solid var(--border); border-radius:10px; background:var(--bg-card); cursor:pointer; text-align:center; transition:border-color .15s,background .15s; font-family:inherit; width:100%; }
+    .card-type-btn { padding:10px; border:2px solid var(--border); border-radius:10px; background:var(--bg-card); cursor:pointer; text-align:center; transition:border-color .15s,background .15s; font-family:inherit; width:100%; }
     .card-type-btn:hover { border-color:#2563eb; }
     .card-type-btn.selected { border-color:#2563eb; background:#eff6ff; }
-    .card-type-btn .ct-icon { font-size:28px; margin-bottom:6px; }
+    .card-type-btn .ct-icon { font-size:20px; margin-bottom:4px; }
     .card-type-btn .ct-label { font-weight:700; font-size:14px; }
-    .card-type-btn .ct-fee { font-size:12px; color:var(--text-muted); margin-top:3px; }
-    .card-summary-box { background:var(--bg-secondary); border-radius:10px; padding:14px 16px; text-align:center; margin-top:14px; }
+    .card-type-btn .ct-fee { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .card-summary-box { background:var(--bg-secondary); border-radius:10px; padding:10px; text-align:center; margin-top:8px; }
     .card-summary-box .cs-fee { font-size:13px; color:var(--text-secondary); margin-bottom:4px; }
     .card-summary-box .cs-total { font-size:24px; font-weight:900; color:#2563eb; }
   </style>
@@ -669,17 +669,17 @@
 
   <!-- Modal: Pagamento com cartão -->
   <div class="modal-overlay" id="modal-card-payment">
-    <div class="modal" style="max-width:400px;">
+    <div class="modal" style="max-width:400px;max-height:90vh;overflow-y:auto;">
       <div class="modal-header">
         <span class="modal-title">💳 Pagamento com Cartão</span>
         <button class="modal-close" onclick="closeModal('modal-card-payment')">✕</button>
       </div>
-      <div class="modal-body">
-        <div style="text-align:center;margin-bottom:20px;">
+      <div class="modal-body" style="padding:12px;">
+        <div style="text-align:center;margin-bottom:12px;">
           <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Total do pedido</div>
-          <div id="card-original-total" style="font-size:32px;font-weight:900;color:var(--accent-blue,#2563eb);">R$ 0,00</div>
+          <div id="card-original-total" style="font-size:22px;font-weight:900;color:var(--accent-blue,#2563eb);">R$ 0,00</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;">
           <button class="card-type-btn" id="btn-card-debit" onclick="selectCardType('debito')">
             <div class="ct-icon">💳</div>
             <div class="ct-label">Débito</div>
@@ -692,8 +692,8 @@
           </button>
         </div>
         <div id="card-summary-box" class="card-summary-box" style="display:none;">
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:2px;">Cliente paga na maquininha</div>
-          <div style="font-size:26px;font-weight:900;color:#2563eb;margin-bottom:6px;"><span id="card-final-total">R$ 0,00</span></div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:2px;">Cliente paga na maquininha</div>
+          <div style="font-size:18px;font-weight:900;color:#2563eb;margin-bottom:4px;"><span id="card-final-total">R$ 0,00</span></div>
           <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:12px;margin-bottom:10px;">
             <span style="color:var(--text-muted);">Registrado no caixa: <strong id="card-registered-total">R$ 0,00</strong></span>
             <span style="color:#d97706;font-weight:600;">Taxa maquininha: <strong id="card-fee-amt">R$ 0,00</strong> (<span id="card-fee-pct">0%</span>)</span>
@@ -704,7 +704,7 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="padding:10px 16px;">
         <button class="btn btn-secondary" onclick="closeModal('modal-card-payment')">Cancelar</button>
         <button class="btn btn-primary" id="btn-confirm-card" onclick="confirmCardPayment()" disabled style="background:#7c3aed;opacity:.5;">✅ Confirmar</button>
       </div>
