@@ -1040,7 +1040,13 @@
     // ================================================================
     function fmtDate(d) {
       if (!d) return '—';
-      return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const datePart = d.split('T')[0].split(' ')[0];
+      const [year, month, day] = datePart.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    function toInputDate(dateString) {
+      if (!dateString) return '';
+      return dateString.split('T')[0].split(' ')[0];
     }
     function formatName(f) {
       const map = { round_robin: 'Pontos Corridos', elimination: 'Eliminatório', hybrid: 'Híbrido' };
