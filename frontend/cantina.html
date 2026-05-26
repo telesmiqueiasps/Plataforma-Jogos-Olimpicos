@@ -1754,7 +1754,7 @@
         : '';
       var liqCard = (r.total_fees > 0)
         ? '<div class="cash-card"><div class="c-icon">✅</div>' +
-          '<div class="c-value" style="font-size:18px;">R$ ' + formatMoney((r.total_vendas || 0) - (r.total_fees || 0)) + '</div>' +
+          '<div class="c-value" style="font-size:18px;">R$ ' + formatMoney(r.total_vendas || 0) + '</div>' +
           '<div class="c-label">Líquido (s/ taxas)</div></div>'
         : '';
       document.getElementById('report-summary').innerHTML =
