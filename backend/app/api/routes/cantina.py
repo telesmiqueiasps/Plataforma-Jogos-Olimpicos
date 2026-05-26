@@ -256,6 +256,45 @@ def update_pdv_config(
 
 
 # ---------------------------------------------------------------------------
+# TAXAS DE CARTÃO POR PERÍODO
+# ---------------------------------------------------------------------------
+
+@router.get("/card-fees/{pdv_id}")
+def get_card_fees(
+    pdv_id: int,
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    dt_from, dt_to = _parse_date_range(date_from, date_to)
+    if not dt_from and not dt_to:
+        dt_from = _today_start()
+        dt_to = _today_end()
+    q = db.query(CantinOrder).filter(
+        CantinOrder.status == "paid",
+        CantinOrder.pdv_id == pdv_id,
+        CantinOrder.payment_method.in_(["debito", "credito"]),
+        CantinOrder.card_fee_amount.isnot(None),
+    )
+    if dt_from:
+        q = q.filter(CantinOrder.created_at >= dt_from)
+    if dt_to:
+        q = q.filter(CantinOrder.created_at <= dt_to)
+    orders = q.all()
+    total_debit_fees = sum(float(o.card_fee_amount) for o in orders if o.payment_method == "debito")
+    total_credit_fees = sum(float(o.card_fee_amount) for o in orders if o.payment_method == "credito")
+    return {
+        "pdv_id": pdv_id,
+        "total_debit_fees": total_debit_fees,
+        "total_credit_fees": total_credit_fees,
+        "total_fees": total_debit_fees + total_credit_fees,
+        "orders_debit": sum(1 for o in orders if o.payment_method == "debito"),
+        "orders_credit": sum(1 for o in orders if o.payment_method == "credito"),
+    }
+
+
+# ---------------------------------------------------------------------------
 # PRODUTOS
 # ---------------------------------------------------------------------------
 
@@ -409,20 +448,19 @@ def create_order(
         total += subtotal
         order_items.append((product, item_in.quantity, subtotal))
 
-    original_total = total
     card_fee_percent = None
     card_fee_amount = None
     if data.payment_method in ("debito", "credito") and data.card_fee_percent is not None:
         card_fee_percent = data.card_fee_percent
         card_fee_amount = round(total * (card_fee_percent / 100), 2)
-        total = round(total + card_fee_amount, 2)
+        # total mantém o valor ORIGINAL — a taxa é custo operacional, não entra no caixa
 
     order = CantinOrder(
         order_number=_next_order_number(db),
         status="paid" if data.payment_method else "pending",
         payment_method=data.payment_method,
         total=total,
-        original_total=original_total if card_fee_amount else None,
+        original_total=None,
         card_fee_percent=card_fee_percent,
         card_fee_amount=card_fee_amount,
         notes=data.notes,
@@ -574,6 +612,9 @@ def get_cash_summary(
     total_cartao = total_debito + total_credito
     total_vendas = sum(float(o.total) for o in paid_orders)
     total_refunded = sum(float(o.total) for o in refunded_orders)
+    total_debit_fees = sum(float(o.card_fee_amount) for o in paid_orders if o.payment_method == "debito" and o.card_fee_amount)
+    total_credit_fees = sum(float(o.card_fee_amount) for o in paid_orders if o.payment_method == "credito" and o.card_fee_amount)
+    total_fees = total_debit_fees + total_credit_fees
 
     flows = _flow_q().all()
     total_entradas = sum(float(f.amount) for f in flows if f.type == "entrada")
@@ -594,6 +635,9 @@ def get_cash_summary(
         "total_debito": total_debito,
         "total_credito": total_credito,
         "total_cartao": total_cartao,
+        "total_debit_fees": total_debit_fees,
+        "total_credit_fees": total_credit_fees,
+        "total_fees": total_fees,
         "total_entradas": total_entradas,
         "total_saidas": total_saidas,
         "total_refunded": total_refunded,
@@ -697,6 +741,8 @@ def get_cash_consolidated(
         total_pix = sum(float(o.total) for o in paid if o.payment_method == "pix")
         total_debito = sum(float(o.total) for o in paid if o.payment_method == "debito")
         total_credito = sum(float(o.total) for o in paid if o.payment_method == "credito")
+        total_debit_fees = sum(float(o.card_fee_amount) for o in paid if o.payment_method == "debito" and o.card_fee_amount)
+        total_credit_fees = sum(float(o.card_fee_amount) for o in paid if o.payment_method == "credito" and o.card_fee_amount)
         total_refunded = sum(float(o.total) for o in refunded)
         total_entradas = sum(float(f.amount) for f in flows if f.type == "entrada")
         total_saidas = sum(
@@ -710,6 +756,9 @@ def get_cash_consolidated(
             "total_debito": total_debito,
             "total_credito": total_credito,
             "total_cartao": total_debito + total_credito,
+            "total_debit_fees": total_debit_fees,
+            "total_credit_fees": total_credit_fees,
+            "total_fees": total_debit_fees + total_credit_fees,
             "total_entradas": total_entradas,
             "total_saidas": total_saidas,
             "total_refunded": total_refunded,
@@ -761,6 +810,8 @@ def get_report(
     total_pix = sum(float(o.total) for o in paid_orders if o.payment_method == "pix")
     total_debito = sum(float(o.total) for o in paid_orders if o.payment_method == "debito")
     total_credito = sum(float(o.total) for o in paid_orders if o.payment_method == "credito")
+    total_debit_fees = sum(float(o.card_fee_amount) for o in paid_orders if o.payment_method == "debito" and o.card_fee_amount)
+    total_credit_fees = sum(float(o.card_fee_amount) for o in paid_orders if o.payment_method == "credito" and o.card_fee_amount)
 
     # Produtos mais vendidos (apenas pedidos pagos, excluindo estornados)
     product_sales: dict = {}
@@ -823,6 +874,9 @@ def get_report(
         "total_debito": total_debito,
         "total_credito": total_credito,
         "total_cartao": total_debito + total_credito,
+        "total_debit_fees": total_debit_fees,
+        "total_credit_fees": total_credit_fees,
+        "total_fees": total_debit_fees + total_credit_fees,
         "orders_paid": len(paid_orders),
         "top_products": top_products,
         "category_sales": list(category_sales.values()),

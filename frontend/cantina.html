@@ -692,8 +692,16 @@
           </button>
         </div>
         <div id="card-summary-box" class="card-summary-box" style="display:none;">
-          <div class="cs-fee">Taxa: <span id="card-fee-pct">0%</span> = <span id="card-fee-amt">R$ 0,00</span></div>
-          <div class="cs-total">Total a cobrar: <span id="card-final-total">R$ 0,00</span></div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:2px;">Cliente paga na maquininha</div>
+          <div style="font-size:26px;font-weight:900;color:#2563eb;margin-bottom:6px;"><span id="card-final-total">R$ 0,00</span></div>
+          <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:12px;margin-bottom:10px;">
+            <span style="color:var(--text-muted);">Registrado no caixa: <strong id="card-registered-total">R$ 0,00</strong></span>
+            <span style="color:#d97706;font-weight:600;">Taxa maquininha: <strong id="card-fee-amt">R$ 0,00</strong> (<span id="card-fee-pct">0%</span>)</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:8px;line-height:1.6;">
+            O valor registrado no caixa será <strong id="card-note-registered">R$ 0,00</strong>.<br>
+            A taxa é um custo operacional do PDV.
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1281,10 +1289,16 @@
       var cartaoCard = (s.total_cartao > 0)
         ? cashCard('💳', 'R$ ' + formatMoney(s.total_cartao || 0), 'Cartão (Déb+Cré)')
         : '';
+      var taxasCard = (s.total_fees > 0)
+        ? '<div class="cash-card"><div class="c-icon">🏦</div>' +
+          '<div class="c-value" style="color:#d97706;font-size:18px;">R$ ' + formatMoney(s.total_fees || 0) + '</div>' +
+          '<div class="c-label">Taxas Maquininha</div></div>'
+        : '';
       container.innerHTML =
         cashCard('💵', 'R$ ' + formatMoney(s.total_dinheiro || 0), 'Dinheiro') +
         cashCard('📱', 'R$ ' + formatMoney(s.total_pix || 0), 'PIX') +
         cartaoCard +
+        taxasCard +
         cashCard('💰', 'R$ ' + formatMoney(s.total_vendas || 0), 'Total Vendas') +
         cashCard('📈', 'R$ ' + formatMoney(s.saldo || 0), 'Saldo') +
         cashCard('🧾', s.orders_paid + '/' + s.orders_count, 'Pedidos Pagos/Total') +
@@ -1348,9 +1362,9 @@
               var pmIcon = pm === 'dinheiro' ? '💵' : pm === 'pix' ? '📱' : pm ? '💳' : '';
               var pmLabel = pmIcon ? (pmIcon + ' ' + pm) : '';
               var feeInfo = '';
-              if ((pm === 'debito' || pm === 'credito') && o.card_fee_percent > 0) {
-                feeInfo = ' <span style="font-size:10px;color:#7c3aed;background:#ede9fe;border-radius:4px;padding:1px 5px;">' +
-                  '+' + o.card_fee_percent + '% = R$ ' + formatMoney(o.card_fee_amount) + '</span>';
+              if ((pm === 'debito' || pm === 'credito') && o.card_fee_amount > 0) {
+                feeInfo = '<br><span style="font-size:11px;color:#d97706;">Taxa maquininha: R$ ' +
+                  formatMoney(o.card_fee_amount) + ' (' + o.card_fee_percent + '%)</span>';
               }
               return '<span style="font-size:12px;color:var(--text-muted);">' + escHtml(pmLabel) + feeInfo + '</span>';
             })() +
@@ -1733,11 +1747,23 @@
       var cartaoCard = (r.total_cartao > 0)
         ? cashCard('💳', 'R$ ' + formatMoney(r.total_cartao || 0), 'Cartão (Déb+Cré)')
         : '';
+      var taxasCard = (r.total_fees > 0)
+        ? '<div class="cash-card"><div class="c-icon">🏦</div>' +
+          '<div class="c-value" style="color:#d97706;font-size:18px;">R$ ' + formatMoney(r.total_fees || 0) + '</div>' +
+          '<div class="c-label">Taxas Maquininha</div></div>'
+        : '';
+      var liqCard = (r.total_fees > 0)
+        ? '<div class="cash-card"><div class="c-icon">✅</div>' +
+          '<div class="c-value" style="font-size:18px;">R$ ' + formatMoney((r.total_vendas || 0) - (r.total_fees || 0)) + '</div>' +
+          '<div class="c-label">Líquido (s/ taxas)</div></div>'
+        : '';
       document.getElementById('report-summary').innerHTML =
         cashCard('💰', 'R$ ' + formatMoney(r.total_vendas || 0), 'Total Arrecadado') +
         cashCard('💵', 'R$ ' + formatMoney(r.total_dinheiro || 0), 'Dinheiro') +
         cashCard('📱', 'R$ ' + formatMoney(r.total_pix || 0), 'PIX') +
         cartaoCard +
+        taxasCard +
+        liqCard +
         cashCard('🧾', r.orders_paid || 0, 'Pedidos Finalizados');
     }
 
@@ -1784,9 +1810,21 @@
         });
 
         // Calcular totais reais para o resumo do PDF
-        var pdfTotals = { total_vendas: 0, total_estornos: 0, total_entradas: 0, total_saidas: 0 };
+        var pdfTotals = { total_vendas: 0, total_estornos: 0, total_entradas: 0, total_saidas: 0,
+                          total_debito: 0, total_credito: 0, total_debit_fees: 0, total_credit_fees: 0, total_fees: 0 };
         (orders || []).forEach(function(o) {
-          if (o.status === 'paid')     pdfTotals.total_vendas   += parseFloat(o.total);
+          if (o.status === 'paid') {
+            pdfTotals.total_vendas += parseFloat(o.total);
+            if (o.card_fee_amount > 0) pdfTotals.total_fees += parseFloat(o.card_fee_amount);
+            if (o.payment_method === 'debito') {
+              pdfTotals.total_debito += parseFloat(o.total);
+              if (o.card_fee_amount > 0) pdfTotals.total_debit_fees += parseFloat(o.card_fee_amount);
+            }
+            if (o.payment_method === 'credito') {
+              pdfTotals.total_credito += parseFloat(o.total);
+              if (o.card_fee_amount > 0) pdfTotals.total_credit_fees += parseFloat(o.card_fee_amount);
+            }
+          }
           if (o.status === 'refunded') pdfTotals.total_estornos += parseFloat(o.total);
         });
         filteredFlows.forEach(function(f) {
@@ -1800,12 +1838,14 @@
         // Pedidos pagos como entradas
         (orders || []).forEach(function(o) {
           if (o.status === 'paid') {
+            var feeNote = (o.card_fee_amount > 0) ? ' (taxa: -R$ ' + formatMoney(o.card_fee_amount) + ')' : '';
             movements.push({
               time: o.created_at,
               type: 'ENTRADA',
-              description: 'Pedido #' + o.order_number + (o.notes ? ' — ' + o.notes : ''),
+              description: 'Pedido #' + o.order_number + (o.notes ? ' — ' + o.notes : '') + feeNote,
               method: o.payment_method || '—',
               amount: parseFloat(o.total),
+              fee: o.card_fee_amount > 0 ? parseFloat(o.card_fee_amount) : 0,
               sign: 1,
               responsible: o.created_by_name || '—',
             });
@@ -1818,6 +1858,7 @@
               description: 'Estorno Pedido #' + o.order_number + (o.refund_reason ? ' — ' + o.refund_reason : ''),
               method: o.payment_method || '—',
               amount: parseFloat(o.total),
+              fee: 0,
               sign: -1,
               responsible: o.refunded_by_name || '—',
             });
@@ -1886,6 +1927,9 @@
       var totalEstornos   = pdfTotals.total_estornos || 0;
       var totalEntradas   = pdfTotals.total_entradas || 0;
       var totalSaidas     = pdfTotals.total_saidas   || 0;
+      var totalFees       = pdfTotals.total_fees     || 0;
+      var totalDebito     = pdfTotals.total_debito   || 0;
+      var totalCredito    = pdfTotals.total_credito  || 0;
       var saldo = totalVendas - totalEstornos + totalEntradas - totalSaidas;
       var summaryHtml = '<div style="display:flex;background:#f8f9fc;border-bottom:2px solid #2563eb;">' +
         pdfSumCard('Total Vendas', 'R$ ' + formatMoney(totalVendas)) +
@@ -1893,7 +1937,17 @@
         pdfSumCard('Entradas Manuais', '<span style="color:#065f46;">R$ ' + formatMoney(totalEntradas) + '</span>') +
         pdfSumCard('Sa&iacute;das Manuais', '<span style="color:#991b1b;">- R$ ' + formatMoney(totalSaidas) + '</span>') +
         pdfSumCard('Saldo Final', '<span style="color:' + (saldo >= 0 ? '#065f46' : '#dc2626') + ';font-weight:900;">R$ ' + formatMoney(saldo) + '</span>') +
-        '</div>';
+        '</div>' +
+        (totalFees > 0
+          ? '<div style="display:flex;background:#fffbeb;border-bottom:2px solid #f59e0b;">' +
+            pdfSumCard('Débito (original)', 'R$ ' + formatMoney(totalDebito)) +
+            pdfSumCard('Crédito (original)', 'R$ ' + formatMoney(totalCredito)) +
+            pdfSumCard('Taxa Déb. Maquininha', '<span style="color:#d97706;">- R$ ' + formatMoney(pdfTotals.total_debit_fees || 0) + '</span>') +
+            pdfSumCard('Taxa Cré. Maquininha', '<span style="color:#d97706;">- R$ ' + formatMoney(pdfTotals.total_credit_fees || 0) + '</span>') +
+            pdfSumCard('Custo Total Taxas', '<span style="color:#dc2626;font-weight:900;">- R$ ' + formatMoney(totalFees) + '</span>') +
+            pdfSumCard('Líquido Cartão', '<span style="color:#065f46;font-weight:900;">R$ ' + formatMoney(totalDebito + totalCredito - totalFees) + '</span>') +
+            '</div>'
+          : '');
 
       // Tabela de movimentações
       var tableHtml = '<div style="padding:12px 28px 6px;font-size:13px;font-weight:700;">Movimentações do Dia</div>' +
@@ -2160,14 +2214,16 @@
       _cardSelectedType = type;
       var fee = type === 'debito' ? (pdvTaxConfig.debit_fee || 0) : (pdvTaxConfig.credit_fee || 0);
       var feeAmount = _cardOriginalTotal * (fee / 100);
-      var finalTotal = _cardOriginalTotal + feeAmount;
+      var clientTotal = _cardOriginalTotal + feeAmount;  // o que o cliente paga fisicamente
 
       document.getElementById('btn-card-debit').classList.toggle('selected', type === 'debito');
       document.getElementById('btn-card-credit').classList.toggle('selected', type === 'credito');
 
+      document.getElementById('card-final-total').textContent = 'R$ ' + formatMoney(clientTotal);
+      document.getElementById('card-registered-total').textContent = 'R$ ' + formatMoney(_cardOriginalTotal);
+      document.getElementById('card-note-registered').textContent = 'R$ ' + formatMoney(_cardOriginalTotal);
       document.getElementById('card-fee-pct').textContent = fee + '%';
       document.getElementById('card-fee-amt').textContent = 'R$ ' + formatMoney(feeAmount);
-      document.getElementById('card-final-total').textContent = 'R$ ' + formatMoney(finalTotal);
       document.getElementById('card-summary-box').style.display = 'block';
 
       var confirmBtn = document.getElementById('btn-confirm-card');
