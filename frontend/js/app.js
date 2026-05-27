@@ -185,11 +185,23 @@ function loadUserInfo() {
 // --- Formatters ---
 function fmtDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const datePart = (d + '').split('T')[0].split(' ')[0];
+  const [year, month, day] = datePart.split('-');
+  return `${day}/${month}/${year}`;
 }
 function fmtDatetime(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const s = d + '';
+  const parts = s.split('T');
+  const datePart = parts[0].split(' ')[0];
+  const [year, month, day] = datePart.split('-');
+  let timePart = '';
+  if (parts[1]) {
+    timePart = parts[1].substring(0, 5);
+  } else if (s.includes(' ')) {
+    timePart = s.split(' ')[1]?.substring(0, 5) || '';
+  }
+  return timePart ? `${day}/${month}/${year} ${timePart}` : `${day}/${month}/${year}`;
 }
 
 // --- Status badge ---
