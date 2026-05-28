@@ -691,7 +691,7 @@
             </div>
             <div class="team-name ${awayWinner ? 'winner' : ''}" style="text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:8px;"><span>${awayName}</span>${teamAvatar(g.away_team || {name:awayName,id:g.away_team_id}, 28)}</div>
             <div style="min-width:160px; text-align:right;">
-              <div>${gameStatusBadge(g.status)}</div>
+              <div><span style="background:#f3f4f6;color:#9ca3af;font-size:10px;font-family:monospace;padding:1px 5px;border-radius:4px;border:1px solid #e5e7eb;margin-right:6px;">#${g.id}</span>${gameStatusBadge(g.status)}</div>
               <div class="game-meta" style="justify-content:flex-end; margin-top:4px;">
                 ${g.scheduled_at ? `<span>📅 ${fmtDatetime(g.scheduled_at)}</span>` : ''}
                 ${g.venue ? `<span>📍 ${g.venue}</span>` : ''}
