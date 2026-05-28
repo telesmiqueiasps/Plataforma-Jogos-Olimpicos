@@ -2146,7 +2146,7 @@
           currentSport = sports.find(s => s.id === currentChamp.sport_id);
         }
       }
-      console.log('[Games] currentSport:', currentSport);
+      console.log('[Games] currentSport definido:', currentSport?.slug);
       try {
         const games = await ChampAPI.games(currentChamp.id);
         console.log('[Games] Recebidos:', games, '| Total:', games?.length);
