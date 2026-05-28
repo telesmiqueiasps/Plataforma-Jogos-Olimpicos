@@ -73,65 +73,8 @@
       color: #fff;
     }
 
-    /* PRODUCT GRID */
-    .main-content { max-width: 900px; margin: 0 auto; padding: 16px 12px 120px; }
-    .products-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 14px;
-    }
-    .product-card {
-      background: #fff;
-      border-radius: 12px;
-      border: 1.5px solid #e2e8f0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      transition: box-shadow .15s, border-color .15s;
-    }
-    .product-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); border-color: #bfdbfe; }
-    .product-card.out-of-stock { opacity: .65; }
-    .product-img-wrap {
-      position: relative;
-      height: 130px;
-      background: #f1f5f9;
-      overflow: hidden;
-    }
-    .product-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
-    .product-emoji-placeholder {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-    }
-    .stock-badge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 20px;
-      background: rgba(255,255,255,.92);
-      border: 1px solid rgba(0,0,0,.08);
-    }
-    .stock-badge.ok { color: #059669; }
-    .stock-badge.low { color: #d97706; }
-    .stock-badge.out { color: #dc2626; }
-    .product-info { padding: 10px 12px; flex: 1; }
-    .product-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-    .product-desc { font-size: 12px; color: #64748b; margin-bottom: 8px; line-height: 1.4; }
-    .product-price { font-size: 16px; font-weight: 800; color: #2563eb; }
-    .qty-control {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 8px 12px 10px;
-      border-top: 1px solid #f1f5f9;
-    }
+    /* PRODUCT LIST */
+    .main-content { max-width: 640px; margin: 0 auto; padding: 0 0 120px; }
     .qty-btn {
       width: 30px; height: 30px;
       border-radius: 50%;
@@ -368,22 +311,16 @@
 </head>
 <body>
 
-  <!-- Header -->
-  <header class="page-header">
-    <div class="header-brand">
-      <img src="img/logo.png" alt="Logo">
-      <div>
-        <div class="title">🍽️ Cardápio</div>
-        <div class="sub" id="pdv-name-label">Carregando...</div>
-      </div>
-    </div>
-    <div class="pdv-selector">
-      <select id="pdv-select" onchange="switchPdv()">
-        <option value="1">PDV 1</option>
-        <option value="2">PDV 2</option>
-      </select>
-    </div>
-  </header>
+  <!-- Barra de navegação superior -->
+  <div style="background:#2563eb;padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);">
+    <a href="index-publico.html" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:20px;line-height:1;">←</a>
+    <span style="color:white;font-weight:600;font-size:15px;" id="menu-pdv-title">Cardápio</span>
+    <select id="pdv-select" onchange="switchPdv()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:20px;padding:4px 10px;font-size:12px;font-family:inherit;cursor:pointer;outline:none;">
+      <option value="1" style="background:#1d4ed8;color:#fff;">PDV 1</option>
+      <option value="2" style="background:#1d4ed8;color:#fff;">PDV 2</option>
+    </select>
+    <a href="public.html" style="margin-left:auto;color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.3);padding:4px 10px;border-radius:20px;white-space:nowrap;">🏆 Jogos</a>
+  </div>
 
   <!-- Category filter -->
   <div class="cat-strip" id="cat-strip">
@@ -444,7 +381,8 @@
     var activeCategory = '';
     var pdvName = 'PDV ' + currentPdvId;
 
-    document.getElementById('pdv-select').value = String(currentPdvId);
+    var _pdvSelectEl = document.getElementById('pdv-select');
+    if (_pdvSelectEl) _pdvSelectEl.value = String(currentPdvId);
 
     // ---- Init ----
     async function init() {
@@ -456,9 +394,11 @@
       try {
         var info = await fetch(API_BASE + '/api/cantina/pdv-info/' + currentPdvId).then(r => r.json());
         pdvName = info.pdv_name || ('PDV ' + currentPdvId);
-        document.getElementById('pdv-name-label').textContent = pdvName;
+        var titleEl = document.getElementById('menu-pdv-title');
+        if (titleEl) titleEl.textContent = pdvName;
       } catch(e) {
-        document.getElementById('pdv-name-label').textContent = 'PDV ' + currentPdvId;
+        var titleEl = document.getElementById('menu-pdv-title');
+        if (titleEl) titleEl.textContent = 'PDV ' + currentPdvId;
       }
     }
 
@@ -504,36 +444,60 @@
         container.innerHTML = '<div class="empty-state"><span class="empty-icon">🍽️</span><p>Nenhum produto disponível.</p></div>';
         return;
       }
-      var html = '<div class="products-grid">';
+
+      // Group by category preserving insertion order
+      var byCategory = {};
+      var catOrder = [];
       list.forEach(function(p) {
-        var qty = cart[p.id] ? cart[p.id].quantity : 0;
-        var av = p.available_stock;
-        var badgeClass = av > 10 ? 'ok' : (av > 0 ? 'low' : 'out');
-        var badgeTxt = av > 10 ? '✅ Disponível' : (av > 0 ? '⚠️ Últimas ' + av : '❌ Esgotado');
-        var imgHtml = p.image_url
-          ? '<img src="' + esc(p.image_url) + '" alt="' + esc(p.name) + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
-          + '<div class="product-emoji-placeholder" style="display:none;">' + catEmoji(p.category) + '</div>'
-          : '<div class="product-emoji-placeholder">' + catEmoji(p.category) + '</div>';
-        var priceStr = 'R$ ' + parseFloat(p.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        html += '<div class="product-card' + (av === 0 ? ' out-of-stock' : '') + '" id="pcard-' + p.id + '">'
-          + '<div class="product-img-wrap">' + imgHtml
-          + '<span class="stock-badge ' + badgeClass + '">' + badgeTxt + '</span>'
-          + '</div>'
-          + '<div class="product-info">'
-          + '<div class="product-name">' + esc(p.name) + '</div>'
-          + (p.description ? '<div class="product-desc">' + esc(p.description) + '</div>' : '')
-          + '<div class="product-price">' + priceStr + '</div>'
-          + '</div>'
-          + (av > 0
-            ? '<div class="qty-control">'
-            + '<button class="qty-btn" onclick="decreaseQty(' + p.id + ')" id="qbtn-dec-' + p.id + '"' + (qty === 0 ? ' disabled' : '') + '>−</button>'
-            + '<span class="qty-num" id="qty-' + p.id + '">' + qty + '</span>'
-            + '<button class="qty-btn" onclick="increaseQty(' + p.id + ', ' + av + ')" id="qbtn-inc-' + p.id + '"' + (qty >= av ? ' disabled' : '') + '>+</button>'
-            + '</div>'
-            : '')
-          + '</div>';
+        var cat = p.category || 'Outros';
+        if (!byCategory[cat]) { byCategory[cat] = []; catOrder.push(cat); }
+        byCategory[cat].push(p);
       });
-      html += '</div>';
+
+      var html = '';
+      catOrder.forEach(function(cat, idx) {
+        html += '<div style="background:#f1f5f9;padding:8px 16px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;'
+          + (idx > 0 ? 'border-top:1px solid #e2e8f0;' : '')
+          + '">' + catEmoji(cat) + ' ' + esc(cat) + '</div>';
+
+        byCategory[cat].forEach(function(p) {
+          var qty = cart[p.id] ? cart[p.id].quantity : 0;
+          var av = p.available_stock;
+          var esgotado = av <= 0;
+
+          var imgHtml = p.image_url
+            ? '<img src="' + esc(p.image_url) + '" style="width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+            + '<div style="display:none;width:56px;height:56px;border-radius:10px;background:#f3f4f6;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">' + catEmoji(p.category) + '</div>'
+            : '<div style="width:56px;height:56px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">' + catEmoji(p.category) + '</div>';
+
+          var stockHtml = esgotado
+            ? '<span style="color:#dc2626;">❌ Esgotado</span>'
+            : (av <= 5
+              ? '<span style="color:#f59e0b;">⚠️ Últimas ' + av + '</span>'
+              : '<span style="color:#10b981;">✓ Disponível</span>');
+
+          var qtyHtml = esgotado ? '' :
+            '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+            + '<button class="qty-btn" onclick="decreaseQty(' + p.id + ')" id="qbtn-dec-' + p.id + '"' + (qty === 0 ? ' disabled' : '') + '>−</button>'
+            + '<span id="qty-' + p.id + '" style="font-weight:700;font-size:15px;min-width:20px;text-align:center;">' + qty + '</span>'
+            + '<button class="qty-btn" onclick="increaseQty(' + p.id + ', ' + av + ')" id="qbtn-inc-' + p.id + '"' + (qty >= av ? ' disabled' : '') + '>+</button>'
+            + '</div>';
+
+          var priceStr = 'R$ ' + parseFloat(p.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+          html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:white;' + (esgotado ? 'opacity:0.6;' : '') + '">'
+            + '<div style="display:flex;align-items:center;">' + imgHtml + '</div>'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-weight:600;font-size:14px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(p.name) + '</div>'
+            + (p.description ? '<div style="font-size:12px;color:#64748b;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(p.description) + '</div>' : '')
+            + '<div style="font-weight:700;font-size:14px;color:#2563eb;margin-top:2px;">' + priceStr + '</div>'
+            + '<div style="font-size:11px;color:#94a3b8;margin-top:1px;">' + stockHtml + '</div>'
+            + '</div>'
+            + qtyHtml
+            + '</div>';
+        });
+      });
+
       container.innerHTML = html;
     }
 
