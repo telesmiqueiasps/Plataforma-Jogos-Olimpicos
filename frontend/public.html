@@ -1209,6 +1209,27 @@
     }
   }
 
+  function calcRoundByTime(games) {
+    var uniqueTimes = [];
+    var seen = {};
+    for (var i = 0; i < games.length; i++) {
+      if (games[i].scheduled_at) {
+        var t = String(games[i].scheduled_at).substring(0, 16);
+        if (!seen[t]) { seen[t] = true; uniqueTimes.push(t); }
+      }
+    }
+    uniqueTimes.sort();
+    var timeToRound = {};
+    for (var j = 0; j < uniqueTimes.length; j++) {
+      timeToRound[uniqueTimes[j]] = j + 1;
+    }
+    return games.map(function(g) {
+      if (!g.scheduled_at) return { ...g, display_round: g.round_number || 1 };
+      var key = String(g.scheduled_at).substring(0, 16);
+      return { ...g, display_round: timeToRound[key] || g.round_number || 1 };
+    });
+  }
+
   // ================================================================
   // ABA: JOGOS — Tênis de Mesa (pública)
   // ================================================================
@@ -1220,14 +1241,37 @@
         return;
       }
 
-      var phaseLabel = { groups: 'Fase de Grupos', knockout: 'Mata-mata' };
+      // Sort by scheduled_at
+      games.sort(function(a, b) {
+        if (!a.scheduled_at) return 1;
+        if (!b.scheduled_at) return -1;
+        return String(a.scheduled_at).localeCompare(String(b.scheduled_at));
+      });
+
+      // Assign display_round based on unique scheduled_at times
+      games = calcRoundByTime(games);
+
+      // Build round → time string map for headers
+      var roundTimeMap = {};
+      for (var i = 0; i < games.length; i++) {
+        var g0 = games[i];
+        if (g0.scheduled_at && !roundTimeMap[g0.display_round]) {
+          var sat = String(g0.scheduled_at);
+          var tIdx = sat.indexOf('T');
+          var spIdx = sat.indexOf(' ');
+          if (tIdx !== -1) roundTimeMap[g0.display_round] = sat.substring(tIdx + 1, tIdx + 6);
+          else if (spIdx !== -1) roundTimeMap[g0.display_round] = sat.substring(spIdx + 1, spIdx + 6);
+        }
+      }
+
+      // Group by display_round
       var groupMap = {};
       var groupOrder = [];
       for (var gi = 0; gi < games.length; gi++) {
         var g = games[gi];
-        var key = (g.phase || '') + '__' + (g.round_number != null ? g.round_number : '');
+        var key = g.display_round != null ? g.display_round : 0;
         if (!groupMap[key]) {
-          groupMap[key] = { phase: g.phase, round: g.round_number, games: [] };
+          groupMap[key] = { round: g.display_round, games: [] };
           groupOrder.push(key);
         }
         groupMap[key].games.push(g);
@@ -1236,10 +1280,10 @@
       var html = '';
       for (var ki = 0; ki < groupOrder.length; ki++) {
         var grp = groupMap[groupOrder[ki]];
-        var pLabel = phaseLabel[grp.phase] || grp.phase || '';
-        var rLabel = grp.round != null ? (pLabel ? ' — Rodada ' + grp.round : 'Rodada ' + grp.round) : '';
-        if (pLabel || rLabel) {
-          html += '<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:16px 0 8px; text-transform:uppercase; letter-spacing:.5px; padding-left:2px;">' + pLabel + rLabel + '</div>';
+        var timeLabel = (grp.round != null && roundTimeMap[grp.round]) ? ' · ' + roundTimeMap[grp.round] : '';
+        var rHeader = grp.round != null ? 'Rodada ' + grp.round + timeLabel : '';
+        if (rHeader) {
+          html += '<div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin:16px 0 8px; text-transform:uppercase; letter-spacing:.5px; padding-left:2px;">' + rHeader + '</div>';
         }
         for (var gg = 0; gg < grp.games.length; gg++) {
           html += renderPubTenisMesaGameCard(grp.games[gg]);
