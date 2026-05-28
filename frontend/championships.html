@@ -1040,13 +1040,47 @@
     // ================================================================
     function fmtDate(d) {
       if (!d) return '—';
-      const datePart = d.split('T')[0].split(' ')[0];
-      const [year, month, day] = datePart.split('-');
-      return `${day}/${month}/${year}`;
+      try {
+        const str = String(d);
+        const datePart = str.split('T')[0].split(' ')[0];
+        const [year, month, day] = datePart.split('-');
+        if (!year || !month || !day) return str;
+        return `${day}/${month}/${year}`;
+      } catch(e) { return String(d); }
+    }
+    function fmtDatetime(d) {
+      if (!d) return '—';
+      try {
+        const str = String(d);
+        const datePart = str.split('T')[0].split(' ')[0];
+        const [year, month, day] = datePart.split('-');
+        if (!year || !month || !day) return str;
+        let timePart = '';
+        if (str.includes('T')) {
+          timePart = str.split('T')[1].substring(0, 5);
+        } else if (str.includes(' ') && str.split(' ').length > 1) {
+          timePart = str.split(' ')[1].substring(0, 5);
+        }
+        return timePart ? `${day}/${month}/${year} ${timePart}` : `${day}/${month}/${year}`;
+      } catch(e) { return String(d); }
     }
     function toInputDate(dateString) {
       if (!dateString) return '';
-      return dateString.split('T')[0].split(' ')[0];
+      try {
+        return String(dateString).split('T')[0].split(' ')[0];
+      } catch(e) { return ''; }
+    }
+    function toInputDateTime(dateString) {
+      if (!dateString) return '';
+      try {
+        const str = String(dateString);
+        const datePart = str.split('T')[0].split(' ')[0];
+        let timePart = '00:00';
+        if (str.includes('T')) {
+          timePart = str.split('T')[1].substring(0, 5);
+        }
+        return `${datePart}T${timePart}`;
+      } catch(e) { return ''; }
     }
     function formatName(f) {
       const map = { round_robin: 'Pontos Corridos', elimination: 'Eliminatório', hybrid: 'Híbrido' };
@@ -3272,6 +3306,7 @@
     }
 
     function renderBgGameCard(g, bgType_) {
+      try {
       let scoreDisplay = '';
       if (bgType_ === 'domino') {
         scoreDisplay = g.home_score !== null ? `${g.home_score} × ${g.away_score}` : '— × —';
@@ -3428,6 +3463,7 @@
             </div>
           </div>
         </div>`;
+      } catch(e) { console.error('Erro ao renderizar jogo:', g && g.id, e); return ''; }
     }
 
     function toggleBgCard(gameId) {
