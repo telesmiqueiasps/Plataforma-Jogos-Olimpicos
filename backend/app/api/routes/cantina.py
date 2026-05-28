@@ -1097,6 +1097,18 @@ def cancel_reservation(
     return _reservation_out(r)
 
 
+@router.get("/reservations/{reservation_id}/detail")
+def get_reservation_detail(
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_cantina),
+):
+    r = db.query(CantinReservation).filter(CantinReservation.id == reservation_id).first()
+    if not r:
+        raise HTTPException(404, "Reserva não encontrada")
+    return _reservation_out(r)
+
+
 @router.post("/reservations/{reservation_id}/pay", status_code=200)
 def pay_reservation(
     reservation_id: int,
