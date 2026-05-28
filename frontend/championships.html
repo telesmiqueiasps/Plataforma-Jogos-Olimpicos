@@ -969,9 +969,7 @@
 
     // Detail view state
     let currentChamp = null;
-    let currentSport = null;
     let currentTab = 'overview';
-    let _loadedTabs = new Set();
     let detailGroups = [];
     let knockoutMatches = [{ home: '', away: '' }];
 
@@ -1042,47 +1040,13 @@
     // ================================================================
     function fmtDate(d) {
       if (!d) return '—';
-      try {
-        const str = String(d);
-        const datePart = str.split('T')[0].split(' ')[0];
-        const [year, month, day] = datePart.split('-');
-        if (!year || !month || !day) return str;
-        return `${day}/${month}/${year}`;
-      } catch(e) { return String(d); }
-    }
-    function fmtDatetime(d) {
-      if (!d) return '—';
-      try {
-        const str = String(d);
-        const datePart = str.split('T')[0].split(' ')[0];
-        const [year, month, day] = datePart.split('-');
-        if (!year || !month || !day) return str;
-        let timePart = '';
-        if (str.includes('T')) {
-          timePart = str.split('T')[1].substring(0, 5);
-        } else if (str.includes(' ') && str.split(' ').length > 1) {
-          timePart = str.split(' ')[1].substring(0, 5);
-        }
-        return timePart ? `${day}/${month}/${year} ${timePart}` : `${day}/${month}/${year}`;
-      } catch(e) { return String(d); }
+      const datePart = d.split('T')[0].split(' ')[0];
+      const [year, month, day] = datePart.split('-');
+      return `${day}/${month}/${year}`;
     }
     function toInputDate(dateString) {
       if (!dateString) return '';
-      try {
-        return String(dateString).split('T')[0].split(' ')[0];
-      } catch(e) { return ''; }
-    }
-    function toInputDateTime(dateString) {
-      if (!dateString) return '';
-      try {
-        const str = String(dateString);
-        const datePart = str.split('T')[0].split(' ')[0];
-        let timePart = '00:00';
-        if (str.includes('T')) {
-          timePart = str.split('T')[1].substring(0, 5);
-        }
-        return `${datePart}T${timePart}`;
-      } catch(e) { return ''; }
+      return dateString.split('T')[0].split(' ')[0];
     }
     function formatName(f) {
       const map = { round_robin: 'Pontos Corridos', elimination: 'Eliminatório', hybrid: 'Híbrido' };
@@ -1424,7 +1388,6 @@
       if (!currentChamp) {
         try { currentChamp = await ChampAPI.get(champId); } catch { return; }
       }
-      currentSport = currentChamp.sport || currentChamp.sport_data || null;
 
       document.getElementById('view-list').style.display = 'none';
       document.getElementById('view-management').style.display = 'block';
@@ -1479,7 +1442,6 @@
         }
       }
 
-      _loadedTabs = new Set();
       switchTab('overview');
     }
 
@@ -1510,8 +1472,6 @@
       if (tabEl) tabEl.style.display = 'block';
       document.querySelectorAll(`.tab-btn[data-tab="${tabName}"]`).forEach(b => b.classList.add('active'));
       currentTab = tabName;
-      if (_loadedTabs.has(tabName)) return;
-      _loadedTabs.add(tabName);
 
       switch (tabName) {
         case 'overview':         loadOverview();           break;
@@ -1577,10 +1537,7 @@
             : `<button class="btn btn-secondary btn-sm" onclick="switchTab('teams')">👥 Equipes</button>
                <button class="btn btn-secondary btn-sm" onclick="switchTab('groups')">📋 Grupos</button>
                <button class="btn btn-secondary btn-sm" onclick="switchTab('knockout')">⚔️ Mata-mata</button>`}
-          ${isBoardgame()
-            ? `<button class="btn btn-secondary btn-sm" onclick="switchTab('bg-games')">🎮 Jogos</button>`
-            : isRunning() ? ''
-            : `<button class="btn btn-secondary btn-sm" onclick="switchTab('games')">⚽ Jogos</button>`}
+          <button class="btn btn-secondary btn-sm" onclick="switchTab('bg-games')">🎮 Jogos</button>
           <button class="btn btn-ghost btn-sm" onclick="copyPublicLink(${c.id})">🔗 Compartilhar página pública</button>
         </div>
       `;
@@ -1601,13 +1558,13 @@
             teamsCount = parts.length;
           }
         } else {
-          const teams = await ChampAPI.teams(c.id);
+          const [teams, games, champData] = await Promise.all([
+            ChampAPI.teams(c.id),
+            ChampAPI.games(c.id),
+            ChampAPI.champion(c.id).catch(() => ({ champion: null })),
+          ]);
           teamsCount = teams.length;
-          await new Promise(r => setTimeout(r, 100));
-          const games = await ChampAPI.games(c.id);
           gamesCount = games.length;
-          await new Promise(r => setTimeout(r, 100));
-          const champData = await ChampAPI.champion(c.id).catch(() => ({ champion: null }));
           const chArea = document.getElementById('champion-area');
           if (chArea && champData?.champion) {
             const ch = champData.champion;
@@ -1852,9 +1809,10 @@
       const container = document.getElementById('champ-teams-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
       try {
-        const enrolled = await ChampAPI.teams(currentChamp.id);
-        await new Promise(r => setTimeout(r, 80));
-        const allTeams = await TeamsAPI.list({ sport_id: currentChamp.sport_id });
+        const [enrolled, allTeams] = await Promise.all([
+          ChampAPI.teams(currentChamp.id),
+          TeamsAPI.list({ sport_id: currentChamp.sport_id }),
+        ]);
         const enrolledIds = new Set(enrolled.map(t => t.id));
         const available = allTeams.filter(t => !enrolledIds.has(t.id));
 
@@ -1949,12 +1907,11 @@
     }
 
     async function renderAllGroups(container) {
-      const allStandings = [];
-      for (const g of detailGroups) {
-        const st = await ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => []);
-        allStandings.push(st);
-        if (detailGroups.length > 1) await new Promise(r => setTimeout(r, 80));
-      }
+      // Carrega standings de todos os grupos em paralelo
+      const standingsPromises = detailGroups.map(g =>
+        ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => [])
+      );
+      const allStandings = await Promise.all(standingsPromises);
 
       container.innerHTML = `
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
@@ -2138,18 +2095,8 @@
     async function loadDetailGames() {
       const container = document.getElementById('games-detail-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando jogos...</span></div>';
-      if (!currentSport) {
-        if (currentChamp && currentChamp.sport) {
-          currentSport = currentChamp.sport;
-        } else if (currentChamp && currentChamp.sport_id) {
-          const sports = await apiFetch('/api/sports/');
-          currentSport = sports.find(s => s.id === currentChamp.sport_id);
-        }
-      }
-      console.log('[Games] currentSport definido:', currentSport?.slug);
       try {
         const games = await ChampAPI.games(currentChamp.id);
-        console.log('[Games] Recebidos:', games, '| Total:', games?.length);
         if (!games.length) {
           container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhum jogo cadastrado.</p></div>';
           return;
@@ -2243,9 +2190,10 @@
       alertEl.style.display = 'none';
 
       try {
-        const bracket = await ChampAPI.knockout(currentChamp.id);
-        await new Promise(r => setTimeout(r, 100));
-        const groups = await ChampAPI.groups(currentChamp.id);
+        const [bracket, groups] = await Promise.all([
+          ChampAPI.knockout(currentChamp.id),
+          ChampAPI.groups(currentChamp.id),
+        ]);
 
         detailGroups = groups;
 
@@ -2466,19 +2414,17 @@
       const container = document.getElementById('stats-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
       try {
-        const stats = await ChampAPI.stats(currentChamp.id);
-        await new Promise(r => setTimeout(r, 100));
-        const groups = await ChampAPI.groups(currentChamp.id);
+        const [stats, groups] = await Promise.all([
+          ChampAPI.stats(currentChamp.id),
+          ChampAPI.groups(currentChamp.id),
+        ]);
 
         // Standings por grupo
         let standingsHtml = '';
         if (groups.length) {
-          const allSt = [];
-          for (const g of groups) {
-            const st = await ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => []);
-            allSt.push(st);
-            if (groups.length > 1) await new Promise(r => setTimeout(r, 80));
-          }
+          const allSt = await Promise.all(
+            groups.map(g => ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => []))
+          );
           standingsHtml = `
             <div class="card" style="margin-bottom:16px;">
               <div class="card-body">
@@ -3313,7 +3259,6 @@
       const bgSlug_ = getBgApiSlug();
       try {
         _bgGamesList = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games`);
-        console.log('[BgGames] Recebidos:', _bgGamesList, '| Total:', _bgGamesList?.length);
 
         if (!_bgGamesList.length) {
           container.innerHTML = '<div class="card"><div class="card-body" style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum jogo cadastrado ainda. Os jogos são gerados automaticamente ao configurar grupos ou mata-mata.</div></div>';
@@ -3327,8 +3272,6 @@
     }
 
     function renderBgGameCard(g, bgType_) {
-      try {
-      console.log('[BgGames] Renderizando jogo:', g && g.id, g);
       let scoreDisplay = '';
       if (bgType_ === 'domino') {
         scoreDisplay = g.home_score !== null ? `${g.home_score} × ${g.away_score}` : '— × —';
@@ -3447,10 +3390,6 @@
         registerBtn = renderTenisMesaResult(g);
       }
 
-      const timeDisplay = g.scheduled_at
-        ? `<span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">📅 ${fmtDatetime(g.scheduled_at)}</span>`
-        : '';
-      const scheduledValue = g.scheduled_at ? toInputDateTime(g.scheduled_at) : '';
       return `
         <div class="card" style="margin-bottom:8px;">
           <div class="card-body" style="padding:12px 16px; cursor:pointer; user-select:none;"
@@ -3462,7 +3401,6 @@
                 <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.away_name}</span>
               </div>
               <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-                ${timeDisplay}
                 ${statusBadge}
                 <button id="bg-card-toggle-${g.id}" class="btn btn-ghost btn-sm"
                         style="font-size:11px; padding:2px 6px; min-width:24px;"
@@ -3471,12 +3409,6 @@
             </div>
           </div>
           <div id="bg-game-detail-${g.id}" style="display:none; border-top:1px solid var(--border); padding:12px 16px;">
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-              <input type="datetime-local" id="bg-time-${g.id}" class="form-control"
-                style="width:auto;font-size:13px;" value="${scheduledValue}"
-                onclick="event.stopPropagation()">
-              <button class="btn btn-secondary btn-sm" onclick="saveBgGameTime(${g.id})">💾 Horário</button>
-            </div>
             ${resultLabel}
             ${registerBtn}
             <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
@@ -3485,7 +3417,6 @@
             </div>
           </div>
         </div>`;
-      } catch(e) { console.error('Erro ao renderizar jogo:', g && g.id, e); return ''; }
     }
 
     function toggleBgCard(gameId) {
@@ -3532,11 +3463,6 @@
         if (phaseFilter && g.phase !== phaseFilter) return false;
         if (roundFilter !== null && g.round_number !== roundFilter) return false;
         return true;
-      }).sort((a, b) => {
-        if (!a.scheduled_at && !b.scheduled_at) return 0;
-        if (!a.scheduled_at) return 1;
-        if (!b.scheduled_at) return -1;
-        return a.scheduled_at.localeCompare(b.scheduled_at);
       });
 
       if (!games.length) {
@@ -3595,22 +3521,6 @@
         await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games/${gameId}`, { method: 'DELETE' });
         showToast('Jogo excluído.', 'success');
         loadBgGames();
-      } catch (err) { showToast(err.message, 'error'); }
-    }
-
-    async function saveBgGameTime(gameId) {
-      const input = document.getElementById(`bg-time-${gameId}`);
-      if (!input) return;
-      const bgSlug_ = getBgApiSlug();
-      try {
-        const updated = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games/${gameId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ scheduled_at: input.value || null }),
-        });
-        const idx = (_bgGamesList || []).findIndex(g => g.id === gameId);
-        if (idx !== -1) _bgGamesList[idx].scheduled_at = updated.scheduled_at;
-        showToast('Horário salvo!', 'success');
-        renderFilteredBgGames();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
