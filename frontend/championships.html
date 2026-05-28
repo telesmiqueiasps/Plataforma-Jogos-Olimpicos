@@ -1575,7 +1575,10 @@
             : `<button class="btn btn-secondary btn-sm" onclick="switchTab('teams')">👥 Equipes</button>
                <button class="btn btn-secondary btn-sm" onclick="switchTab('groups')">📋 Grupos</button>
                <button class="btn btn-secondary btn-sm" onclick="switchTab('knockout')">⚔️ Mata-mata</button>`}
-          <button class="btn btn-secondary btn-sm" onclick="switchTab('bg-games')">🎮 Jogos</button>
+          ${isBoardgame()
+            ? `<button class="btn btn-secondary btn-sm" onclick="switchTab('bg-games')">🎮 Jogos</button>`
+            : isRunning() ? ''
+            : `<button class="btn btn-secondary btn-sm" onclick="switchTab('games')">⚽ Jogos</button>`}
           <button class="btn btn-ghost btn-sm" onclick="copyPublicLink(${c.id})">🔗 Compartilhar página pública</button>
         </div>
       `;
@@ -2135,6 +2138,7 @@
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando jogos...</span></div>';
       try {
         const games = await ChampAPI.games(currentChamp.id);
+        console.log('[Games] Recebidos:', games, '| Total:', games?.length);
         if (!games.length) {
           container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhum jogo cadastrado.</p></div>';
           return;
@@ -3298,6 +3302,7 @@
       const bgSlug_ = getBgApiSlug();
       try {
         _bgGamesList = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games`);
+        console.log('[BgGames] Recebidos:', _bgGamesList, '| Total:', _bgGamesList?.length);
 
         if (!_bgGamesList.length) {
           container.innerHTML = '<div class="card"><div class="card-body" style="padding:24px; color:var(--text-secondary); text-align:center;">Nenhum jogo cadastrado ainda. Os jogos são gerados automaticamente ao configurar grupos ou mata-mata.</div></div>';
@@ -3312,6 +3317,7 @@
 
     function renderBgGameCard(g, bgType_) {
       try {
+      console.log('[BgGames] Renderizando jogo:', g && g.id, g);
       let scoreDisplay = '';
       if (bgType_ === 'domino') {
         scoreDisplay = g.home_score !== null ? `${g.home_score} × ${g.away_score}` : '— × —';
