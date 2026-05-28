@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_cantina
-from app.db.models import CantinCashFlow, CantinOrder, CantinOrderItem, CantinPDVConfig, CantinProduct, User
+from app.db.models import CantinCashFlow, CantinOrder, CantinOrderItem, CantinPDVConfig, CantinProduct, CantinReservation, User
 from app.db.session import get_db
 
 router = APIRouter(prefix="/cantina", tags=["Cantina"])
@@ -69,6 +69,18 @@ class OrderCreate(BaseModel):
 class PDVConfigUpdate(BaseModel):
     debit_fee: float
     credit_fee: float
+    pdv_name: Optional[str] = None
+
+
+class ReservationItemIn(BaseModel):
+    product_id: int
+    quantity: int
+
+
+class ReservationCreate(BaseModel):
+    pdv_id: int
+    customer_name: str
+    items: List[ReservationItemIn]
 
 
 class OrderStatusUpdate(BaseModel):
@@ -221,7 +233,22 @@ def _pdv_config_out(c: CantinPDVConfig) -> dict:
         "pdv_id": c.pdv_id,
         "debit_fee": float(c.debit_fee) if c.debit_fee is not None else 0.0,
         "credit_fee": float(c.credit_fee) if c.credit_fee is not None else 0.0,
+        "pdv_name": c.pdv_name,
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+    }
+
+
+def _reservation_out(r: CantinReservation) -> dict:
+    return {
+        "id": r.id,
+        "pdv_id": r.pdv_id,
+        "customer_name": r.customer_name,
+        "items": r.items,
+        "total": float(r.total),
+        "status": r.status,
+        "attended_at": r.attended_at.isoformat() if r.attended_at else None,
+        "attended_by": r.attended_by,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
     }
 
 
@@ -229,7 +256,7 @@ def _pdv_config_out(c: CantinPDVConfig) -> dict:
 def get_pdv_config(pdv_id: int, db: Session = Depends(get_db)):
     config = db.query(CantinPDVConfig).filter(CantinPDVConfig.pdv_id == pdv_id).first()
     if not config:
-        return {"id": None, "pdv_id": pdv_id, "debit_fee": 0.0, "credit_fee": 0.0, "updated_at": None}
+        return {"id": None, "pdv_id": pdv_id, "debit_fee": 0.0, "credit_fee": 0.0, "pdv_name": None, "updated_at": None}
     return _pdv_config_out(config)
 
 
@@ -244,11 +271,13 @@ def update_pdv_config(
         raise HTTPException(status_code=400, detail="Taxas devem ser entre 0% e 100%")
     config = db.query(CantinPDVConfig).filter(CantinPDVConfig.pdv_id == pdv_id).first()
     if not config:
-        config = CantinPDVConfig(pdv_id=pdv_id, debit_fee=data.debit_fee, credit_fee=data.credit_fee, updated_by=current_user.id)
+        config = CantinPDVConfig(pdv_id=pdv_id, debit_fee=data.debit_fee, credit_fee=data.credit_fee, pdv_name=data.pdv_name, updated_by=current_user.id)
         db.add(config)
     else:
         config.debit_fee = data.debit_fee
         config.credit_fee = data.credit_fee
+        if data.pdv_name is not None:
+            config.pdv_name = data.pdv_name
         config.updated_by = current_user.id
     db.commit()
     db.refresh(config)
@@ -882,3 +911,150 @@ def get_report(
         "category_sales": list(category_sales.values()),
         "cash_flow": [_cashflow_out(f, users) for f in flows],
     }
+
+
+# ---------------------------------------------------------------------------
+# CARDÁPIO PÚBLICO
+# ---------------------------------------------------------------------------
+
+def _pending_reserved(product_id: int, pdv_id: int, db: Session) -> int:
+    rows = db.query(CantinReservation).filter(
+        CantinReservation.pdv_id == pdv_id,
+        CantinReservation.status == "pending",
+    ).all()
+    total = 0
+    for r in rows:
+        for it in (r.items or []):
+            if it.get("product_id") == product_id:
+                total += it.get("quantity", 0)
+    return total
+
+
+@router.get("/pdv-info/{pdv_id}")
+def get_pdv_info(pdv_id: int, db: Session = Depends(get_db)):
+    config = db.query(CantinPDVConfig).filter(CantinPDVConfig.pdv_id == pdv_id).first()
+    name = (config.pdv_name if config and config.pdv_name else f"PDV {pdv_id}")
+    return {"pdv_id": pdv_id, "pdv_name": name}
+
+
+@router.get("/menu/{pdv_id}")
+def get_public_menu(pdv_id: int, db: Session = Depends(get_db)):
+    products = (
+        db.query(CantinProduct)
+        .filter(CantinProduct.pdv_id == pdv_id, CantinProduct.active == True)
+        .order_by(CantinProduct.category, CantinProduct.name)
+        .all()
+    )
+    result = []
+    for p in products:
+        reserved = _pending_reserved(p.id, pdv_id, db)
+        available = max(0, p.stock - reserved)
+        result.append({
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "price": float(p.price),
+            "category": p.category,
+            "stock": p.stock,
+            "image_url": p.image_url,
+            "reserved_stock": reserved,
+            "available_stock": available,
+        })
+    return result
+
+
+# ---------------------------------------------------------------------------
+# RESERVAS
+# ---------------------------------------------------------------------------
+
+@router.post("/reservations", status_code=201)
+def create_reservation(data: ReservationCreate, db: Session = Depends(get_db)):
+    name = data.customer_name.strip()
+    if len(name) < 2 or len(name) > 150:
+        raise HTTPException(400, "Nome deve ter entre 2 e 150 caracteres")
+    if not data.items:
+        raise HTTPException(400, "Nenhum item informado")
+
+    items_out = []
+    total = 0.0
+    for it in data.items:
+        if it.quantity < 1:
+            raise HTTPException(400, f"Quantidade inválida para produto {it.product_id}")
+        product = db.query(CantinProduct).filter(
+            CantinProduct.id == it.product_id,
+            CantinProduct.pdv_id == data.pdv_id,
+            CantinProduct.active == True,
+        ).first()
+        if not product:
+            raise HTTPException(400, f"Produto {it.product_id} não encontrado neste PDV")
+        reserved = _pending_reserved(product.id, data.pdv_id, db)
+        available = max(0, product.stock - reserved)
+        if available < it.quantity:
+            raise HTTPException(400, f"Estoque insuficiente para '{product.name}' (disponível: {available})")
+        subtotal = float(product.price) * it.quantity
+        total += subtotal
+        items_out.append({
+            "product_id": product.id,
+            "product_name": product.name,
+            "quantity": it.quantity,
+            "unit_price": float(product.price),
+            "subtotal": subtotal,
+        })
+
+    reservation = CantinReservation(
+        pdv_id=data.pdv_id,
+        customer_name=name,
+        items=items_out,
+        total=total,
+        status="pending",
+    )
+    db.add(reservation)
+    db.commit()
+    db.refresh(reservation)
+    return _reservation_out(reservation)
+
+
+@router.get("/reservations/{pdv_id}")
+def list_reservations(
+    pdv_id: int,
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_cantina),
+):
+    q = db.query(CantinReservation).filter(CantinReservation.pdv_id == pdv_id)
+    if status:
+        q = q.filter(CantinReservation.status == status)
+    reservations = q.order_by(CantinReservation.created_at.desc()).all()
+    return [_reservation_out(r) for r in reservations]
+
+
+@router.put("/reservations/{reservation_id}/attend", status_code=200)
+def attend_reservation(
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_cantina),
+):
+    r = db.query(CantinReservation).filter(CantinReservation.id == reservation_id).first()
+    if not r:
+        raise HTTPException(404, "Reserva não encontrada")
+    r.status = "attended"
+    r.attended_at = datetime.now(timezone.utc)
+    r.attended_by = current_user.id
+    db.commit()
+    db.refresh(r)
+    return _reservation_out(r)
+
+
+@router.put("/reservations/{reservation_id}/cancel", status_code=200)
+def cancel_reservation(
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_cantina),
+):
+    r = db.query(CantinReservation).filter(CantinReservation.id == reservation_id).first()
+    if not r:
+        raise HTTPException(404, "Reserva não encontrada")
+    r.status = "cancelled"
+    db.commit()
+    db.refresh(r)
+    return _reservation_out(r)

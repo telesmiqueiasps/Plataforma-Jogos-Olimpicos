@@ -149,6 +149,10 @@
           <span class="nav-icon"><img src="img/cantina.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;"></span>
           <span>Cantina</span>
         </a>
+        <a href="cantina-menu.html" class="nav-item" data-role="cantina" target="_blank">
+          <span class="nav-icon">🍽️</span>
+          <span>Cardápio</span>
+        </a>
         <a href="secretaria.html" class="nav-item" data-role="secretaria">
           <span class="nav-icon"><img src="img/secretaria.png" alt="Secretaria" style="width:22px;height:22px;object-fit:contain;"></span>
           <span>Secretaria</span>
@@ -189,6 +193,7 @@
         <div class="topbar-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button onclick="switchPdv()" class="btn btn-secondary btn-sm" id="btn-switch-pdv" style="font-size:12px;">🔀 Trocar PDV</button>
           <a href="cantina-consolidado.html" class="btn btn-secondary btn-sm" id="btn-consolidado" style="font-size:12px;display:none;">📊 Consolidado</a>
+          <a id="btn-public-menu" href="cantina-menu.html?pdv=1" target="_blank" class="btn btn-secondary btn-sm" style="font-size:12px;">🔗 Cardápio Público</a>
           <button id="theme-toggle" onclick="if(typeof toggleTheme==='function')toggleTheme();else{const t=localStorage.getItem('sp_theme')==='dark'?'light':'dark';localStorage.setItem('sp_theme',t);document.documentElement.setAttribute('data-theme',t);this.innerHTML=t==='dark'?'☀️':'🌙';}" title="Alternar tema">🌙</button>
         </div>
       </header>
@@ -201,6 +206,7 @@
           <button class="tab-btn" data-tab="caixa">💰 Caixa</button>
           <button class="tab-btn" data-tab="relatorio">📊 Relatório</button>
           <button class="tab-btn" data-tab="estoque">📦 Estoque</button>
+          <button class="tab-btn" data-tab="reservas" id="tab-btn-reservas">📋 Reservas <span id="reservas-pending-badge" style="display:none;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span></button>
         </div>
 
         <!-- ======================================================= -->
@@ -447,6 +453,32 @@
             </div>
           </div>
         </div>
+
+        <!-- ======================================================= -->
+        <!-- ABA: RESERVAS                                            -->
+        <!-- ======================================================= -->
+        <div id="tab-reservas" style="display:none;">
+          <div style="padding:16px;">
+            <!-- Filtros de status -->
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+              <button class="btn btn-sm" id="res-filter-pending"
+                style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;font-weight:700;"
+                onclick="filterReservations('pending')">⏳ Pendentes</button>
+              <button class="btn btn-sm" id="res-filter-attended"
+                style="background:#f1f5f9;color:var(--text-secondary);border:1px solid var(--border);"
+                onclick="filterReservations('attended')">✅ Atendidas</button>
+              <button class="btn btn-sm" id="res-filter-cancelled"
+                style="background:#f1f5f9;color:var(--text-secondary);border:1px solid var(--border);"
+                onclick="filterReservations('cancelled')">❌ Canceladas</button>
+              <span id="res-count-label" style="font-size:12px;color:var(--text-muted);margin-left:4px;"></span>
+              <button class="btn btn-ghost btn-sm" onclick="loadReservations()" style="margin-left:auto;" title="Atualizar">🔄</button>
+            </div>
+            <div id="reservations-list">
+              <div class="page-loading"><div class="spinner"></div><span>Carregando reservas...</span></div>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -642,6 +674,11 @@
       </div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">As taxas são repassadas ao cliente no momento da venda. Defina 0% para não cobrar taxa.</p>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>🏪 Nome do PDV</label>
+          <input type="text" id="pdv-name-input" class="form-control" maxlength="100" placeholder="Ex: Cantina Principal">
+          <p class="form-hint">Este nome aparece na página pública do cardápio.</p>
+        </div>
         <div class="form-group">
           <label>💳 Taxa Débito (%)</label>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -764,6 +801,10 @@
       var btnConsolid = document.getElementById('btn-consolidado');
       if (btnConsolid && _userRole === 'admin') btnConsolid.style.display = '';
 
+      // Link cardápio público: atualizar PDV
+      var btnMenu = document.getElementById('btn-public-menu');
+      if (btnMenu) btnMenu.href = 'cantina-menu.html?pdv=' + currentPdvId;
+
       initTabNav();
       loadPDV();
       loadTaxConfig();
@@ -783,7 +824,7 @@
           var tab = btn.dataset.tab;
           document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
           btn.classList.add('active');
-          ['pdv','produtos','caixa','relatorio','estoque'].forEach(function(t){
+          ['pdv','produtos','caixa','relatorio','estoque','reservas'].forEach(function(t){
             document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
           });
           currentTab = tab;
@@ -791,6 +832,15 @@
           if (tab === 'caixa') loadCashTab();
           if (tab === 'relatorio') loadReport();
           if (tab === 'estoque') loadStockTab();
+          if (tab === 'reservas') {
+            loadReservations();
+            if (_reservationRefreshTimer) clearInterval(_reservationRefreshTimer);
+            _reservationRefreshTimer = setInterval(function() {
+              if (currentTab === 'reservas') loadReservations();
+            }, 30000);
+          } else {
+            if (_reservationRefreshTimer) { clearInterval(_reservationRefreshTimer); _reservationRefreshTimer = null; }
+          }
         });
       });
 
@@ -2142,17 +2192,21 @@
       try {
         var config = await CantinAPI.getPdvConfig(currentPdvId);
         pdvTaxConfig = { debit_fee: parseFloat(config.debit_fee || 0), credit_fee: parseFloat(config.credit_fee || 0) };
+        return config;
       } catch(e) {
         pdvTaxConfig = { debit_fee: 0, credit_fee: 0 };
+        return null;
       }
     }
 
     async function openTaxModal() {
-      await loadTaxConfig();
+      var config = await loadTaxConfig();
       var titleEl = document.getElementById('tax-config-modal-title');
       if (titleEl) titleEl.textContent = '⚙️ Taxas de Cartão — PDV ' + currentPdvId;
       document.getElementById('debit-fee-input').value = pdvTaxConfig.debit_fee || 0;
       document.getElementById('credit-fee-input').value = pdvTaxConfig.credit_fee || 0;
+      var nameInput = document.getElementById('pdv-name-input');
+      if (nameInput && config) nameInput.value = config.pdv_name || '';
       updateTaxPreview();
       openModal('modal-tax-config');
     }
@@ -2179,7 +2233,8 @@
       var btn = document.getElementById('btn-save-tax');
       btnLoading(btn, true);
       try {
-        await CantinAPI.savePdvConfig(currentPdvId, { debit_fee: debit, credit_fee: credit });
+        var pdvNameVal = (document.getElementById('pdv-name-input') || {}).value || null;
+        await CantinAPI.savePdvConfig(currentPdvId, { debit_fee: debit, credit_fee: credit, pdv_name: pdvNameVal });
         pdvTaxConfig = { debit_fee: debit, credit_fee: credit };
         closeTaxModal();
         showToast('✅ Taxas salvas!', 'success');
@@ -2236,6 +2291,130 @@
       var fee = _cardSelectedType === 'debito' ? (pdvTaxConfig.debit_fee || 0) : (pdvTaxConfig.credit_fee || 0);
       closeModal('modal-card-payment');
       await confirmOrder(_cardSelectedType, fee);
+    }
+
+    // ================================================================
+    //  RESERVAS
+    // ================================================================
+    var _reservationStatus = 'pending';
+    var _reservationRefreshTimer = null;
+
+    async function loadReservations() {
+      var container = document.getElementById('reservations-list');
+      if (!container) return;
+      try {
+        var url = '/api/cantina/reservations/' + currentPdvId + '?status=' + _reservationStatus;
+        var reservations = await apiFetch(url);
+        renderReservations(reservations);
+        // Update pending badge
+        if (_reservationStatus !== 'pending') {
+          try {
+            var pending = await apiFetch('/api/cantina/reservations/' + currentPdvId + '?status=pending');
+            updatePendingBadge(pending.length);
+          } catch(e) {}
+        } else {
+          updatePendingBadge(reservations.length);
+        }
+      } catch(e) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Erro ao carregar reservas.</div>';
+      }
+    }
+
+    function updatePendingBadge(count) {
+      var badge = document.getElementById('reservas-pending-badge');
+      if (!badge) return;
+      if (count > 0) {
+        badge.style.display = 'inline';
+        badge.textContent = count;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function renderReservations(list) {
+      var container = document.getElementById('reservations-list');
+      var countLabel = document.getElementById('res-count-label');
+      if (countLabel) countLabel.textContent = list.length + ' reserva' + (list.length !== 1 ? 's' : '');
+
+      if (!list.length) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Nenhuma reserva ' + (_reservationStatus === 'pending' ? 'pendente' : _reservationStatus === 'attended' ? 'atendida' : 'cancelada') + '.</div>';
+        return;
+      }
+
+      var statusBg = { pending: '#fef9e7', attended: '#f0fdf4', cancelled: '#f8f9fa' };
+      var statusBorder = { pending: '#fcd34d', attended: '#86efac', cancelled: '#e5e7eb' };
+      var bg = statusBg[_reservationStatus] || '#fff';
+      var border = statusBorder[_reservationStatus] || '#e5e7eb';
+
+      container.innerHTML = list.map(function(r) {
+        var itemsHtml = (r.items || []).map(function(it) {
+          return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;">'
+            + '<span>' + escHtml(it.quantity) + 'x ' + escHtml(it.product_name) + '</span>'
+            + '<span style="color:var(--text-secondary);">R$ ' + formatMoney(it.subtotal) + '</span>'
+            + '</div>';
+        }).join('');
+
+        var time = fmtTime(r.created_at);
+        var btns = _reservationStatus === 'pending'
+          ? '<button class="btn btn-sm" style="background:#d1fae5;color:#065f46;border:none;font-weight:700;" onclick="attendReservation(' + r.id + ')">✅ Atendido</button>'
+          + ' <button class="btn btn-sm btn-ghost" style="color:var(--error,#dc2626);" onclick="cancelReservation(' + r.id + ')">❌ Cancelar</button>'
+          : '';
+        var extraInfo = _reservationStatus === 'attended' && r.attended_at
+          ? '<div style="font-size:11px;color:#059669;margin-top:6px;">✅ Atendido às ' + fmtTime(r.attended_at) + '</div>'
+          : (_reservationStatus === 'cancelled' ? '<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Cancelada</div>' : '');
+
+        return '<div style="background:' + bg + ';border:1.5px solid ' + border + ';border-radius:10px;padding:14px 16px;margin-bottom:10px;">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+          + '<div><span style="font-size:15px;font-weight:800;color:var(--accent-purple,#7c3aed);">#' + r.id + '</span>'
+          + ' <span style="font-size:14px;font-weight:700;">' + escHtml(r.customer_name) + '</span></div>'
+          + '<span style="font-size:12px;color:var(--text-muted);">🕐 ' + time + '</span>'
+          + '</div>'
+          + itemsHtml
+          + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.06);">'
+          + '<span style="font-weight:800;font-size:14px;">Total: R$ ' + formatMoney(r.total) + '</span>'
+          + '<div style="display:flex;gap:6px;">' + btns + '</div>'
+          + '</div>'
+          + extraInfo
+          + '</div>';
+      }).join('');
+    }
+
+    function filterReservations(status) {
+      _reservationStatus = status;
+      var filters = ['pending', 'attended', 'cancelled'];
+      filters.forEach(function(s) {
+        var btn = document.getElementById('res-filter-' + s);
+        if (!btn) return;
+        if (s === status) {
+          btn.style.background = s === 'pending' ? '#fef3c7' : (s === 'attended' ? '#d1fae5' : '#f3f4f6');
+          btn.style.color = s === 'pending' ? '#92400e' : (s === 'attended' ? '#065f46' : '#6b7280');
+          btn.style.fontWeight = '800';
+          btn.style.border = '2px solid ' + (s === 'pending' ? '#fcd34d' : (s === 'attended' ? '#86efac' : '#d1d5db'));
+        } else {
+          btn.style.background = '#f1f5f9';
+          btn.style.color = 'var(--text-secondary)';
+          btn.style.fontWeight = '600';
+          btn.style.border = '1px solid var(--border)';
+        }
+      });
+      loadReservations();
+    }
+
+    async function attendReservation(id) {
+      try {
+        await apiFetch('/api/cantina/reservations/' + id + '/attend', { method: 'PUT' });
+        showToast('✅ Reserva atendida!', 'success');
+        loadReservations();
+      } catch(e) { showToast('Erro: ' + (e.message || ''), 'error'); }
+    }
+
+    async function cancelReservation(id) {
+      if (!confirm('Cancelar esta reserva?')) return;
+      try {
+        await apiFetch('/api/cantina/reservations/' + id + '/cancel', { method: 'PUT' });
+        showToast('Reserva cancelada.', 'success');
+        loadReservations();
+      } catch(e) { showToast('Erro: ' + (e.message || ''), 'error'); }
     }
 
     // ================================================================

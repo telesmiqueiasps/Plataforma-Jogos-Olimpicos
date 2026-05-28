@@ -585,6 +585,7 @@ class CantinPDVConfig(Base):
     pdv_id     = Column(Integer, nullable=False, unique=True)
     debit_fee  = Column(Numeric(5, 2), default=0.00)
     credit_fee = Column(Numeric(5, 2), default=0.00)
+    pdv_name   = Column(String(100), nullable=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
@@ -600,6 +601,20 @@ class CantinCashFlow(Base):
     created_by     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at     = Column(DateTime(timezone=True), server_default=func.now())
     pdv_id         = Column(Integer, default=1, nullable=False)
+
+
+class CantinReservation(Base):
+    __tablename__ = "cantin_reservations"
+
+    id            = Column(Integer, primary_key=True)
+    pdv_id        = Column(Integer, nullable=False)
+    customer_name = Column(String(150), nullable=False)
+    items         = Column(JSON, nullable=False)
+    total         = Column(Numeric(10, 2), nullable=False)
+    status        = Column(String(20), default="pending")
+    attended_at   = Column(DateTime(timezone=True), nullable=True)
+    attended_by   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
 
 # ---------------------------------------------------------------------------
