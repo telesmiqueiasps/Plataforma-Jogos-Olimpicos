@@ -1564,58 +1564,5 @@
   }
 </script>
 
-<!-- Feedback -->
-<section style="margin-top:60px;padding:24px 20px;border-top:1px solid #e2e8f0;max-width:500px;margin-left:auto;margin-right:auto;text-align:center;">
-  <div style="display:inline-block;background:#2563eb;color:white;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:3px 12px;border-radius:20px;margin-bottom:12px;">Feedback</div>
-  <p style="font-size:12px;color:#94a3b8;margin-bottom:12px;">
-    💬 Tem algo a dizer sobre esta plataforma? Deixe um feedback para o meu portfólio. 🙂
-  </p>
-  <div id="feedback-form" style="display:flex;flex-direction:column;gap:8px;">
-    <input type="text" id="fb-name" maxlength="100" placeholder="Seu nome"
-      style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;color:#374151;background:#f8fafc;outline:none;width:100%;box-sizing:border-box;">
-    <textarea id="fb-message" maxlength="500" placeholder="O que achou da plataforma?" rows="3"
-      style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;color:#374151;background:#f8fafc;outline:none;width:100%;box-sizing:border-box;resize:none;font-family:inherit;"></textarea>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span id="fb-char-count" style="font-size:11px;color:#cbd5e1;">0/500</span>
-      <button onclick="submitFeedback()" id="fb-submit-btn"
-        style="background:#2563eb;color:white;border:none;border-radius:8px;padding:7px 18px;font-size:13px;cursor:pointer;font-weight:500;">
-        Enviar
-      </button>
-    </div>
-  </div>
-  <div id="feedback-success" style="display:none;color:#059669;font-size:13px;padding:8px;">
-    ✅ Obrigado pelo feedback!
-  </div>
-</section>
-
-
-<script>
-  document.getElementById('fb-message').addEventListener('input', function() {
-    document.getElementById('fb-char-count').textContent = this.value.length + '/500';
-  });
-
-  async function submitFeedback() {
-    var name = document.getElementById('fb-name').value.trim();
-    var message = document.getElementById('fb-message').value.trim();
-    if (!name || !message) { alert('Por favor preencha seu nome e o feedback.'); return; }
-    var btn = document.getElementById('fb-submit-btn');
-    btn.textContent = 'Enviando...';
-    btn.disabled = true;
-    try {
-      var res = await fetch(API_BASE + '/api/feedbacks/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, message: message })
-      });
-      if (!res.ok) throw new Error('Erro ao enviar');
-      document.getElementById('feedback-form').style.display = 'none';
-      document.getElementById('feedback-success').style.display = 'block';
-    } catch(e) {
-      btn.textContent = 'Enviar';
-      btn.disabled = false;
-      alert('Erro ao enviar. Tente novamente.');
-    }
-  }
-</script>
 </body>
 </html>
