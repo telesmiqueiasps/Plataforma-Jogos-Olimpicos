@@ -3390,6 +3390,10 @@
         registerBtn = renderTenisMesaResult(g);
       }
 
+      const timeDisplay = g.scheduled_at
+        ? `<span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">📅 ${fmtDatetime(g.scheduled_at)}</span>`
+        : '';
+      const scheduledValue = g.scheduled_at ? toInputDateTime(g.scheduled_at) : '';
       return `
         <div class="card" style="margin-bottom:8px;">
           <div class="card-body" style="padding:12px 16px; cursor:pointer; user-select:none;"
@@ -3401,6 +3405,7 @@
                 <span style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:35%;">${g.away_name}</span>
               </div>
               <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                ${timeDisplay}
                 ${statusBadge}
                 <button id="bg-card-toggle-${g.id}" class="btn btn-ghost btn-sm"
                         style="font-size:11px; padding:2px 6px; min-width:24px;"
@@ -3409,6 +3414,12 @@
             </div>
           </div>
           <div id="bg-game-detail-${g.id}" style="display:none; border-top:1px solid var(--border); padding:12px 16px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+              <input type="datetime-local" id="bg-time-${g.id}" class="form-control"
+                style="width:auto;font-size:13px;" value="${scheduledValue}"
+                onclick="event.stopPropagation()">
+              <button class="btn btn-secondary btn-sm" onclick="saveBgGameTime(${g.id})">💾 Horário</button>
+            </div>
             ${resultLabel}
             ${registerBtn}
             <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
@@ -3463,6 +3474,11 @@
         if (phaseFilter && g.phase !== phaseFilter) return false;
         if (roundFilter !== null && g.round_number !== roundFilter) return false;
         return true;
+      }).sort((a, b) => {
+        if (!a.scheduled_at && !b.scheduled_at) return 0;
+        if (!a.scheduled_at) return 1;
+        if (!b.scheduled_at) return -1;
+        return a.scheduled_at.localeCompare(b.scheduled_at);
       });
 
       if (!games.length) {
@@ -3521,6 +3537,22 @@
         await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games/${gameId}`, { method: 'DELETE' });
         showToast('Jogo excluído.', 'success');
         loadBgGames();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function saveBgGameTime(gameId) {
+      const input = document.getElementById(`bg-time-${gameId}`);
+      if (!input) return;
+      const bgSlug_ = getBgApiSlug();
+      try {
+        const updated = await apiFetch(`/api/championships/${currentChamp.id}/${bgSlug_}/games/${gameId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ scheduled_at: input.value || null }),
+        });
+        const idx = (_bgGamesList || []).findIndex(g => g.id === gameId);
+        if (idx !== -1) _bgGamesList[idx].scheduled_at = updated.scheduled_at;
+        showToast('Horário salvo!', 'success');
+        renderFilteredBgGames();
       } catch (err) { showToast(err.message, 'error'); }
     }
 

@@ -8,6 +8,7 @@ Classificação: sistema de pontos estilo vôlei, configurável via rules_config
 """
 
 import random
+from datetime import datetime
 from itertools import combinations
 from functools import cmp_to_key
 
@@ -352,6 +353,12 @@ def create_game(
     away_id = body.get("away_id")
     if not home_id or not away_id:
         raise HTTPException(status_code=400, detail="home_id e away_id são obrigatórios")
+    scheduled_at = None
+    if body.get("scheduled_at"):
+        try:
+            scheduled_at = datetime.fromisoformat(body["scheduled_at"])
+        except Exception:
+            pass
     game = BoardgameGame(
         championship_id=championship_id,
         game_type="tenis_mesa",
@@ -359,9 +366,40 @@ def create_game(
         away_id=away_id,
         phase=body.get("phase", "groups"),
         round_number=body.get("round_number"),
+        scheduled_at=scheduled_at,
         extra_data={"game_type": "tenis_mesa", "sets": [], "group": body.get("group")},
     )
     db.add(game)
+    db.commit()
+    db.refresh(game)
+    return _game_out(game, _names_map(championship_id, db))
+
+
+@router.put("/{championship_id}/tenis/games/{game_id}")
+def update_game(
+    championship_id: int,
+    game_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    _get_champ_or_404(championship_id, db)
+    game = db.query(BoardgameGame).filter(
+        BoardgameGame.id == game_id,
+        BoardgameGame.championship_id == championship_id,
+        BoardgameGame.game_type == "tenis_mesa",
+    ).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+    if "scheduled_at" in body:
+        raw = body["scheduled_at"]
+        if raw:
+            try:
+                game.scheduled_at = datetime.fromisoformat(raw)
+            except Exception:
+                raise HTTPException(status_code=400, detail="Formato de data inválido. Use YYYY-MM-DDTHH:MM")
+        else:
+            game.scheduled_at = None
     db.commit()
     db.refresh(game)
     return _game_out(game, _names_map(championship_id, db))
