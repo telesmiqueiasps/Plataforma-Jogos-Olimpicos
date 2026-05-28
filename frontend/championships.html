@@ -326,12 +326,12 @@
                       <input type="number" id="cfg-domino-pts-caroca" class="form-control" value="2" min="0">
                     </div>
                     <div class="form-group" style="margin:0;">
-                      <label>Pts passe simples (por passe)</label>
-                      <input type="number" id="cfg-domino-pts-passe-simples" class="form-control" value="1" min="0">
+                      <label>Pts lá e ló</label>
+                      <input type="number" id="cfg-domino-pts-la-e-lo" class="form-control" value="3" min="0">
                     </div>
                     <div class="form-group" style="margin:0;">
-                      <label>Pts passe geral</label>
-                      <input type="number" id="cfg-domino-pts-passe-geral" class="form-control" value="2" min="0">
+                      <label>Pts quadrada</label>
+                      <input type="number" id="cfg-domino-pts-quadrada" class="form-control" value="4" min="0">
                     </div>
                   </div>
                   <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
@@ -1651,8 +1651,8 @@
             if (bo) { bo.value = cfg.best_of ?? 3; }
             const el = document.getElementById('cfg-domino-pts-simples'); if (el) el.value = cfg.pts_batida_simples ?? cfg.pts_simples ?? 1;
             const ec = document.getElementById('cfg-domino-pts-caroca'); if (ec) ec.value = cfg.pts_batida_caroca ?? cfg.pts_caroca ?? 2;
-            const eps = document.getElementById('cfg-domino-pts-passe-simples'); if (eps) eps.value = cfg.pts_passe_simples ?? 1;
-            const epg = document.getElementById('cfg-domino-pts-passe-geral'); if (epg) epg.value = cfg.pts_passe_geral ?? 2;
+            const ell = document.getElementById('cfg-domino-pts-la-e-lo'); if (ell) ell.value = cfg.pts_la_e_lo ?? 3;
+            const eq = document.getElementById('cfg-domino-pts-quadrada'); if (eq) eq.value = cfg.pts_quadrada ?? 4;
             const ecl = document.getElementById('cfg-domino-classifieds'); if (ecl) ecl.value = cfg.classifieds_per_group ?? 2;
             bgDominoTiebreakers = cfg.tiebreaker_order?.length ? cfg.tiebreaker_order : ['pontos', 'vitorias', 'confronto_direto', 'sorteio'];
             renderBgTiebreakerList('domino');
@@ -3363,10 +3363,12 @@
       let registerBtn = '';
       if (bgType_ === 'domino') {
         const events_ = g.extra_data?.events || [];
-        const eHtml = events_.map(e => {
-          if (e.event_type === 'batida') return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">🏆 ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')}) +${e.points}pts</span>`;
-          if (e.event_type === 'passe') return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">↪ ${e.quem_passou==='home'?g.home_name:g.away_name} passou → ${e.beneficiario==='home'?g.home_name:g.away_name} +${e.points}pts</span>`;
-          return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">${e.match_number||''}ª ${e.winner==='home'?g.home_name:g.away_name} (${(e.match_type||'').replace('_',' ')})</span>`;
+        const _dmIcons = { batida_simples: '🎯', batida_caroca: '🎲', la_e_lo: '🎯', quadrada: '⬛' };
+        const _dmLabels = { batida_simples: 'Simples', batida_caroca: 'Carroça', la_e_lo: 'Lá e Ló', quadrada: 'Quadrada' };
+        const eHtml = events_.filter(e => e.event_type === 'batida').map(e => {
+          const ico = _dmIcons[e.match_type] || '🏆';
+          const lbl = _dmLabels[e.match_type] || (e.match_type || '').replace(/_/g, ' ');
+          return `<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;">${ico} ${e.winner==='home'?g.home_name:g.away_name} (${lbl}) +${e.points}pts</span>`;
         }).join('');
         registerBtn = `
           ${eHtml ? `<div style="margin-bottom:10px; display:flex; flex-wrap:wrap; gap:4px;">${eHtml}</div>` : ''}
@@ -3380,34 +3382,14 @@
             </div>
             <div class="form-group" style="margin:0;">
               <label style="font-size:11px;">Tipo</label>
-              <select id="dm-type-${g.id}" class="form-control" style="width:160px;">
-                <option value="batida_simples">Batida Simples</option>
-                <option value="batida_caroca">Batida de Carroça</option>
+              <select id="dm-type-${g.id}" class="form-control" style="width:175px;">
+                <option value="batida_simples">🎯 Batida Simples +1pt</option>
+                <option value="batida_caroca">🎲 Carroça +2pts</option>
+                <option value="la_e_lo">🎯 Lá e Ló +3pts</option>
+                <option value="quadrada">⬛ Quadrada +4pts</option>
               </select>
             </div>
             <button class="btn btn-primary btn-sm" onclick="saveDominoBatida(${g.id})">+ Batida</button>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-            <div class="form-group" style="margin:0;">
-              <label style="font-size:11px;">Quem passou</label>
-              <select id="dm-passou-${g.id}" class="form-control" style="width:140px;">
-                <option value="home">${g.home_name}</option>
-                <option value="away">${g.away_name}</option>
-              </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label style="font-size:11px;">Tipo Passe</label>
-              <select id="dm-passe-tipo-${g.id}" class="form-control" style="width:150px;"
-                onchange="document.getElementById('dm-qtd-area-${g.id}').style.display=(this.value==='passe_simples'?'':'none')">
-                <option value="passe_simples">Passe Simples</option>
-                <option value="passe_geral">Passe Geral</option>
-              </select>
-            </div>
-            <div id="dm-qtd-area-${g.id}" class="form-group" style="margin:0; min-width:80px;">
-              <label style="font-size:11px;">Qtd passes</label>
-              <input type="number" id="dm-qtd-${g.id}" class="form-control" value="1" min="1" style="width:70px;">
-            </div>
-            <button class="btn btn-secondary btn-sm" onclick="saveDominoPasse(${g.id})">+ Passe</button>
           </div>`;
       } else if (bgType_ === 'xadrez') {
         registerBtn = `
@@ -3645,20 +3627,6 @@
       return saveDominoBatida(gameId);
     }
 
-    async function saveDominoPasse(gameId) {
-      const quem_passou = document.getElementById(`dm-passou-${gameId}`).value;
-      const type        = document.getElementById(`dm-passe-tipo-${gameId}`).value;
-      const qtdEl       = document.getElementById(`dm-qtd-${gameId}`);
-      const quantidade  = Number(qtdEl?.value || 1);
-      try {
-        await apiFetch(`/api/championships/${currentChamp.id}/domino/games/${gameId}/passe`, {
-          method: 'POST',
-          body: JSON.stringify({ quem_passou, type, quantidade }),
-        });
-        showToast('Passe registrado!', 'success');
-        if (currentTab === 'bg-knockout') loadBgKnockout(); else loadBgGames();
-      } catch (err) { showToast(err.message, 'error'); }
-    }
 
     async function saveDamaResult(gameId) {
       const result = document.getElementById(`dama-result-${gameId}`).value;
@@ -3830,21 +3798,63 @@
 
         let html = '';
         if (bgType_ === 'domino') {
+          const byQuadrada = [...standings].sort((a, b) => (b.quadradas ?? 0) - (a.quadradas ?? 0)).filter(s => (s.quadradas ?? 0) > 0);
+          const byLaELo    = [...standings].sort((a, b) => (b.la_e_los  ?? 0) - (a.la_e_los  ?? 0)).filter(s => (s.la_e_los  ?? 0) > 0);
+          const byTotal    = [...standings].sort((a, b) => {
+            const totA = (a.wins??0) + (a.carrocas??0) + (a.la_e_los??0) + (a.quadradas??0);
+            const totB = (b.wins??0) + (b.carrocas??0) + (b.la_e_los??0) + (b.quadradas??0);
+            return totB - totA;
+          }).filter(s => ((s.wins??0)+(s.carrocas??0)+(s.la_e_los??0)+(s.quadradas??0)) > 0);
           html = `
-            <div class="card"><div class="card-body" style="padding:0;">
+            <div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">
+              <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">🁣 Classificação Geral</div>
               <div class="table-responsive"><table class="standings-table">
-                <thead><tr><th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts</th></tr></thead>
+                <thead><tr><th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>D</th><th title="Batidas Simples">BS</th><th title="Carroças">CA</th><th title="Lá e Ló">LL</th><th title="Quadradas">QD</th><th>Pts</th></tr></thead>
                 <tbody>
                   ${standings.map(s => `
                     <tr>
                       <td class="pos">${s.position}</td>
                       <td style="text-align:left; font-weight:600;">${s.name}</td>
-                      <td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td>
-                      <td class="pts">${s.pts}</td>
+                      <td>${s.j}</td><td>${s.v}</td><td>${s.d}</td>
+                      <td>${s.wins??0}</td><td>${s.carrocas??0}</td><td>${s.la_e_los??0}</td><td>${s.quadradas??0}</td>
+                      <td class="pts">${s.table_pts}</td>
                     </tr>`).join('')}
                 </tbody>
               </table></div>
-            </div></div>`;
+            </div></div>
+            ${byTotal.length ? `
+            <div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">
+              <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-teal); border-bottom:1px solid var(--border);">🏆 Ranking de Batidas Totais</div>
+              <div class="table-responsive"><table class="standings-table">
+                <thead><tr><th>#</th><th>Dupla</th><th title="Batidas Simples">BS</th><th title="Carroças">CA</th><th title="Lá e Ló">LL</th><th title="Quadradas">QD</th><th>Total</th></tr></thead>
+                <tbody>
+                  ${byTotal.map((s, i) => {
+                    const tot = (s.wins??0)+(s.carrocas??0)+(s.la_e_los??0)+(s.quadradas??0);
+                    return `<tr><td class="pos">${i+1}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td>${s.wins??0}</td><td>${s.carrocas??0}</td><td>${s.la_e_los??0}</td><td>${s.quadradas??0}</td><td class="pts">${tot}</td></tr>`;
+                  }).join('')}
+                </tbody>
+              </table></div>
+            </div></div>` : ''}
+            ${byQuadrada.length ? `
+            <div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">
+              <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); border-bottom:1px solid var(--border);">⬛ Ranking de Quadradas</div>
+              <div class="table-responsive"><table class="standings-table">
+                <thead><tr><th>#</th><th>Dupla</th><th>Quadradas</th></tr></thead>
+                <tbody>
+                  ${byQuadrada.map((s, i) => `<tr><td class="pos">${i+1}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td class="pts">${s.quadradas}</td></tr>`).join('')}
+                </tbody>
+              </table></div>
+            </div></div>` : ''}
+            ${byLaELo.length ? `
+            <div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">
+              <div style="padding:10px 16px; font-weight:700; font-size:13px; color:var(--accent-teal); border-bottom:1px solid var(--border);">🎯 Ranking de Lá e Ló</div>
+              <div class="table-responsive"><table class="standings-table">
+                <thead><tr><th>#</th><th>Dupla</th><th>Lá e Ló</th></tr></thead>
+                <tbody>
+                  ${byLaELo.map((s, i) => `<tr><td class="pos">${i+1}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td class="pts">${s.la_e_los}</td></tr>`).join('')}
+                </tbody>
+              </table></div>
+            </div></div>` : ''}`;
         } else if (bgType_ === 'dama') {
           html = `
             <div class="card"><div class="card-body" style="padding:0;">
@@ -3921,8 +3931,8 @@
           data.best_of              = Number(document.getElementById('cfg-domino-best-of')?.value || 3);
           data.pts_batida_simples   = Number(document.getElementById('cfg-domino-pts-simples')?.value || 1);
           data.pts_batida_caroca    = Number(document.getElementById('cfg-domino-pts-caroca')?.value || 2);
-          data.pts_passe_simples    = Number(document.getElementById('cfg-domino-pts-passe-simples')?.value || 1);
-          data.pts_passe_geral      = Number(document.getElementById('cfg-domino-pts-passe-geral')?.value || 2);
+          data.pts_la_e_lo          = Number(document.getElementById('cfg-domino-pts-la-e-lo')?.value || 3);
+          data.pts_quadrada         = Number(document.getElementById('cfg-domino-pts-quadrada')?.value || 4);
           data.classifieds_per_group = Number(document.getElementById('cfg-domino-classifieds')?.value || 2);
           data.tiebreaker_order     = bgDominoTiebreakers;
         } else if (bgType_ === 'dama') {
@@ -4045,8 +4055,8 @@
       let theadCols = '';
       let tbodyCols = s => '';
       if (isDomino_) {
-        theadCols = '<th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>D</th><th>Pts</th>';
-        tbodyCols = s => `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td>${s.j}</td><td>${s.v}</td><td>${s.d}</td><td class="pts">${s.table_pts}</td>`;
+        theadCols = '<th>Pos</th><th>Dupla</th><th>J</th><th>V</th><th>D</th><th title="Batidas Simples">BS</th><th title="Carroças">CA</th><th title="Lá e Ló">LL</th><th title="Quadradas">QD</th><th>Pts</th>';
+        tbodyCols = s => `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td>${s.j}</td><td>${s.v}</td><td>${s.d}</td><td>${s.wins??0}</td><td>${s.carrocas??0}</td><td>${s.la_e_los??0}</td><td>${s.quadradas??0}</td><td class="pts">${s.table_pts}</td>`;
       } else if (isDama_) {
         theadCols = '<th>Pos</th><th>Jogador</th><th>J</th><th>V</th><th>E</th><th>D</th><th>Pts.Peças</th><th>Total</th>';
         tbodyCols = s => `<td class="pos">${s.position}</td><td style="text-align:left;font-weight:600;">${s.name}</td><td>${s.j}</td><td>${s.v}</td><td>${s.e}</td><td>${s.d}</td><td style="color:var(--accent-teal);">${s.piece_pts}</td><td class="pts">${s.total_pts}</td>`;

@@ -952,12 +952,18 @@
               + '<td style="font-weight:800; font-size:' + (i < 3 ? 16 : 13) + 'px; text-align:center;">' + (medalMap[s.position] || s.position) + '</td>'
               + '<td style="text-align:left; font-weight:600;">' + s.name + (i < classified ? ' <span class="badge-classified">Classificado</span>' : '') + '</td>'
               + '<td>' + s.j + '</td><td>' + s.v + '</td><td>' + s.d + '</td>'
+              + '<td>' + (s.wins ?? 0) + '</td>'
+              + '<td>' + (s.carrocas ?? 0) + '</td>'
+              + '<td>' + (s.la_e_los ?? 0) + '</td>'
+              + '<td>' + (s.quadradas ?? 0) + '</td>'
               + '<td class="pts">' + s.table_pts + '</td>'
               + '</tr>';
           }
           tableHtml = '<div class="table-responsive"><table class="standings-table"><thead><tr>'
             + '<th style="width:36px;">#</th><th>Dupla</th>'
-            + '<th>J</th><th>V</th><th>D</th><th class="pts">Pts</th>'
+            + '<th>J</th><th>V</th><th>D</th>'
+            + '<th title="Batidas Simples">BS</th><th title="Carroças">CA</th><th title="Lá e Ló">LL</th><th title="Quadradas">QD</th>'
+            + '<th class="pts">Pts</th>'
             + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
         } else if (bgType_ === 'dama') {
           rows = '';
@@ -1094,18 +1100,20 @@
         if (bgType_ === 'domino') {
           var events_ = (g.extra_data && g.extra_data.events) || [];
           if (events_.length) {
+            var dmIcons = { batida_simples: '🎯', batida_caroca: '🎲', la_e_lo: '🎯', quadrada: '⬛' };
+            var dmLabels = { batida_simples: 'Simples', batida_caroca: 'Carroça', la_e_lo: 'Lá e Ló', quadrada: 'Quadrada' };
+            var dmColors = { batida_simples: '', batida_caroca: '', la_e_lo: 'color:#6c63ff;', quadrada: 'color:#f59e0b;' };
             var eHtml = '';
             var ei, ev;
             for (ei = 0; ei < events_.length; ei++) {
               ev = events_[ei];
               if (ev.event_type === 'batida') {
-                eHtml += '<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">🏆 '
-                  + (ev.winner === 'home' ? g.home_name : g.away_name)
-                  + ' (' + (ev.match_type || '').replace('_', ' ') + ') +' + ev.points + 'pts</span>';
-              } else if (ev.event_type === 'passe') {
-                eHtml += '<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;">↪ '
-                  + (ev.quem_passou === 'home' ? g.home_name : g.away_name)
-                  + ' passou +' + ev.points + 'pts</span>';
+                var ico = dmIcons[ev.match_type] || '🏆';
+                var lbl = dmLabels[ev.match_type] || (ev.match_type || '').replace(/_/g, ' ');
+                var col = dmColors[ev.match_type] || '';
+                eHtml += '<span style="font-size:11px;background:var(--bg-secondary);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;' + col + '">'
+                  + ico + ' ' + (ev.winner === 'home' ? g.home_name : g.away_name)
+                  + ' (' + lbl + ') +' + ev.points + 'pts</span>';
               }
             }
             if (eHtml) resultDetail += '<div style="display:flex; flex-wrap:wrap; gap:4px;">' + eHtml + '</div>';

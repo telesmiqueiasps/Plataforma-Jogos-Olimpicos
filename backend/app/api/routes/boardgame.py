@@ -103,23 +103,26 @@ def _athlete_names_for_game_type(championship_id: int, game_type: str, db: Sessi
 
 # ── Dominó: cálculo de pontos por tipo de partida ──────────────────────────
 
-def _calc_domino_match_points(match_type: str, quantidade_passes: int, rules: dict) -> int:
+def _calc_domino_match_points(match_type: str, rules: dict) -> int:
     if match_type == "batida_simples":
         return int(rules.get("pts_batida_simples", 1))
     elif match_type == "batida_caroca":
         return int(rules.get("pts_batida_caroca", 2))
-    elif match_type == "passe_simples":
-        return int(rules.get("pts_passe_simples", 1)) * max(1, int(quantidade_passes or 1))
-    elif match_type == "passe_geral":
-        return int(rules.get("pts_passe_geral", 2))
+    elif match_type == "la_e_lo":
+        return int(rules.get("pts_la_e_lo", 3))
+    elif match_type == "quadrada":
+        return int(rules.get("pts_quadrada", 4))
     return 0
 
 
 def _compute_domino_standings_for_games(teams: list, games: list) -> list:
-    """Classifica por pontos acumulados de tabela (batidas + passes), depois por vitórias."""
+    """Classifica por pontos acumulados de tabela (batidas), depois por vitórias."""
     stats: dict[int, dict] = {
-        t.id: {"id": t.id, "name": t.name, "j": 0, "v": 0, "d": 0,
-               "table_pts": 0, "matches_won": 0, "matches_lost": 0}
+        t.id: {
+            "id": t.id, "name": t.name, "j": 0, "v": 0, "d": 0,
+            "table_pts": 0, "matches_won": 0, "matches_lost": 0,
+            "wins": 0, "carrocas": 0, "la_e_los": 0, "quadradas": 0,
+        }
         for t in teams
     }
     for g in games:
@@ -145,6 +148,22 @@ def _compute_domino_standings_for_games(teams: list, games: list) -> list:
             s["table_pts"] += side_tp
             s["matches_won"] += side_wins
             s["matches_lost"] += opp_wins
+        # Count per-type batidas from events
+        for e in ed.get("events", []):
+            if e.get("event_type") != "batida":
+                continue
+            winner_id = g.home_id if e.get("winner") == "home" else g.away_id
+            if winner_id not in stats:
+                continue
+            mt = e.get("match_type", "batida_simples")
+            if mt == "batida_simples":
+                stats[winner_id]["wins"] += 1
+            elif mt == "batida_caroca":
+                stats[winner_id]["carrocas"] += 1
+            elif mt == "la_e_lo":
+                stats[winner_id]["la_e_los"] += 1
+            elif mt == "quadrada":
+                stats[winner_id]["quadradas"] += 1
     ranked = sorted(
         stats.values(),
         key=lambda x: (-x["table_pts"], -x["v"], -(x["matches_won"] - x["matches_lost"]))
@@ -341,10 +360,9 @@ def register_domino_match(
         raise HTTPException(status_code=400, detail="winner deve ser 'home' ou 'away'")
 
     match_type = body.get("match_type", "batida_simples")
-    quantidade_passes = int(body.get("quantidade_passes", 1) or 1)
     match_num = int(body.get("match_number", 1))
 
-    pts = _calc_domino_match_points(match_type, quantidade_passes, rules)
+    pts = _calc_domino_match_points(match_type, rules)
 
     ed = dict(game.extra_data or {"game_type": "domino", "matches": [],
                                    "home_table_points": 0, "away_table_points": 0})
@@ -355,7 +373,6 @@ def register_domino_match(
         "match_number": match_num,
         "winner": winner,
         "match_type": match_type,
-        "quantidade_passes": quantidade_passes,
         "points": pts,
     }
     if idx is not None:
@@ -423,10 +440,11 @@ def register_domino_batida(
         raise HTTPException(status_code=400, detail="winner deve ser 'home' ou 'away'")
 
     batida_type = body.get("type", "batida_simples")
-    if batida_type not in ("batida_simples", "batida_caroca"):
-        raise HTTPException(status_code=400, detail="type deve ser 'batida_simples' ou 'batida_caroca'")
+    valid_types = ("batida_simples", "batida_caroca", "la_e_lo", "quadrada")
+    if batida_type not in valid_types:
+        raise HTTPException(status_code=400, detail=f"type deve ser um de: {', '.join(valid_types)}")
 
-    pts = _calc_domino_match_points(batida_type, 1, rules)
+    pts = _calc_domino_match_points(batida_type, rules)
     ed = dict(game.extra_data or {"game_type": "domino", "events": [],
                                    "home_table_points": 0, "away_table_points": 0})
     events = list(ed.get("events", []))
