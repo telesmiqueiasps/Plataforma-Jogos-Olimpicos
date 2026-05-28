@@ -417,6 +417,93 @@
   }
 
   // ================================================================
+  // ABA: CLASSIFICAÇÃO — helpers por grupo (vôlei e xadrez)
+  // ================================================================
+  function renderVolleyballGroups(standings) {
+    var byGroup = {};
+    var groupOrder = [];
+    standings.forEach(function(s) {
+      var group = s.group || s.group_name || 'A';
+      if (!byGroup[group]) { byGroup[group] = []; groupOrder.push(group); }
+      byGroup[group].push(s);
+    });
+    groupOrder.sort();
+    var html = '';
+    groupOrder.forEach(function(groupName) {
+      var gs = byGroup[groupName];
+      var rows = gs.map(function(s, i) {
+        var pts = s.points != null ? s.points : (s.pontos != null ? s.pontos : 0);
+        var wo = pts < 0;
+        var avg = s.set_average;
+        var avgDisplay = avg >= 999 ? 'Max'
+          : (s.sets_lost === 0 && s.sets_won === 0 ? '—'
+          : (avg || 0).toFixed(3));
+        return '<tr style="border-bottom:1px solid var(--border);' + (i % 2 !== 0 ? 'background:var(--bg-secondary);' : '') + '">'
+          + '<td style="padding:8px;font-weight:700;color:var(--text-secondary);">' + (i + 1) + '</td>'
+          + '<td style="padding:8px;font-weight:600;">' + (s.team_name || s.name || '—') + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.games_played || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.wins || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.losses || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.sets_won || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.sets_lost || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + avgDisplay + '</td>'
+          + '<td style="padding:8px;text-align:center;font-weight:700;color:' + (wo ? '#dc2626' : 'var(--accent-purple)') + ';">' + pts + '</td>'
+          + '</tr>';
+      }).join('');
+      html += '<div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">'
+        + '<div style="padding:12px 16px;font-weight:700;font-size:13px;color:var(--accent-purple);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Grupo ' + groupName + '</div>'
+        + '<div class="table-responsive"><table class="standings-table"><thead><tr>'
+        + '<th style="text-align:left;">#</th>'
+        + '<th style="text-align:left;">Equipe</th>'
+        + '<th title="Jogos">J</th><th title="Vitórias">V</th><th title="Derrotas">D</th>'
+        + '<th title="Sets ganhos">S+</th><th title="Sets perdidos">S-</th>'
+        + '<th title="Set Average">S.AVG</th><th class="pts-col" title="Pontos">Pts</th>'
+        + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+        + '</div></div>';
+    });
+    return html || '<div style="padding:32px; text-align:center; color:var(--text-secondary);">Sem dados de classificação</div>';
+  }
+
+  function renderXadrezGroups(standings) {
+    var byGroup = {};
+    var groupOrder = [];
+    standings.forEach(function(s) {
+      var group = s.group || s.group_name || 'A';
+      if (!byGroup[group]) { byGroup[group] = []; groupOrder.push(group); }
+      byGroup[group].push(s);
+    });
+    groupOrder.sort();
+    var html = '';
+    groupOrder.forEach(function(groupName) {
+      var gs = byGroup[groupName];
+      var rows = gs.map(function(s, i) {
+        var name = s.player_name || s.team_name || s.name || '—';
+        var bh = typeof s.buchholz === 'number' ? s.buchholz.toFixed(1) : (s.buchholz || '0.0');
+        return '<tr style="border-bottom:1px solid var(--border);' + (i % 2 !== 0 ? 'background:var(--bg-secondary);' : '') + '">'
+          + '<td style="padding:8px;font-weight:700;color:var(--text-secondary);">' + (i + 1) + '</td>'
+          + '<td style="padding:8px;font-weight:600;">' + name + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.games_played || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.wins || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.draws || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + (s.losses || 0) + '</td>'
+          + '<td style="padding:8px;text-align:center;">' + bh + '</td>'
+          + '<td style="padding:8px;text-align:center;font-weight:700;color:var(--accent-purple);">' + (s.points != null ? s.points : 0) + '</td>'
+          + '</tr>';
+      }).join('');
+      html += '<div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">'
+        + '<div style="padding:12px 16px;font-weight:700;font-size:13px;color:var(--accent-purple);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Grupo ' + groupName + '</div>'
+        + '<div class="table-responsive"><table class="standings-table"><thead><tr>'
+        + '<th style="text-align:left;">#</th>'
+        + '<th style="text-align:left;">Jogador</th>'
+        + '<th title="Jogos">J</th><th title="Vitórias">V</th><th title="Empates">E</th><th title="Derrotas">D</th>'
+        + '<th title="Buchholz">BH</th><th class="pts-col" title="Pontos">Pts</th>'
+        + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+        + '</div></div>';
+    });
+    return html || '<div style="padding:32px; text-align:center; color:var(--text-secondary);">Sem dados de classificação</div>';
+  }
+
+  // ================================================================
   // ABA: CLASSIFICAÇÃO
   // ================================================================
   async function renderStandings(el) {
@@ -433,6 +520,10 @@
           el.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum dado de classificação disponível.</div>`;
           return;
         }
+        if (currentChamp && currentChamp.sport && currentChamp.sport.slug === 'volleyball') {
+          el.innerHTML = renderVolleyballGroups(standings);
+          return;
+        }
         el.innerHTML = `<div class="card"><div class="card-body" style="padding:0;">${standingsTable(standings, 0)}</div></div>`;
         return;
       }
@@ -442,6 +533,14 @@
         groups.map(g => pubFetch(`/api/championships/${c.id}/standings?group=${g.group}&phase=groups`).catch(() => []))
       );
 
+      if (currentChamp && currentChamp.sport && currentChamp.sport.slug === 'volleyball') {
+        const allStandings = [];
+        groups.forEach((g, i) => {
+          (standingsArr[i] || []).forEach(s => allStandings.push(Object.assign({}, s, { group: g.group })));
+        });
+        el.innerHTML = renderVolleyballGroups(allStandings) || `<div style="padding:32px; text-align:center; color:var(--text-secondary);">Nenhum jogo disputado ainda.</div>`;
+        return;
+      }
       let html = '';
       groups.forEach((g, i) => {
         const rows = standingsArr[i] || [];
@@ -999,6 +1098,46 @@
       var standings = await pubFetch(standingsUrl);
       if (!standings || !standings.length) {
         el.innerHTML = '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Sem classificação disponível ainda.</div>';
+        return;
+      }
+
+      // Xadrez: classificação por grupos
+      if (bgType_ === 'xadrez') {
+        var xadStandings = standings.slice();
+        var hasGrp = xadStandings.length > 0 && (xadStandings[0].group || xadStandings[0].group_name);
+        if (!hasGrp) {
+          try {
+            var xadGames = await pubFetch('/api/championships/' + currentChamp.id + '/xadrez/games');
+            var tgMap = {};
+            (xadGames || []).forEach(function(gg) {
+              var grp = gg.extra_data && gg.extra_data.group;
+              if (grp) {
+                var hid = gg.home_player_id || gg.home_id;
+                var aid = gg.away_player_id || gg.away_id;
+                if (hid != null) tgMap[hid] = grp;
+                if (aid != null) tgMap[aid] = grp;
+              }
+            });
+            if (Object.keys(tgMap).length) {
+              xadStandings = xadStandings.map(function(ss) {
+                var pid = ss.player_id || ss.id;
+                return Object.assign({}, ss, { group: tgMap[pid] || ss.group });
+              });
+            }
+          } catch(e2) { /* proceed without group info */ }
+        }
+        var xadChampCard = '';
+        if (currentChamp.status === 'finished' && xadStandings[0]) {
+          var xadChampName = xadStandings[0].player_name || xadStandings[0].name;
+          if (xadChampName) {
+            xadChampCard = '<div style="margin-bottom:20px; padding:20px 24px; background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,215,0,0.04)); border:1px solid rgba(255,215,0,0.25); border-radius:12px; text-align:center;">'
+              + '<div style="font-size:36px; margin-bottom:4px;">🏆</div>'
+              + '<div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Campeão</div>'
+              + '<div style="font-size:20px; font-weight:800;">' + xadChampName + '</div>'
+              + '</div>';
+          }
+        }
+        el.innerHTML = xadChampCard + renderXadrezGroups(xadStandings);
         return;
       }
 
