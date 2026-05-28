@@ -970,6 +970,7 @@
     // Detail view state
     let currentChamp = null;
     let currentTab = 'overview';
+    let _loadedTabs = new Set();
     let detailGroups = [];
     let knockoutMatches = [{ home: '', away: '' }];
 
@@ -1476,6 +1477,7 @@
         }
       }
 
+      _loadedTabs = new Set();
       switchTab('overview');
     }
 
@@ -1506,6 +1508,8 @@
       if (tabEl) tabEl.style.display = 'block';
       document.querySelectorAll(`.tab-btn[data-tab="${tabName}"]`).forEach(b => b.classList.add('active'));
       currentTab = tabName;
+      if (_loadedTabs.has(tabName)) return;
+      _loadedTabs.add(tabName);
 
       switch (tabName) {
         case 'overview':         loadOverview();           break;
@@ -1592,13 +1596,13 @@
             teamsCount = parts.length;
           }
         } else {
-          const [teams, games, champData] = await Promise.all([
-            ChampAPI.teams(c.id),
-            ChampAPI.games(c.id),
-            ChampAPI.champion(c.id).catch(() => ({ champion: null })),
-          ]);
+          const teams = await ChampAPI.teams(c.id);
           teamsCount = teams.length;
+          await new Promise(r => setTimeout(r, 100));
+          const games = await ChampAPI.games(c.id);
           gamesCount = games.length;
+          await new Promise(r => setTimeout(r, 100));
+          const champData = await ChampAPI.champion(c.id).catch(() => ({ champion: null }));
           const chArea = document.getElementById('champion-area');
           if (chArea && champData?.champion) {
             const ch = champData.champion;
@@ -1843,10 +1847,9 @@
       const container = document.getElementById('champ-teams-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
       try {
-        const [enrolled, allTeams] = await Promise.all([
-          ChampAPI.teams(currentChamp.id),
-          TeamsAPI.list({ sport_id: currentChamp.sport_id }),
-        ]);
+        const enrolled = await ChampAPI.teams(currentChamp.id);
+        await new Promise(r => setTimeout(r, 80));
+        const allTeams = await TeamsAPI.list({ sport_id: currentChamp.sport_id });
         const enrolledIds = new Set(enrolled.map(t => t.id));
         const available = allTeams.filter(t => !enrolledIds.has(t.id));
 
@@ -1941,11 +1944,12 @@
     }
 
     async function renderAllGroups(container) {
-      // Carrega standings de todos os grupos em paralelo
-      const standingsPromises = detailGroups.map(g =>
-        ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => [])
-      );
-      const allStandings = await Promise.all(standingsPromises);
+      const allStandings = [];
+      for (const g of detailGroups) {
+        const st = await ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => []);
+        allStandings.push(st);
+        if (detailGroups.length > 1) await new Promise(r => setTimeout(r, 80));
+      }
 
       container.innerHTML = `
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
@@ -2224,10 +2228,9 @@
       alertEl.style.display = 'none';
 
       try {
-        const [bracket, groups] = await Promise.all([
-          ChampAPI.knockout(currentChamp.id),
-          ChampAPI.groups(currentChamp.id),
-        ]);
+        const bracket = await ChampAPI.knockout(currentChamp.id);
+        await new Promise(r => setTimeout(r, 100));
+        const groups = await ChampAPI.groups(currentChamp.id);
 
         detailGroups = groups;
 
@@ -2448,17 +2451,19 @@
       const container = document.getElementById('stats-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando...</span></div>';
       try {
-        const [stats, groups] = await Promise.all([
-          ChampAPI.stats(currentChamp.id),
-          ChampAPI.groups(currentChamp.id),
-        ]);
+        const stats = await ChampAPI.stats(currentChamp.id);
+        await new Promise(r => setTimeout(r, 100));
+        const groups = await ChampAPI.groups(currentChamp.id);
 
         // Standings por grupo
         let standingsHtml = '';
         if (groups.length) {
-          const allSt = await Promise.all(
-            groups.map(g => ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => []))
-          );
+          const allSt = [];
+          for (const g of groups) {
+            const st = await ChampAPI.standings(currentChamp.id, g.group, 'groups').catch(() => []);
+            allSt.push(st);
+            if (groups.length > 1) await new Promise(r => setTimeout(r, 80));
+          }
           standingsHtml = `
             <div class="card" style="margin-bottom:16px;">
               <div class="card-body">

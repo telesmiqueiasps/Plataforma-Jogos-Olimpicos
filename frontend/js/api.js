@@ -34,7 +34,7 @@ function handleSessionExpired() {
   setTimeout(() => { window.location.href = 'login.html'; }, 2000);
 }
 
-async function apiFetch(path, options = {}) {
+async function apiFetch(path, options = {}, _retries = 2) {
   const token = localStorage.getItem('sp_token');
   const isForm = options.body instanceof URLSearchParams;
   const headers = {};
@@ -46,6 +46,14 @@ async function apiFetch(path, options = {}) {
   try {
     res = await fetch(API_BASE + path, { ...options, headers });
   } catch (e) {
+    if (_retries > 0 && (e instanceof TypeError || (e.message && (
+      e.message.includes('Failed to fetch') ||
+      e.message.includes('NetworkError') ||
+      e.message.includes('ERR_CONNECTION_CLOSED')
+    )))) {
+      await new Promise(r => setTimeout(r, 500));
+      return apiFetch(path, options, _retries - 1);
+    }
     throw new Error('Sem conexão com o servidor. Verifique sua internet.');
   }
 
