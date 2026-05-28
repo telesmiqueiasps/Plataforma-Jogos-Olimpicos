@@ -152,13 +152,6 @@
                 <div class="sc-sub">Adicionar novo acesso</div>
               </div>
             </a>
-            <div class="shortcut-card" onclick="openFeedbacksModal()" style="cursor:pointer;">
-              <span class="sc-icon" style="font-size:28px;">💬</span>
-              <div>
-                <div class="sc-label">Feedbacks</div>
-                <div class="sc-sub">Ver opiniões da plataforma</div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -273,21 +266,6 @@
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancelar</button>
         <button class="btn btn-danger" onclick="confirmDelete()">Excluir</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Feedbacks -->
-  <div id="feedbacks-modal" class="modal-overlay" style="display:none;">
-    <div class="modal" style="max-width:600px;">
-      <div class="modal-header">
-        <span class="modal-title">💬 Feedbacks da Plataforma</span>
-        <button class="modal-close" onclick="closeFeedbacksModal()">✕</button>
-      </div>
-      <div class="modal-body" style="max-height:500px;overflow-y:auto;">
-        <div id="feedbacks-list" style="padding:4px 0;">
-          <p style="text-align:center;color:var(--text-secondary);">Carregando...</p>
-        </div>
       </div>
     </div>
   </div>
@@ -520,57 +498,6 @@
 
     function esc(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-    }
-
-    // ---- Feedbacks ----
-    function openFeedbacksModal() {
-      document.getElementById('feedbacks-modal').style.display = 'flex';
-      loadFeedbacks();
-    }
-
-    function closeFeedbacksModal() {
-      document.getElementById('feedbacks-modal').style.display = 'none';
-    }
-
-    async function loadFeedbacks() {
-      const container = document.getElementById('feedbacks-list');
-      container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Carregando...</p>';
-      try {
-        const token = localStorage.getItem('sp_token');
-        const res = await fetch(API_BASE + '/api/feedbacks/', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!res.ok) throw new Error('Erro ' + res.status);
-        const list = await res.json();
-        if (!list.length) {
-          container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">Nenhum feedback ainda.</p>';
-          return;
-        }
-        container.innerHTML = list.map(function(f) {
-          return '<div style="border:1px solid var(--border-color);border-radius:8px;padding:12px 16px;margin-bottom:10px;background:var(--bg-primary);">'
-            + '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
-            + '<div>'
-            + '<span style="font-weight:600;font-size:14px;">' + esc(f.name) + '</span>'
-            + '<span style="color:var(--text-secondary);font-size:12px;margin-left:8px;">' + fmtDate(f.created_at) + '</span>'
-            + '</div>'
-            + '<button onclick="deleteFeedback(' + f.id + ')" style="background:transparent;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:0 4px;" title="Excluir">✕</button>'
-            + '</div>'
-            + '<p style="margin:8px 0 0;font-size:13px;color:var(--text-secondary);line-height:1.5;">' + esc(f.message) + '</p>'
-            + '</div>';
-        }).join('');
-      } catch(e) {
-        container.innerHTML = '<p style="text-align:center;color:#dc2626;">Erro ao carregar feedbacks.</p>';
-      }
-    }
-
-    async function deleteFeedback(id) {
-      if (!confirm('Excluir este feedback?')) return;
-      const token = localStorage.getItem('sp_token');
-      await fetch(API_BASE + '/api/feedbacks/' + id, {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      loadFeedbacks();
     }
 
     // ---- Init ----

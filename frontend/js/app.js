@@ -170,10 +170,7 @@ function setActiveNav() {
 
 // --- User info in sidebar ---
 function loadUserInfo() {
-  const user = typeof getUser === 'function' ? getUser() : {
-    name: localStorage.getItem('sp_user_name') || '',
-    role: localStorage.getItem('sp_role') || '',
-  };
+  const user = getUser();
   if (!user) return;
   const nameEl = document.getElementById('user-name');
   const roleEl = document.getElementById('user-role');
