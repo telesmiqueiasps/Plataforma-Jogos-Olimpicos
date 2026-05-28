@@ -448,18 +448,6 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="edit-game-phase">Fase</label>
-              <select id="edit-game-phase" class="form-control">
-                <option value="">Selecione...</option>
-                <option value="group">Fase de Grupos</option>
-                <option value="round_of_16">Oitavas de Final</option>
-                <option value="quarter">Quartas de Final</option>
-                <option value="semi">Semifinal</option>
-                <option value="final">Final</option>
-                <option value="third">Disputa 3º Lugar</option>
-              </select>
-            </div>
-            <div class="form-group">
               <label for="edit-game-round">Rodada</label>
               <input type="number" id="edit-game-round" class="form-control" min="1">
             </div>
@@ -1560,7 +1548,6 @@
       // Fill datetime
       document.getElementById('edit-game-date').value = toInputDateTime(game.scheduled_at);
       document.getElementById('edit-game-venue').value = game.venue || '';
-      document.getElementById('edit-game-phase').value = game.phase || '';
       document.getElementById('edit-game-round').value = game.round_number || '';
       document.getElementById('edit-game-alert').style.display = 'none';
       openModal('modal-edit-game');
@@ -1573,12 +1560,10 @@
       alertEl.style.display = 'none';
       const scheduledAt = document.getElementById('edit-game-date').value;
       const venue = document.getElementById('edit-game-venue').value.trim();
-      const phase = document.getElementById('edit-game-phase').value;
       const round = document.getElementById('edit-game-round').value;
       const data = {};
       if (scheduledAt) data.scheduled_at = scheduledAt;
       if (venue) data.venue = venue;
-      if (phase) data.phase = phase;
       if (round) data.round_number = Number(round);
       btnLoading(btn, true, 'Salvando...');
       try {
