@@ -490,6 +490,16 @@ class BoardgameParticipant(Base):
 # BoardgameGame  (jogo de tabuleiro — dominó, dama ou xadrez)
 # ---------------------------------------------------------------------------
 
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+
+    id         = Column(Integer, primary_key=True)
+    name       = Column(String(100), nullable=False)
+    message    = Column(String(500), nullable=False)
+    page       = Column(String(100), nullable=True, default="public")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class BoardgameGame(Base):
     __tablename__ = "boardgame_games"
 
