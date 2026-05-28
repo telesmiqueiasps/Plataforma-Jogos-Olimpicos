@@ -612,6 +612,7 @@ class CantinReservation(Base):
     items         = Column(JSON, nullable=False)
     total         = Column(Numeric(10, 2), nullable=False)
     status        = Column(String(20), default="pending")
+    expires_at    = Column(DateTime(timezone=True), nullable=True)
     attended_at   = Column(DateTime(timezone=True), nullable=True)
     attended_by   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())

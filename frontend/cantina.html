@@ -459,6 +459,9 @@
         <!-- ======================================================= -->
         <div id="tab-reservas" style="display:none;">
           <div style="padding:16px;">
+            <!-- Resumo -->
+            <div id="res-summary-cards" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;"></div>
+
             <!-- Filtros de status -->
             <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
               <button class="btn btn-sm" id="res-filter-pending"
@@ -749,6 +752,33 @@
   </div>
 
   <div id="toast-container"></div>
+
+  <!-- Modal: Pagar Reserva -->
+  <div class="modal-overlay" id="modal-pay-reservation">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <span class="modal-title">💳 Pagar Reserva <span id="pay-res-id-label" style="color:var(--accent-purple,#7c3aed);"></span></span>
+        <button class="modal-close" onclick="closeModal('modal-pay-reservation')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="pay-reservation-id">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Selecione o método de pagamento:</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <button style="padding:14px 8px;border:2px solid var(--border);border-radius:8px;background:var(--bg-secondary);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;" onclick="confirmPayReservation('dinheiro')">💵<br>Dinheiro</button>
+          <button style="padding:14px 8px;border:2px solid var(--border);border-radius:8px;background:var(--bg-secondary);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;" onclick="confirmPayReservation('pix')">📱<br>PIX</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <button style="padding:14px 8px;border:2px solid var(--border);border-radius:8px;background:var(--bg-secondary);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;" onclick="openPayResCard('debito')">💳<br>Débito</button>
+          <button style="padding:14px 8px;border:2px solid var(--border);border-radius:8px;background:var(--bg-secondary);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;" onclick="openPayResCard('credito')">💳<br>Crédito</button>
+        </div>
+        <div id="pay-res-card-fee-box" style="display:none;margin-top:4px;padding:10px 12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Taxa (<span id="pay-res-card-type-label">—</span>): <strong><span id="pay-res-fee-pct">0</span>%</strong></div>
+          <button class="btn btn-primary btn-sm" id="btn-confirm-pay-res-card" onclick="confirmPayReservationCard()" style="width:100%;">✅ Confirmar pagamento</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Hidden PDF area -->
   <div id="pdf-render-area"
     style="position:absolute;left:-9999px;top:0;width:794px;background:#fff;font-family:Arial,sans-serif;color:#1a1d2e;font-size:12px;line-height:1.4;">
@@ -1344,6 +1374,11 @@
           '<div class="c-value" style="color:#d97706;font-size:18px;">R$ ' + formatMoney(s.total_fees || 0) + '</div>' +
           '<div class="c-label">Taxas Maquininha</div></div>'
         : '';
+      var reservedCard = (s.reserved_count > 0)
+        ? '<div class="cash-card"><div class="c-icon">🔒</div>'
+          + '<div class="c-value" style="color:#d97706;font-size:16px;">R$ ' + formatMoney(s.reserved_total || 0) + '</div>'
+          + '<div class="c-label">Reservas pendentes (' + s.reserved_count + ')</div></div>'
+        : '';
       container.innerHTML =
         cashCard('💵', 'R$ ' + formatMoney(s.total_dinheiro || 0), 'Dinheiro') +
         cashCard('📱', 'R$ ' + formatMoney(s.total_pix || 0), 'PIX') +
@@ -1351,6 +1386,7 @@
         taxasCard +
         cashCard('💰', 'R$ ' + formatMoney(s.total_vendas || 0), 'Total Vendas') +
         cashCard('📈', 'R$ ' + formatMoney(s.saldo || 0), 'Saldo') +
+        reservedCard +
         cashCard('🧾', s.orders_paid + '/' + s.orders_count, 'Pedidos Pagos/Total') +
         estornosCard;
     }
@@ -2298,23 +2334,20 @@
     // ================================================================
     var _reservationStatus = 'pending';
     var _reservationRefreshTimer = null;
+    var _payResCardType = null;
 
     async function loadReservations() {
       var container = document.getElementById('reservations-list');
       if (!container) return;
       try {
-        var url = '/api/cantina/reservations/' + currentPdvId + '?status=' + _reservationStatus;
-        var reservations = await apiFetch(url);
-        renderReservations(reservations);
-        // Update pending badge
-        if (_reservationStatus !== 'pending') {
-          try {
-            var pending = await apiFetch('/api/cantina/reservations/' + currentPdvId + '?status=pending');
-            updatePendingBadge(pending.length);
-          } catch(e) {}
-        } else {
-          updatePendingBadge(reservations.length);
-        }
+        var [current, pendingAll] = await Promise.all([
+          apiFetch('/api/cantina/reservations/' + currentPdvId + '?status=' + _reservationStatus),
+          _reservationStatus === 'pending' ? Promise.resolve(null) : apiFetch('/api/cantina/reservations/' + currentPdvId + '?status=pending'),
+        ]);
+        var pending = _reservationStatus === 'pending' ? current : (pendingAll || []);
+        updatePendingBadge(pending.length);
+        renderReservationsSummary(pending);
+        renderReservations(current);
       } catch(e) {
         container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Erro ao carregar reservas.</div>';
       }
@@ -2323,12 +2356,35 @@
     function updatePendingBadge(count) {
       var badge = document.getElementById('reservas-pending-badge');
       if (!badge) return;
-      if (count > 0) {
-        badge.style.display = 'inline';
-        badge.textContent = count;
-      } else {
-        badge.style.display = 'none';
-      }
+      badge.style.display = count > 0 ? 'inline' : 'none';
+      badge.textContent = count;
+    }
+
+    function renderReservationsSummary(pendingList) {
+      var summaryEl = document.getElementById('res-summary-cards');
+      if (!summaryEl) return;
+      var now = new Date();
+      var active = (pendingList || []).filter(function(r) {
+        if (!r.expires_at) return true;
+        return new Date(r.expires_at) > now;
+      });
+      var pendingTotal = active.reduce(function(s, r) { return s + parseFloat(r.total || 0); }, 0);
+      summaryEl.innerHTML =
+        '<div style="background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;">'
+        + '<div style="font-size:11px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">⏳ Pendentes</div>'
+        + '<div style="font-size:20px;font-weight:800;color:#92400e;">' + active.length + '</div>'
+        + '<div style="font-size:12px;color:#b45309;">R$ ' + formatMoney(pendingTotal) + '</div>'
+        + '</div>';
+    }
+
+    function getTimeRemaining(expiresAt) {
+      if (!expiresAt) return '';
+      var diff = new Date(expiresAt) - new Date();
+      if (diff <= 0) return '<span style="color:#dc2626;font-size:11px;font-weight:700;">⏰ Expirada</span>';
+      var m = Math.floor(diff / 60000);
+      var s = Math.floor((diff % 60000) / 1000);
+      var color = m < 5 ? '#dc2626' : '#92400e';
+      return '<span style="color:' + color + ';font-size:11px;font-weight:700;">⏰ ' + m + ':' + String(s).padStart(2, '0') + '</span>';
     }
 
     function renderReservations(list) {
@@ -2337,7 +2393,8 @@
       if (countLabel) countLabel.textContent = list.length + ' reserva' + (list.length !== 1 ? 's' : '');
 
       if (!list.length) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Nenhuma reserva ' + (_reservationStatus === 'pending' ? 'pendente' : _reservationStatus === 'attended' ? 'atendida' : 'cancelada') + '.</div>';
+        var labels = { pending: 'pendente', attended: 'paga', cancelled: 'cancelada' };
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Nenhuma reserva ' + (labels[_reservationStatus] || _reservationStatus) + '.</div>';
         return;
       }
 
@@ -2355,18 +2412,22 @@
         }).join('');
 
         var time = fmtTime(r.created_at);
+        var timeLeft = _reservationStatus === 'pending' ? getTimeRemaining(r.expires_at) : '';
         var btns = _reservationStatus === 'pending'
-          ? '<button class="btn btn-sm" style="background:#d1fae5;color:#065f46;border:none;font-weight:700;" onclick="attendReservation(' + r.id + ')">✅ Atendido</button>'
-          + ' <button class="btn btn-sm btn-ghost" style="color:var(--error,#dc2626);" onclick="cancelReservation(' + r.id + ')">❌ Cancelar</button>'
+          ? '<button class="btn btn-sm" style="background:#2563eb;color:#fff;border:none;font-weight:700;" onclick="payReservation(' + r.id + ')">💳 Pagar</button>'
+          + ' <button class="btn btn-sm btn-ghost" style="color:var(--error,#dc2626);" onclick="cancelReservation(' + r.id + ')">❌</button>'
           : '';
         var extraInfo = _reservationStatus === 'attended' && r.attended_at
-          ? '<div style="font-size:11px;color:#059669;margin-top:6px;">✅ Atendido às ' + fmtTime(r.attended_at) + '</div>'
+          ? '<div style="font-size:11px;color:#059669;margin-top:6px;">✅ Pago às ' + fmtTime(r.attended_at) + '</div>'
           : (_reservationStatus === 'cancelled' ? '<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Cancelada</div>' : '');
 
         return '<div style="background:' + bg + ';border:1.5px solid ' + border + ';border-radius:10px;padding:14px 16px;margin-bottom:10px;">'
           + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
-          + '<div><span style="font-size:15px;font-weight:800;color:var(--accent-purple,#7c3aed);">#' + r.id + '</span>'
-          + ' <span style="font-size:14px;font-weight:700;">' + escHtml(r.customer_name) + '</span></div>'
+          + '<div style="display:flex;align-items:center;gap:8px;">'
+          + '<span style="font-size:15px;font-weight:800;color:var(--accent-purple,#7c3aed);">#' + r.id + '</span>'
+          + '<span style="font-size:14px;font-weight:700;">' + escHtml(r.customer_name) + '</span>'
+          + (timeLeft ? '<span style="margin-left:4px;">' + timeLeft + '</span>' : '')
+          + '</div>'
           + '<span style="font-size:12px;color:var(--text-muted);">🕐 ' + time + '</span>'
           + '</div>'
           + itemsHtml
@@ -2400,10 +2461,46 @@
       loadReservations();
     }
 
-    async function attendReservation(id) {
+    function payReservation(id) {
+      document.getElementById('pay-reservation-id').value = id;
+      document.getElementById('pay-res-id-label').textContent = '#' + id;
+      document.getElementById('pay-res-card-fee-box').style.display = 'none';
+      _payResCardType = null;
+      openModal('modal-pay-reservation');
+    }
+
+    function openPayResCard(type) {
+      _payResCardType = type;
+      var fee = type === 'debito' ? (pdvTaxConfig.debit_fee || 0) : (pdvTaxConfig.credit_fee || 0);
+      document.getElementById('pay-res-card-type-label').textContent = type === 'debito' ? 'Débito' : 'Crédito';
+      document.getElementById('pay-res-fee-pct').textContent = fee;
+      document.getElementById('pay-res-card-fee-box').style.display = '';
+    }
+
+    async function confirmPayReservation(method) {
+      var id = document.getElementById('pay-reservation-id').value;
       try {
-        await apiFetch('/api/cantina/reservations/' + id + '/attend', { method: 'PUT' });
-        showToast('✅ Reserva atendida!', 'success');
+        await apiFetch('/api/cantina/reservations/' + id + '/pay', {
+          method: 'POST',
+          body: JSON.stringify({ payment_method: method, card_fee_percent: 0 }),
+        });
+        closeModal('modal-pay-reservation');
+        showToast('✅ Pagamento confirmado!', 'success');
+        loadReservations();
+      } catch(e) { showToast('Erro: ' + (e.message || ''), 'error'); }
+    }
+
+    async function confirmPayReservationCard() {
+      if (!_payResCardType) return;
+      var id = document.getElementById('pay-reservation-id').value;
+      var fee = _payResCardType === 'debito' ? (pdvTaxConfig.debit_fee || 0) : (pdvTaxConfig.credit_fee || 0);
+      try {
+        await apiFetch('/api/cantina/reservations/' + id + '/pay', {
+          method: 'POST',
+          body: JSON.stringify({ payment_method: _payResCardType, card_fee_percent: fee }),
+        });
+        closeModal('modal-pay-reservation');
+        showToast('✅ Pagamento confirmado!', 'success');
         loadReservations();
       } catch(e) { showToast('Erro: ' + (e.message || ''), 'error'); }
     }

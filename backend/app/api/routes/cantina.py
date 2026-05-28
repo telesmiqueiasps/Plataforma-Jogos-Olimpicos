@@ -3,7 +3,7 @@ routes/cantina.py
 =================
 Módulo de cantina: produtos, pedidos e caixa.
 """
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -81,6 +81,11 @@ class ReservationCreate(BaseModel):
     pdv_id: int
     customer_name: str
     items: List[ReservationItemIn]
+
+
+class PayReservationBody(BaseModel):
+    payment_method: str
+    card_fee_percent: Optional[float] = None
 
 
 class OrderStatusUpdate(BaseModel):
@@ -246,6 +251,7 @@ def _reservation_out(r: CantinReservation) -> dict:
         "items": r.items,
         "total": float(r.total),
         "status": r.status,
+        "expires_at": r.expires_at.isoformat() if r.expires_at else None,
         "attended_at": r.attended_at.isoformat() if r.attended_at else None,
         "attended_by": r.attended_by,
         "created_at": r.created_at.isoformat() if r.created_at else None,
@@ -657,6 +663,17 @@ def get_cash_summary(
     pending = sum(1 for o in all_orders if o.status == "pending")
     cancelled = sum(1 for o in all_orders if o.status == "cancelled")
 
+    now_utc = datetime.now(timezone.utc)
+    pending_res_q = db.query(CantinReservation).filter(
+        CantinReservation.status == "pending",
+    )
+    if pdv_id is not None:
+        pending_res_q = pending_res_q.filter(CantinReservation.pdv_id == pdv_id)
+    pending_reservations = pending_res_q.all()
+    active_pending = [r for r in pending_reservations if not r.expires_at or r.expires_at >= now_utc]
+    reserved_total = sum(float(r.total) for r in active_pending)
+    reserved_count = len(active_pending)
+
     return {
         "total_vendas": total_vendas,
         "total_dinheiro": total_dinheiro,
@@ -676,6 +693,8 @@ def get_cash_summary(
         "orders_pending": pending,
         "orders_cancelled": cancelled,
         "orders_refunded": len(refunded_orders),
+        "reserved_total": reserved_total,
+        "reserved_count": reserved_count,
     }
 
 
@@ -918,16 +937,32 @@ def get_report(
 # ---------------------------------------------------------------------------
 
 def _pending_reserved(product_id: int, pdv_id: int, db: Session) -> int:
+    now = datetime.now(timezone.utc)
     rows = db.query(CantinReservation).filter(
         CantinReservation.pdv_id == pdv_id,
         CantinReservation.status == "pending",
     ).all()
     total = 0
     for r in rows:
+        if r.expires_at and r.expires_at < now:
+            continue
         for it in (r.items or []):
             if it.get("product_id") == product_id:
                 total += it.get("quantity", 0)
     return total
+
+
+def _expire_pending(pdv_id: int, db: Session) -> None:
+    now = datetime.now(timezone.utc)
+    expired = db.query(CantinReservation).filter(
+        CantinReservation.pdv_id == pdv_id,
+        CantinReservation.status == "pending",
+        CantinReservation.expires_at < now,
+    ).all()
+    for r in expired:
+        r.status = "cancelled"
+    if expired:
+        db.commit()
 
 
 @router.get("/pdv-info/{pdv_id}")
@@ -1007,6 +1042,7 @@ def create_reservation(data: ReservationCreate, db: Session = Depends(get_db)):
         items=items_out,
         total=total,
         status="pending",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
     )
     db.add(reservation)
     db.commit()
@@ -1021,6 +1057,7 @@ def list_reservations(
     db: Session = Depends(get_db),
     _: User = Depends(require_cantina),
 ):
+    _expire_pending(pdv_id, db)
     q = db.query(CantinReservation).filter(CantinReservation.pdv_id == pdv_id)
     if status:
         q = q.filter(CantinReservation.status == status)
@@ -1058,3 +1095,64 @@ def cancel_reservation(
     db.commit()
     db.refresh(r)
     return _reservation_out(r)
+
+
+@router.post("/reservations/{reservation_id}/pay", status_code=200)
+def pay_reservation(
+    reservation_id: int,
+    data: PayReservationBody,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_cantina),
+):
+    r = db.query(CantinReservation).filter(CantinReservation.id == reservation_id).first()
+    if not r:
+        raise HTTPException(404, "Reserva não encontrada")
+    if r.status != "pending":
+        raise HTTPException(400, f"Reserva não está pendente (status: {r.status})")
+
+    total = float(r.total)
+    card_fee_percent = None
+    card_fee_amount = None
+    if data.payment_method in ("debito", "credito") and data.card_fee_percent is not None:
+        card_fee_percent = data.card_fee_percent
+        card_fee_amount = round(total * (card_fee_percent / 100), 2)
+
+    order = CantinOrder(
+        order_number=_next_order_number(db),
+        status="paid",
+        payment_method=data.payment_method,
+        total=total,
+        original_total=None,
+        card_fee_percent=card_fee_percent,
+        card_fee_amount=card_fee_amount,
+        notes=f"Reserva #{r.id} — {r.customer_name}",
+        created_by=current_user.id,
+        pdv_id=r.pdv_id,
+    )
+    db.add(order)
+    db.flush()
+
+    for it in (r.items or []):
+        pid = it.get("product_id")
+        qty = it.get("quantity", 0)
+        oi = CantinOrderItem(
+            order_id=order.id,
+            product_id=pid,
+            product_name=it.get("product_name", ""),
+            unit_price=it.get("unit_price", 0),
+            quantity=qty,
+            subtotal=it.get("subtotal", 0),
+        )
+        db.add(oi)
+        if pid:
+            product = db.query(CantinProduct).filter(CantinProduct.id == pid).first()
+            if product:
+                product.stock = max(0, product.stock - qty)
+
+    r.status = "attended"
+    r.attended_at = datetime.now(timezone.utc)
+    r.attended_by = current_user.id
+
+    db.commit()
+    db.refresh(order)
+    return _order_out(order)
