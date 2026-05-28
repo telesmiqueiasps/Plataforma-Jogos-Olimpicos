@@ -969,6 +969,7 @@
 
     // Detail view state
     let currentChamp = null;
+    let currentSport = null;
     let currentTab = 'overview';
     let _loadedTabs = new Set();
     let detailGroups = [];
@@ -1423,6 +1424,7 @@
       if (!currentChamp) {
         try { currentChamp = await ChampAPI.get(champId); } catch { return; }
       }
+      currentSport = currentChamp.sport || currentChamp.sport_data || null;
 
       document.getElementById('view-list').style.display = 'none';
       document.getElementById('view-management').style.display = 'block';
@@ -2136,6 +2138,15 @@
     async function loadDetailGames() {
       const container = document.getElementById('games-detail-content');
       container.innerHTML = '<div class="page-loading" style="padding:30px;"><div class="spinner"></div><span>Carregando jogos...</span></div>';
+      if (!currentSport) {
+        if (currentChamp && currentChamp.sport) {
+          currentSport = currentChamp.sport;
+        } else if (currentChamp && currentChamp.sport_id) {
+          const sports = await apiFetch('/api/sports/');
+          currentSport = sports.find(s => s.id === currentChamp.sport_id);
+        }
+      }
+      console.log('[Games] currentSport:', currentSport);
       try {
         const games = await ChampAPI.games(currentChamp.id);
         console.log('[Games] Recebidos:', games, '| Total:', games?.length);
