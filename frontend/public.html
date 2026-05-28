@@ -920,6 +920,76 @@
     var medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
     try {
+      // ── Dominó: classificação por grupos ─────────────────────────────────
+      if (bgType_ === 'domino') {
+        var dmGroups = await pubFetch('/api/championships/' + currentChamp.id + '/domino/groups');
+
+        var dmChampCard = '';
+        if (currentChamp.status === 'finished') {
+          try {
+            var dmAllGames = await pubFetch('/api/championships/' + currentChamp.id + '/domino/games');
+            var dmKo = (dmAllGames || []).filter(function(gg) { return gg.phase === 'knockout' && gg.status === 'finished'; });
+            if (dmKo.length) {
+              var dmMaxRound = dmKo.reduce(function(m, gg) { return Math.max(m, gg.round_number || 1); }, 0);
+              var dmFinal = dmKo.filter(function(gg) { return (gg.round_number || 1) === dmMaxRound; });
+              if (dmFinal.length === 1) {
+                var dmFg = dmFinal[0];
+                var dmChamp = dmFg.result === 'home_win' ? dmFg.home_name : (dmFg.result === 'away_win' ? dmFg.away_name : null);
+                if (dmChamp) {
+                  dmChampCard = '<div style="margin-bottom:20px; padding:20px 24px; background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,215,0,0.04)); border:1px solid rgba(255,215,0,0.25); border-radius:12px; text-align:center;">'
+                    + '<div style="font-size:36px; margin-bottom:4px;">🏆</div>'
+                    + '<div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Campeão</div>'
+                    + '<div style="font-size:20px; font-weight:800;">🁣 ' + dmChamp + '</div>'
+                    + '</div>';
+                }
+              }
+            }
+          } catch(e2) { /* sem campeão */ }
+        }
+
+        if (!dmGroups || !dmGroups.length) {
+          el.innerHTML = dmChampCard + '<div style="padding:24px; color:var(--text-secondary); text-align:center;">Grupos ainda não definidos.</div>';
+          return;
+        }
+
+        var dmHtml = dmChampCard;
+        for (var dgi = 0; dgi < dmGroups.length; dgi++) {
+          var dmG = dmGroups[dgi];
+          var dmStandings = dmG.standings || [];
+          var dmRows = '';
+          for (var dmi = 0; dmi < dmStandings.length; dmi++) {
+            var dms = dmStandings[dmi];
+            var dmIsClassified = classified > 0 && dmi < classified;
+            dmRows += '<tr class="' + (dmIsClassified ? 'classified-row' : '') + '">'
+              + '<td style="text-align:center; font-weight:800; font-size:' + (dmi < 3 ? 16 : 13) + 'px;">' + (medalMap[dms.position] || dms.position) + '</td>'
+              + '<td style="text-align:left; font-weight:600;">' + dms.name + (dmIsClassified ? ' <span class="badge-classified">Classificado ✓</span>' : '') + '</td>'
+              + '<td>' + (dms.j ?? 0) + '</td>'
+              + '<td>' + (dms.v ?? 0) + '</td>'
+              + '<td>' + (dms.d ?? 0) + '</td>'
+              + '<td>' + (dms.wins ?? 0) + '</td>'
+              + '<td>' + (dms.carrocas ?? 0) + '</td>'
+              + '<td>' + (dms.la_e_los ?? 0) + '</td>'
+              + '<td>' + (dms.quadradas ?? 0) + '</td>'
+              + '<td class="pts">' + (dms.table_pts ?? 0) + '</td>'
+              + '</tr>';
+          }
+          dmHtml += '<div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:0;">'
+            + '<div style="padding:12px 16px; font-weight:700; font-size:13px; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border);">Grupo ' + dmG.group + '</div>'
+            + (dmStandings.length
+              ? '<div class="table-responsive"><table class="standings-table"><thead><tr>'
+                + '<th style="width:36px;">#</th><th style="text-align:left;">Dupla</th>'
+                + '<th>J</th><th>V</th><th>D</th>'
+                + '<th title="Batidas Simples">BS</th><th title="Carroças">CA</th><th title="Lá e Ló">LL</th><th title="Quadradas">QD</th>'
+                + '<th class="pts">Pts</th>'
+                + '</tr></thead><tbody>' + dmRows + '</tbody></table></div>'
+              : '<div style="padding:20px; color:var(--text-secondary); font-size:13px;">Nenhum jogo disputado ainda.</div>')
+            + '</div></div>';
+        }
+        el.innerHTML = dmHtml;
+        return;
+      }
+      // ── Fim Dominó ────────────────────────────────────────────────────────
+
       var standingsUrl = '/api/championships/' + currentChamp.id + '/' + bgType_ + '/standings';
       var standings = await pubFetch(standingsUrl);
       if (!standings || !standings.length) {
@@ -944,28 +1014,7 @@
         var tableHtml = '';
         var rows = '';
         var i, s;
-        if (bgType_ === 'domino') {
-          rows = '';
-          for (i = 0; i < standings.length; i++) {
-            s = standings[i];
-            rows += '<tr class="' + (i < classified ? 'classified-row' : '') + '">'
-              + '<td style="font-weight:800; font-size:' + (i < 3 ? 16 : 13) + 'px; text-align:center;">' + (medalMap[s.position] || s.position) + '</td>'
-              + '<td style="text-align:left; font-weight:600;">' + s.name + (i < classified ? ' <span class="badge-classified">Classificado</span>' : '') + '</td>'
-              + '<td>' + s.j + '</td><td>' + s.v + '</td><td>' + s.d + '</td>'
-              + '<td>' + (s.wins ?? 0) + '</td>'
-              + '<td>' + (s.carrocas ?? 0) + '</td>'
-              + '<td>' + (s.la_e_los ?? 0) + '</td>'
-              + '<td>' + (s.quadradas ?? 0) + '</td>'
-              + '<td class="pts">' + s.table_pts + '</td>'
-              + '</tr>';
-          }
-          tableHtml = '<div class="table-responsive"><table class="standings-table"><thead><tr>'
-            + '<th style="width:36px;">#</th><th>Dupla</th>'
-            + '<th>J</th><th>V</th><th>D</th>'
-            + '<th title="Batidas Simples">BS</th><th title="Carroças">CA</th><th title="Lá e Ló">LL</th><th title="Quadradas">QD</th>'
-            + '<th class="pts">Pts</th>'
-            + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
-        } else if (bgType_ === 'dama') {
+        if (bgType_ === 'dama') {
           rows = '';
           for (i = 0; i < standings.length; i++) {
             s = standings[i];
