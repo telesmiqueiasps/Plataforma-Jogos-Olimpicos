@@ -367,6 +367,39 @@ def create_game(
     return _game_out(game, _names_map(championship_id, db))
 
 
+@router.put("/{championship_id}/tenis/games/{game_id}")
+def update_game(
+    championship_id: int,
+    game_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    """Atualiza scheduled_at e/ou round_number de um jogo de tênis de mesa."""
+    from datetime import datetime, timezone
+    game = db.query(BoardgameGame).filter(
+        BoardgameGame.id == game_id,
+        BoardgameGame.championship_id == championship_id,
+        BoardgameGame.game_type == "tenis_mesa",
+    ).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+    if "scheduled_at" in body:
+        raw = body["scheduled_at"]
+        if raw:
+            try:
+                game.scheduled_at = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="scheduled_at inválido")
+        else:
+            game.scheduled_at = None
+    if "round_number" in body:
+        game.round_number = int(body["round_number"]) if body["round_number"] is not None else None
+    db.commit()
+    db.refresh(game)
+    return _game_out(game, _names_map(championship_id, db))
+
+
 @router.put("/{championship_id}/tenis/games/{game_id}/result")
 def register_result(
     championship_id: int,
