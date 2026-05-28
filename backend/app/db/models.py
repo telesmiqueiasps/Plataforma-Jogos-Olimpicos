@@ -758,3 +758,16 @@ class ModalityMapping(Base):
         Index("ix_modality_mappings_keyword", "keyword"),
         Index("ix_modality_mappings_slug", "sport_slug"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Feedback
+# ---------------------------------------------------------------------------
+
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+
+    id         = Column(Integer, primary_key=True)
+    name       = Column(String(100), nullable=False)
+    message    = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

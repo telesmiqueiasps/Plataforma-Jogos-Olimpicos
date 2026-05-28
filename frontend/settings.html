@@ -152,6 +152,13 @@
                 <div class="sc-sub">Adicionar novo acesso</div>
               </div>
             </a>
+            <button onclick="openFeedbacksModal()" class="shortcut-card" style="cursor:pointer;border:1px solid var(--border-color);background:#fff;text-align:left;">
+              <span class="sc-icon">💬</span>
+              <div>
+                <div class="sc-label">Feedbacks</div>
+                <div class="sc-sub">Ver mensagens recebidas</div>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -271,6 +278,17 @@
   </div>
 
   <div id="toast-container-fixed" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;"></div>
+
+  <!-- Modal Feedbacks -->
+  <div id="feedbacks-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card,#fff);border-radius:12px;width:90%;max-width:600px;max-height:80vh;display:flex;flex-direction:column;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;">💬 Feedbacks</h3>
+        <button onclick="document.getElementById('feedbacks-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <div id="feedbacks-list" style="padding:16px;overflow-y:auto;flex:1;">Carregando...</div>
+    </div>
+  </div>
 
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
@@ -498,6 +516,49 @@
 
     function esc(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // ---- Feedbacks ----
+    function _fmtFbDate(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function openFeedbacksModal() {
+      var modal = document.getElementById('feedbacks-modal');
+      var container = document.getElementById('feedbacks-list');
+      modal.style.display = 'flex';
+      container.innerHTML = 'Carregando...';
+      try {
+        var feedbacks = await apiFetch('/api/feedbacks/');
+        if (!feedbacks.length) {
+          container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Nenhum feedback ainda.</p>';
+          return;
+        }
+        container.innerHTML = feedbacks.map(function(f) {
+          return '<div style="border:1px solid var(--border-color);border-radius:8px;padding:12px 16px;margin-bottom:10px;">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+            + '<div><span style="font-weight:600;">' + esc(f.name) + '</span>'
+            + '<span style="color:var(--text-secondary);font-size:12px;margin-left:8px;">' + _fmtFbDate(f.created_at) + '</span></div>'
+            + '<button onclick="deleteFeedback(' + f.id + ')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;">✕</button>'
+            + '</div>'
+            + '<p style="margin:8px 0 0;font-size:13px;color:var(--text-secondary);line-height:1.5;">' + esc(f.message) + '</p>'
+            + '</div>';
+        }).join('');
+      } catch(e) {
+        container.innerHTML = '<p style="color:#dc2626;text-align:center;">Erro ao carregar feedbacks.</p>';
+      }
+    }
+
+    async function deleteFeedback(id) {
+      if (!confirm('Excluir este feedback?')) return;
+      try {
+        await apiFetch('/api/feedbacks/' + id, { method: 'DELETE' });
+        openFeedbacksModal();
+      } catch(e) {
+        showToast('Erro ao excluir feedback.', 'error');
+      }
     }
 
     // ---- Init ----
