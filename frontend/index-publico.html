@@ -23,6 +23,10 @@
       0%, 100% { opacity: 0.5; transform: scale(1); }
       50% { opacity: 1; transform: scale(1.05); }
     }
+    @keyframes goldShimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
   </style>
 </head>
 <body>
@@ -89,7 +93,7 @@
       </button>
     </div>
 
-    <div style="height:1px;background:#e2e8f0;margin:16px 0;"></div>
+    <div style="height:1px;background:#e2e8f0;margin:28px 0;"></div>
 
   </div>
 
@@ -253,8 +257,8 @@
 
     const SPONSORS = [
       {
-        tier: 'OURO', emoji: '🥇', img: 'img/ouro.png',
-        color: '#f59e0b', colorLight: '#fef3c7', colorDark: '#92400e',
+        tier: 'OURO', emoji: '🥇', img: 'img/ouro.png', gold: true,
+        color: '#f59e0b', colorLight: '#fef3c7', colorDark: '#d97706',
         glow: 'rgba(245,158,11,0.35)',
         bg: 'linear-gradient(145deg,#fffdf0,#ffffff,#fefce8)',
         border: '#f59e0b',
@@ -286,7 +290,7 @@
       if (!el) return;
       el.innerHTML = `
         <div style="padding:8px 0;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-          <span class="sponsor-badge" data-full="Patrocinador ${s.tier}" style="display:inline-block;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${s.colorDark};"></span>
+          <span class="sponsor-badge" data-full="Patrocinador ${s.tier}" style="display:inline-block;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;${s.gold ? 'background:linear-gradient(90deg,#92400e 0%,#f59e0b 35%,#fde68a 50%,#f59e0b 65%,#92400e 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:goldShimmer 2.2s linear infinite;' : 'color:' + s.colorDark + ';'}"></span>
           <div style="display:flex;align-items:center;justify-content:center;min-height:62px;">
             <img src="${s.img}" alt="${s.tier}" style="max-height:64px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
             <span style="display:none;font-size:44px;">🏆</span>
