@@ -3,390 +3,729 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="img/logo.ico" type="image/x-icon">
-  <title>Jogos Sinodal Paraíba 2026</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Jogos Sinodais Paraíba 2026</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Outfit', sans-serif; min-height: 100vh;
-           background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%); }
-    @keyframes floatImg {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+    
+    :root {
+      --gold: #f59e0b;
+      --silver: #9ca3af;
+      --bronze: #cd7c4a;
     }
-    @keyframes shimmerBg {
-      0% { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
+    
+    body {
+      min-height: 100vh;
+      background: #060b18;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      overflow-x: hidden;
     }
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.05); }
+    
+    /* FUNDO ANIMADO */
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.25;
+      animation: drift linear infinite;
+    }
+    .orb-1 { width:500px;height:500px;top:-150px;left:-100px;background:radial-gradient(circle,#2563eb,transparent);animation-duration:18s; }
+    .orb-2 { width:400px;height:400px;bottom:-100px;right:-80px;background:radial-gradient(circle,#7c3aed,transparent);animation-duration:22s;animation-direction:reverse; }
+    .orb-3 { width:300px;height:300px;top:40%;left:40%;background:radial-gradient(circle,#0891b2,transparent);animation-duration:28s; }
+    
+    @keyframes drift {
+      0%   { transform: translate(0,0) rotate(0deg); }
+      25%  { transform: translate(30px,-40px) rotate(90deg); }
+      50%  { transform: translate(-20px,30px) rotate(180deg); }
+      75%  { transform: translate(40px,20px) rotate(270deg); }
+      100% { transform: translate(0,0) rotate(360deg); }
+    }
+    
+    /* GRID DE RUÍDO SUTIL */
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    
+    /* CONTEÚDO */
+    .content {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 40px;
+    }
+    
+    /* HEADER */
+    .header {
+      width: 100%;
+      max-width: 480px;
+      padding: 40px 0 24px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(24px);
+      animation: revealUp 0.9s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .logo-img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+    }
+    .logo-text h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-text p {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    
+    /* BADGE DO EVENTO */
+    .event-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(37,99,235,0.15);
+      border: 1px solid rgba(37,99,235,0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.5px;
+      margin-bottom: 0;
+    }
+    .event-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3b82f6;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    
+    /* PATROCINADORES */
+    .sponsors-section {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 28px;
+      opacity: 0;
+      transform: translateY(24px);
+      animation: revealUp 0.9s cubic-bezier(0.16,1,0.3,1) 0.3s forwards;
+    }
+    .sponsors-label {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 14px;
+    }
+    
+    /* CARROSSEL PREMIUM */
+    .sponsor-track {
+      position: relative;
+      height: 160px;
+    }
+    .sponsor-card {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+      transition: opacity 0.6s cubic-bezier(0.16,1,0.3,1),
+                  transform 0.6s cubic-bezier(0.16,1,0.3,1);
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .sponsor-card.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .sponsor-card-gold {
+      background: linear-gradient(135deg,rgba(245,158,11,0.08),rgba(255,255,255,0.03));
+      border: 1px solid rgba(245,158,11,0.25);
+    }
+    .sponsor-card-silver {
+      background: linear-gradient(135deg,rgba(156,163,175,0.08),rgba(255,255,255,0.03));
+      border: 1px solid rgba(156,163,175,0.25);
+    }
+    .sponsor-card-bronze {
+      background: linear-gradient(135deg,rgba(205,124,74,0.08),rgba(255,255,255,0.03));
+      border: 1px solid rgba(205,124,74,0.25);
+    }
+    
+    /* Reflexo interno do card */
+    .sponsor-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+    }
+    /* Brilho no canto */
+    .sponsor-card::after {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle,var(--card-glow, rgba(255,255,255,0.06)),transparent);
+      pointer-events: none;
+    }
+    .sponsor-card-gold { --card-glow: rgba(245,158,11,0.12); }
+    .sponsor-card-silver { --card-glow: rgba(156,163,175,0.10); }
+    .sponsor-card-bronze { --card-glow: rgba(205,124,74,0.12); }
+    
+    .sponsor-tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      width: fit-content;
+    }
+    .badge-gold  { background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.25); }
+    .badge-silver{ background:rgba(156,163,175,0.15); color:#d1d5db; border:1px solid rgba(156,163,175,0.25); }
+    .badge-bronze{ background:rgba(205,124,74,0.15);  color:#fdba74; border:1px solid rgba(205,124,74,0.25); }
+    
+    .sponsor-logo-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 8px 0;
+    }
+    .sponsor-logo-area img {
+      max-height: 60px;
+      max-width: 70%;
+      object-fit: contain;
+      animation: float-logo 4s ease-in-out infinite;
+      filter: brightness(1.1);
+    }
+    @keyframes float-logo {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    
+    /* NAVEGAÇÃO DOS PATROCINADORES */
+    .sponsor-nav {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .sponsor-nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.4);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+      backdrop-filter: blur(8px);
+    }
+    .sponsor-nav-btn.active-gold  { background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.35); color:#fbbf24; transform:scale(1.05); }
+    .sponsor-nav-btn.active-silver{ background:rgba(156,163,175,0.15); border-color:rgba(156,163,175,0.35); color:#e5e7eb; transform:scale(1.05); }
+    .sponsor-nav-btn.active-bronze{ background:rgba(205,124,74,0.15);  border-color:rgba(205,124,74,0.35);  color:#fdba74; transform:scale(1.05); }
+    
+    /* CARDS DE NAVEGAÇÃO */
+    .nav-cards {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(24px);
+      animation: revealUp 0.9s cubic-bezier(0.16,1,0.3,1) 0.5s forwards;
+    }
+    .nav-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      text-decoration: none;
+      color: #fff;
+      backdrop-filter: blur(12px);
+      transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .nav-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+    }
+    .nav-card:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.14);
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .nav-card:active {
+      transform: translateY(0) scale(0.99);
+    }
+    .nav-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .icon-blue   { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.2); }
+    .icon-green  { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.2); }
+    .icon-yellow { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.2); }
+    .nav-info { flex: 1; }
+    .nav-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 3px;
+      letter-spacing: -0.2px;
+    }
+    .nav-sub {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+    .nav-arrow {
+      font-size: 18px;
+      color: rgba(255,255,255,0.25);
+      transition: transform 0.3s ease, color 0.3s ease;
+    }
+    .nav-card:hover .nav-arrow {
+      transform: translateX(4px);
+      color: rgba(255,255,255,0.5);
+    }
+    
+    /* FOOTER */
+    .footer {
+      margin-top: 36px;
+      text-align: center;
+      opacity: 0;
+      animation: revealUp 0.9s cubic-bezier(0.16,1,0.3,1) 0.8s forwards;
+    }
+    .feedback-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.35);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+    .feedback-btn:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.6);
+    }
+    .footer-credit {
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.3px;
+    }
+    
+    /* MODAL FEEDBACK */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+    .modal-overlay.open {
+      display: flex;
+      animation: fadeIn 0.3s ease forwards;
+    }
+    .modal-sheet {
+      width: 100%;
+      max-width: 480px;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-bottom: none;
+      border-radius: 24px 24px 0 0;
+      padding: 12px 24px 40px;
+      transform: translateY(100%);
+      animation: slideUp 0.45s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    @keyframes slideUp {
+      to { transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    .modal-handle {
+      width: 36px; height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      margin: 0 auto 20px;
+    }
+    .modal-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .modal-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 20px;
+    }
+    .modal-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 10px;
+    }
+    .modal-input:focus { border-color: rgba(59,130,246,0.5); }
+    .modal-input::placeholder { color: rgba(255,255,255,0.25); }
+    textarea.modal-input { resize: none; min-height: 90px; }
+    .char-count {
+      text-align: right;
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+      margin-bottom: 16px;
+      margin-top: -6px;
+    }
+    .modal-submit {
+      width: 100%;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .modal-submit:hover { background: #1d4ed8; transform: scale(1.01); }
+    .modal-submit:active { transform: scale(0.99); }
+    .modal-success {
+      text-align: center;
+      padding: 20px 0 10px;
+    }
+    .success-icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 16px;
+      animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes revealUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <div style="text-align:center;padding:40px 20px 20px;">
-    <div style="display:flex;align-items:center;justify-content:center;
-                gap:12px;margin-bottom:8px;">
-      <img src="img/logo.png" alt="Logo"
-        style="width:48px;height:48px;object-fit:contain;
-               border-radius:50%;border:2px solid rgba(255,255,255,0.25);"
-        onerror="this.style.display='none'">
-      <div style="text-align:left;">
-        <h1 style="color:white;font-size:22px;font-weight:800;margin:0;
-                   letter-spacing:-0.5px;line-height:1.2;">
-          Jogos Sinodal PB
-        </h1>
-        <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0;">
-          2026
-        </p>
-      </div>
-    </div>
+  <!-- Fundo animado -->
+  <div class="bg-canvas" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
   </div>
+  <div class="noise" aria-hidden="true"></div>
 
-  <!-- Patrocinadores -->
-  <div style="max-width:480px;margin:0 auto 24px;padding:0 20px;">
+  <main class="content">
 
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="display:inline-flex;align-items:center;gap:8px;
-                  background:rgba(255,255,255,0.12);
-                  border:1px solid rgba(255,255,255,0.2);
-                  border-radius:20px;padding:5px 16px;">
-        <span style="font-size:13px;">✨</span>
-        <span style="color:rgba(255,255,255,0.9);font-size:11px;
-                     letter-spacing:2px;text-transform:uppercase;font-weight:700;">
-          Patrocinadores
-        </span>
-        <span style="font-size:13px;">✨</span>
+    <!-- HEADER -->
+    <header class="header">
+      <div class="logo-row">
+        <img src="img/logo.png" alt="Logo Jogos Sinodais" class="logo-img"
+             onerror="this.style.display='none'">
+        <div class="logo-text">
+          <h1>Jogos Sinodais</h1>
+          <p>Paraíba 2026</p>
+        </div>
       </div>
-    </div>
+      <div class="event-badge">Campina Grande · Maio 2026</div>
+    </header>
 
-    <!-- Cards empilhados — só um visível por vez -->
-    <div style="position:relative;min-height:180px;" id="sponsors-wrapper">
+    <!-- PATROCINADORES -->
+    <section class="sponsors-section" aria-label="Patrocinadores">
+      <div class="sponsors-label">Patrocinadores</div>
 
-      <div id="scard-0" class="scard" style="position:absolute;inset:0;
-           opacity:1;transition:opacity 0.6s ease, transform 0.6s ease;
-           transform:scale(1);"></div>
+      <div class="sponsor-track" id="sponsor-track">
 
-      <div id="scard-1" class="scard" style="position:absolute;inset:0;
-           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
-           transform:scale(0.97);pointer-events:none;"></div>
+        <div class="sponsor-card sponsor-card-gold active" id="scard-0">
+          <span class="sponsor-tier-badge badge-gold">🥇 Patrocinador Ouro</span>
+          <div class="sponsor-logo-area">
+            <img src="img/ouro.png" alt="Patrocinador Ouro"
+                 onerror="this.style.display='none'">
+          </div>
+        </div>
 
-      <div id="scard-2" class="scard" style="position:absolute;inset:0;
-           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
-           transform:scale(0.97);pointer-events:none;"></div>
+        <div class="sponsor-card sponsor-card-silver" id="scard-1">
+          <span class="sponsor-tier-badge badge-silver">🥈 Patrocinador Prata</span>
+          <div class="sponsor-logo-area">
+            <img src="img/prata.png" alt="Patrocinador Prata"
+                 onerror="this.style.display='none'">
+          </div>
+        </div>
 
-    </div>
+        <div class="sponsor-card sponsor-card-bronze" id="scard-2">
+          <span class="sponsor-tier-badge badge-bronze">🥉 Patrocinador Bronze</span>
+          <div class="sponsor-logo-area">
+            <img src="img/bronze.png" alt="Patrocinador Bronze"
+                 onerror="this.style.display='none'">
+          </div>
+        </div>
 
-    <!-- Botões de navegação -->
-    <div style="display:flex;justify-content:center;gap:8px;margin-top:14px;">
-      <button onclick="showSponsor(0)" id="snav-0"
-        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
-               font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;">
-        🥇 OURO
+      </div>
+
+      <nav class="sponsor-nav" aria-label="Navegar patrocinadores">
+        <button class="sponsor-nav-btn active-gold" id="snav-0" onclick="showSponsor(0)" aria-label="Ouro">🥇 OURO</button>
+        <button class="sponsor-nav-btn" id="snav-1" onclick="showSponsor(1)" aria-label="Prata">🥈 PRATA</button>
+        <button class="sponsor-nav-btn" id="snav-2" onclick="showSponsor(2)" aria-label="Bronze">🥉 BRONZE</button>
+      </nav>
+    </section>
+
+    <!-- NAVEGAÇÃO PRINCIPAL -->
+    <nav class="nav-cards" aria-label="Acessar seções">
+
+      <a href="public.html" class="nav-card">
+        <div class="nav-icon icon-blue">🏆</div>
+        <div class="nav-info">
+          <div class="nav-title">Campeonatos</div>
+          <div class="nav-sub">Tabelas, jogos e classificação</div>
+        </div>
+        <span class="nav-arrow">›</span>
+      </a>
+
+      <a href="cantina-menu.html?pdv=1" class="nav-card" id="link-pdv1">
+        <div class="nav-icon icon-green">🍽️</div>
+        <div class="nav-info">
+          <div class="nav-title" id="pdv1-name">Cantina</div>
+          <div class="nav-sub">Ver cardápio e fazer reserva</div>
+        </div>
+        <span class="nav-arrow">›</span>
+      </a>
+
+      <a href="cantina-menu.html?pdv=2" class="nav-card" id="link-pdv2">
+        <div class="nav-icon icon-yellow">🛒</div>
+        <div class="nav-info">
+          <div class="nav-title" id="pdv2-name">Cantina 2</div>
+          <div class="nav-sub">Ver cardápio e fazer reserva</div>
+        </div>
+        <span class="nav-arrow">›</span>
+      </a>
+
+    </nav>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <button class="feedback-btn" onclick="openFeedback()">
+        💬 Deixe aqui o seu feedback sobre a plataforma
       </button>
-      <button onclick="showSponsor(1)" id="snav-1"
-        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
-               font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;">
-        🥈 PRATA
-      </button>
-      <button onclick="showSponsor(2)" id="snav-2"
-        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
-               font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;">
-        🥉 BRONZE
-      </button>
-    </div>
+      <div class="footer-credit">Desenvolvido por Miquéias Teles</div>
+    </footer>
 
-  </div>
+  </main>
 
-  <!-- Cards de navegação -->
-  <div style="max-width:480px;margin:0 auto;padding:20px;">
-
-    <!-- Campeonatos -->
-    <a href="public.html" style="text-decoration:none;display:block;margin-bottom:16px;">
-      <div style="background:white;border-radius:16px;padding:24px;
-                  display:flex;align-items:center;gap:16px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
-                  transition:transform 0.2s;"
-           onmouseover="this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:56px;height:56px;background:#eff6ff;border-radius:14px;
-                    display:flex;align-items:center;justify-content:center;
-                    flex-shrink:0;">
-          <img src="img/campeonatos.png" alt="Campeonatos" style="width:36px;height:36px;object-fit:contain;">
-        </div>
-        <div>
-          <div style="font-weight:700;font-size:17px;color:#1e293b;">Campeonatos</div>
-          <div style="color:#64748b;font-size:13px;margin-top:2px;">
-            Tabelas, jogos e classificação
-          </div>
-        </div>
-        <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
-      </div>
-    </a>
-
-    <!-- Cantina PDV 1 -->
-    <a href="cantina-menu.html?pdv=1" style="text-decoration:none;display:block;margin-bottom:16px;">
-      <div style="background:white;border-radius:16px;padding:24px;
-                  display:flex;align-items:center;gap:16px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
-                  transition:transform 0.2s;"
-           onmouseover="this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:56px;height:56px;background:#f0fdf4;border-radius:14px;
-                    display:flex;align-items:center;justify-content:center;
-                    flex-shrink:0;">
-          <img src="img/cantina.png" alt="Cantina" style="width:36px;height:36px;object-fit:contain;">
-        </div>
-        <div>
-          <div id="pdv1-name" style="font-weight:700;font-size:17px;color:#1e293b;">
-            Cantina PDV 1
-          </div>
-          <div style="color:#64748b;font-size:13px;margin-top:2px;">
-            Ver cardápio e fazer reserva
-          </div>
-        </div>
-        <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
-      </div>
-    </a>
-
-    <!-- Cantina PDV 2 -->
-    <a href="cantina-menu.html?pdv=2" style="text-decoration:none;display:block;margin-bottom:32px;">
-      <div style="background:white;border-radius:16px;padding:24px;
-                  display:flex;align-items:center;gap:16px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
-                  transition:transform 0.2s;"
-           onmouseover="this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:56px;height:56px;background:#fef3c7;border-radius:14px;
-                    display:flex;align-items:center;justify-content:center;
-                    flex-shrink:0;">
-          <img src="img/cantina.png" alt="Cantina" style="width:36px;height:36px;object-fit:contain;">
-        </div>
-        <div>
-          <div id="pdv2-name" style="font-weight:700;font-size:17px;color:#1e293b;">
-            Cantina PDV 2
-          </div>
-          <div style="color:#64748b;font-size:13px;margin-top:2px;">
-            Ver cardápio e fazer reserva
-          </div>
-        </div>
-        <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
-      </div>
-    </a>
-
-  </div>
-
-  <!-- Botão de feedback -->
-  <div style="text-align:center;padding:0 20px 24px;">
-    <button onclick="openFeedbackModal()"
-      style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;letter-spacing:0.3px;transition:all 0.2s;"
-      onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='white'"
-      onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.7)'">
-      💬 Deixe aqui o seu feedback sobre a plataforma
-    </button>
-  </div>
-
-  <!-- Footer -->
-  <div style="text-align:center;padding:16px;color:rgba(255,255,255,0.5);font-size:12px;">
-    Desenvolvido por Miquéias Teles
-  </div>
-
-  <!-- Modal de feedback -->
-  <div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px;">
-    <div style="background:white;border-radius:16px;width:100%;max-width:440px;overflow:hidden;">
-      <!-- Header -->
-      <div style="background:#2563eb;padding:20px 20px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="color:white;font-weight:700;font-size:16px;">💬 Feedback</div>
-            <div style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:2px;">Faz parte do meu portfólio. obrigado! 🙂</div>
-          </div>
-          <button onclick="closeFeedbackModal()"
-            style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">
-            ✕
-          </button>
-        </div>
-      </div>
-      <!-- Body -->
-      <div id="feedback-modal-body" style="padding:20px;">
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div>
-            <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Seu nome</label>
-            <input type="text" id="fb-name" maxlength="100" placeholder="Como posso te chamar?"
-              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;box-sizing:border-box;"
-              onfocus="this.style.borderColor='#2563eb'"
-              onblur="this.style.borderColor='#e2e8f0'">
-          </div>
-          <div>
-            <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Seu feedback</label>
-            <textarea id="fb-message" maxlength="500" placeholder="O que achou da plataforma?" rows="4"
-              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;box-sizing:border-box;resize:none;font-family:inherit;"
-              onfocus="this.style.borderColor='#2563eb'"
-              onblur="this.style.borderColor='#e2e8f0'"
-              oninput="document.getElementById('fb-char').textContent=this.value.length+'/500'">
-            </textarea>
-            <div style="text-align:right;font-size:11px;color:#94a3b8;margin-top:4px;"><span id="fb-char">0/500</span></div>
-          </div>
-          <button onclick="submitFeedback()" id="fb-submit-btn"
-            style="background:#2563eb;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;transition:background 0.2s;"
-            onmouseover="this.style.background='#1d4ed8'"
-            onmouseout="this.style.background='#2563eb'">
-            Enviar Feedback
-          </button>
-        </div>
+  <!-- MODAL FEEDBACK (bottom sheet) -->
+  <div class="modal-overlay" id="feedback-overlay" onclick="handleOverlayClick(event)">
+    <div class="modal-sheet" id="feedback-sheet">
+      <div class="modal-handle"></div>
+      <div id="feedback-body">
+        <div class="modal-title">Seu feedback</div>
+        <div class="modal-sub">Faz parte do meu portfólio — obrigado! 🙂</div>
+        <input type="text" class="modal-input" id="fb-name"
+               placeholder="Seu nome" maxlength="100">
+        <textarea class="modal-input" id="fb-message"
+                  placeholder="O que achou da plataforma?"
+                  maxlength="500" rows="4"
+                  oninput="document.getElementById('fb-char').textContent=this.value.length+'/500'"></textarea>
+        <div class="char-count"><span id="fb-char">0/500</span></div>
+        <button class="modal-submit" id="fb-btn" onclick="submitFeedback()">
+          Enviar Feedback
+        </button>
       </div>
     </div>
   </div>
 
   <script>
-    var API_BASE = 'https://sports-platform-api.onrender.com';
+    const API = 'https://sports-platform-api.onrender.com';
 
+    /* ── PATROCINADORES ── */
+    let activeSponsor = 0;
+    let sponsorTimer = null;
+    const navClasses = ['active-gold','active-silver','active-bronze'];
+
+    function showSponsor(i, resetTimer = true) {
+      [0,1,2].forEach(j => {
+        const card = document.getElementById('scard-' + j);
+        const btn  = document.getElementById('snav-' + j);
+        card.classList.toggle('active', j === i);
+        btn.className = 'sponsor-nav-btn' + (j === i ? ' ' + navClasses[j] : '');
+      });
+      activeSponsor = i;
+      if (resetTimer) { stopTimer(); startTimer(); }
+    }
+
+    function startTimer() {
+      sponsorTimer = setInterval(() => {
+        showSponsor((activeSponsor + 1) % 3, false);
+      }, 4000);
+    }
+    function stopTimer() {
+      clearInterval(sponsorTimer);
+      sponsorTimer = null;
+    }
+
+    /* Swipe mobile no track */
+    const track = document.getElementById('sponsor-track');
+    let tx = 0;
+    track.addEventListener('touchstart', e => { tx = e.touches[0].clientX; stopTimer(); }, {passive:true});
+    track.addEventListener('touchend', e => {
+      const d = tx - e.changedTouches[0].clientX;
+      if (Math.abs(d) > 40) showSponsor(d > 0
+        ? (activeSponsor + 1) % 3
+        : (activeSponsor - 1 + 3) % 3);
+      startTimer();
+    }, {passive:true});
+    track.addEventListener('mouseenter', stopTimer);
+    track.addEventListener('mouseleave', startTimer);
+
+    showSponsor(0, false);
+    startTimer();
+
+    /* ── NOMES DOS PDVs ── */
     async function loadPDVNames() {
       try {
-        var results = await Promise.all([
-          fetch(API_BASE + '/api/cantina/pdv-info/1').then(function(r) { return r.json(); }),
-          fetch(API_BASE + '/api/cantina/pdv-info/2').then(function(r) { return r.json(); }),
+        const [r1, r2] = await Promise.all([
+          fetch(API + '/api/cantina/pdv-info/1').then(r => r.ok ? r.json() : null),
+          fetch(API + '/api/cantina/pdv-info/2').then(r => r.ok ? r.json() : null),
         ]);
-        var pdv1 = results[0], pdv2 = results[1];
-        if (pdv1 && pdv1.pdv_name) document.getElementById('pdv1-name').textContent = pdv1.pdv_name;
-        if (pdv2 && pdv2.pdv_name) document.getElementById('pdv2-name').textContent = pdv2.pdv_name;
-      } catch(e) {
-        // Manter nomes padrão
-      }
+        if (r1?.pdv_name) document.getElementById('pdv1-name').textContent = r1.pdv_name;
+        if (r2?.pdv_name) document.getElementById('pdv2-name').textContent = r2.pdv_name;
+      } catch(e) {}
     }
     loadPDVNames();
 
-    const SPONSORS = [
-      {
-        tier: 'OURO', emoji: '🥇', img: 'img/ouro.png',
-        color: '#f59e0b', colorLight: '#fef3c7', colorDark: '#92400e',
-        glow: 'rgba(245,158,11,0.35)',
-        bg: 'linear-gradient(145deg,#fffdf0,#ffffff,#fefce8)',
-        border: '#f59e0b',
-        navOn:  { bg:'rgba(245,158,11,0.9)', color:'#78350f', shadow:'0 4px 16px rgba(245,158,11,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
-      },
-      {
-        tier: 'PRATA', emoji: '🥈', img: 'img/prata.png',
-        color: '#9ca3af', colorLight: '#f3f4f6', colorDark: '#374151',
-        glow: 'rgba(156,163,175,0.35)',
-        bg: 'linear-gradient(145deg,#f9fafb,#ffffff,#f3f4f6)',
-        border: '#9ca3af',
-        navOn:  { bg:'rgba(209,213,219,0.95)', color:'#1f2937', shadow:'0 4px 16px rgba(156,163,175,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
-      },
-      {
-        tier: 'BRONZE', emoji: '🥉', img: 'img/bronze.png',
-        color: '#cd7c4a', colorLight: '#fff7ed', colorDark: '#7c2d12',
-        glow: 'rgba(205,124,74,0.35)',
-        bg: 'linear-gradient(145deg,#fff8f3,#ffffff,#fff1e6)',
-        border: '#cd7c4a',
-        navOn:  { bg:'rgba(205,124,74,0.9)', color:'#fff', shadow:'0 4px 16px rgba(205,124,74,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
-      },
-    ];
-
-    SPONSORS.forEach((s, i) => {
-      const el = document.getElementById('scard-' + i);
-      if (!el) return;
-      el.innerHTML = `
-        <div style="background:${s.bg};border-radius:20px;border:2px solid ${s.border};box-shadow:0 8px 32px ${s.glow},0 2px 8px rgba(0,0,0,0.08);padding:24px 20px 20px;position:relative;overflow:hidden;height:100%;box-sizing:border-box;">
-          <div style="position:absolute;inset:0;border-radius:18px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.6) 50%,transparent 100%);background-size:400px 100%;animation:shimmerBg 3s linear infinite;pointer-events:none;"></div>
-          <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,${s.glow},transparent 70%);animation:pulseGlow 3s ease-in-out infinite;pointer-events:none;"></div>
-          <div style="text-align:center;margin-bottom:16px;">
-            <span style="display:inline-flex;align-items:center;gap:6px;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:5px 14px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};">
-              ${s.emoji} Patrocinador ${s.tier}
-            </span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:center;min-height:80px;">
-            <img src="${s.img}" alt="${s.tier}" style="max-height:75px;max-width:80%;object-fit:contain;filter:drop-shadow(0 6px 16px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-            <span style="display:none;font-size:52px;">🏆</span>
-          </div>
-          <div style="margin-top:18px;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,${s.color},transparent);opacity:0.7;"></div>
-        </div>`;
-    });
-
-    let activeSponsor = 0;
-    let sponsorTimer = null;
-
-    function showSponsor(index) {
-      SPONSORS.forEach((_, i) => {
-        const card = document.getElementById('scard-' + i);
-        const nav  = document.getElementById('snav-' + i);
-        const s    = SPONSORS[i];
-        if (card) { card.style.opacity = '0'; card.style.transform = 'scale(0.97)'; card.style.pointerEvents = 'none'; }
-        if (nav)  { nav.style.background = s.navOff.bg; nav.style.color = s.navOff.color; nav.style.boxShadow = s.navOff.shadow; nav.style.transform = 'scale(1)'; }
-      });
-      const activeCard = document.getElementById('scard-' + index);
-      const activeNav  = document.getElementById('snav-' + index);
-      const activeS    = SPONSORS[index];
-      if (activeCard) { activeCard.style.opacity = '1'; activeCard.style.transform = 'scale(1)'; activeCard.style.pointerEvents = 'auto'; }
-      if (activeNav)  { activeNav.style.background = activeS.navOn.bg; activeNav.style.color = activeS.navOn.color; activeNav.style.boxShadow = activeS.navOn.shadow; activeNav.style.transform = 'scale(1.05)'; }
-      activeSponsor = index;
+    /* ── FEEDBACK MODAL ── */
+    function openFeedback() {
+      document.getElementById('feedback-overlay').classList.add('open');
+      document.getElementById('fb-name').focus();
     }
-
-    function nextSponsor() { showSponsor((activeSponsor + 1) % SPONSORS.length); }
-
-    function startSponsorTimer() { sponsorTimer = setInterval(nextSponsor, 4000); }
-    function stopSponsorTimer()  { if (sponsorTimer) { clearInterval(sponsorTimer); sponsorTimer = null; } }
-
-    const wrapper = document.getElementById('sponsors-wrapper');
-    if (wrapper) {
-      let tx = 0;
-      wrapper.addEventListener('touchstart', e => { tx = e.touches[0].clientX; stopSponsorTimer(); }, { passive: true });
-      wrapper.addEventListener('touchend', e => {
-        const d = tx - e.changedTouches[0].clientX;
-        if (Math.abs(d) > 40) showSponsor(d > 0 ? (activeSponsor + 1) % SPONSORS.length : (activeSponsor - 1 + SPONSORS.length) % SPONSORS.length);
-        startSponsorTimer();
-      }, { passive: true });
-      wrapper.addEventListener('mouseenter', stopSponsorTimer);
-      wrapper.addEventListener('mouseleave', startSponsorTimer);
+    function closeFeedback() {
+      document.getElementById('feedback-overlay').classList.remove('open');
     }
-
-    showSponsor(0);
-    startSponsorTimer();
-
-    function openFeedbackModal() {
-      document.getElementById('feedback-modal').style.display = 'flex';
-      setTimeout(function() { document.getElementById('fb-name').focus(); }, 100);
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('feedback-overlay')) closeFeedback();
     }
-
-    function closeFeedbackModal() {
-      document.getElementById('feedback-modal').style.display = 'none';
-      document.getElementById('feedback-modal-body').innerHTML = document.getElementById('feedback-modal-body').innerHTML;
-    }
-
-    document.getElementById('feedback-modal').addEventListener('click', function(e) {
-      if (e.target === this) closeFeedbackModal();
-    });
 
     async function submitFeedback() {
-      var name = document.getElementById('fb-name').value.trim();
-      var message = document.getElementById('fb-message').value.trim();
-      if (!name || !message) { alert('Por favor preencha seu nome e o feedback.'); return; }
-      var btn = document.getElementById('fb-submit-btn');
+      const name    = document.getElementById('fb-name').value.trim();
+      const message = document.getElementById('fb-message').value.trim();
+      if (!name || !message) { alert('Preencha seu nome e o feedback.'); return; }
+
+      const btn = document.getElementById('fb-btn');
       btn.textContent = 'Enviando...';
       btn.disabled = true;
+
       try {
-        var res = await fetch(API_BASE + '/api/feedbacks/', {
+        const res = await fetch(API + '/api/feedbacks/', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, message: message })
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({name, message})
         });
-        if (!res.ok) throw new Error('Erro ao enviar');
-        document.getElementById('feedback-modal-body').innerHTML = '<div style="text-align:center;padding:24px 16px;">'
-          + '<div style="font-size:48px;margin-bottom:16px;">✅</div>'
-          + '<div style="font-weight:700;font-size:18px;color:#1e293b;margin-bottom:8px;">Obrigado pelo feedback!</div>'
-          + '<div style="color:#64748b;font-size:14px;margin-bottom:24px;">Sua opinião é muito importante. 🙂</div>'
-          + '<button onclick="closeFeedbackModal()" style="background:#2563eb;color:white;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;font-weight:600;">Fechar</button>'
-          + '</div>';
+        if (!res.ok) throw new Error();
+
+        document.getElementById('feedback-body').innerHTML = `
+          <div class="modal-success">
+            <div class="success-icon">✅</div>
+            <div class="modal-title">Obrigado!</div>
+            <div class="modal-sub" style="margin-top:6px;">Seu feedback foi enviado com sucesso.</div>
+            <button class="modal-submit" style="margin-top:20px;" onclick="closeFeedback()">Fechar</button>
+          </div>`;
       } catch(e) {
         btn.textContent = 'Enviar Feedback';
         btn.disabled = false;
@@ -394,5 +733,6 @@
       }
     }
   </script>
+
 </body>
 </html>
