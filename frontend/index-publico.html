@@ -6,393 +6,519 @@
   <link rel="icon" href="img/logo.ico" type="image/x-icon">
   <title>Jogos Sinodal Paraíba 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Outfit', sans-serif; min-height: 100vh;
-           background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%); }
-    @keyframes floatImg {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+
+    :root {
+      --gold:   #f59e0b;
+      --silver: #9ca3af;
+      --bronze: #cd7c4a;
     }
-    @keyframes shimmerBg {
-      0% { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #05091a;
+      color: #fff;
+      overflow-x: hidden;
     }
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.05); }
+
+    /* ── FUNDO ── */
+    #bg {
+      position: fixed; inset: 0; z-index: 0; overflow: hidden;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%,
+                    rgba(37,99,235,0.35) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 50% at 80% 100%,
+                    rgba(124,58,237,0.2) 0%, transparent 70%),
+                  #05091a;
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(100px); will-change: transform;
+      animation: orbDrift ease-in-out infinite;
+    }
+    .o1 { width:600px;height:600px;top:-200px;left:-150px;
+           background:rgba(37,99,235,0.18);animation-duration:22s; }
+    .o2 { width:500px;height:500px;bottom:-150px;right:-100px;
+           background:rgba(124,58,237,0.15);animation-duration:28s;animation-direction:reverse; }
+    .o3 { width:350px;height:350px;top:45%;left:35%;
+           background:rgba(6,182,212,0.10);animation-duration:18s; }
+    @keyframes orbDrift {
+      0%,100% { transform:translate(0,0); }
+      33%      { transform:translate(40px,-50px); }
+      66%      { transform:translate(-30px,40px); }
+    }
+
+    /* grade de pontos sutil */
+    #grid {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black, transparent);
+    }
+
+    /* ── CONTEÚDO ── */
+    .page {
+      position: relative; z-index: 10;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 0 20px 48px;
+      max-width: 520px; margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      width: 100%; padding: 44px 0 28px; text-align: center;
+      opacity: 0; transform: translateY(20px);
+      animation: up 0.8s cubic-bezier(0.16,1,0.3,1) 0.05s forwards;
+    }
+    .logo-wrap {
+      display: inline-flex; align-items: center; gap: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 20px; padding: 10px 18px 10px 10px;
+      backdrop-filter: blur(16px);
+    }
+    .logo-wrap img {
+      width: 44px; height: 44px; border-radius: 12px;
+      object-fit: contain;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .logo-text h1 {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.4px;
+      background: linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.55));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-align: left;
+    }
+    .logo-text p {
+      font-size: 11px; color: rgba(255,255,255,0.38);
+      letter-spacing: 1.2px; text-transform: uppercase; text-align: left; margin-top: 1px;
+    }
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 11px; color: rgba(255,255,255,0.55); letter-spacing: 0.3px;
+      margin-top: 14px;
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulseDot 2s ease-in-out infinite;
+    }
+    @keyframes pulseDot {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.45; transform:scale(0.7); }
+    }
+
+    /* ── PATROCINADORES ── */
+    .sponsors-wrap {
+      width: 100%; margin-bottom: 24px;
+      opacity: 0; transform: translateY(20px);
+      animation: up 0.8s cubic-bezier(0.16,1,0.3,1) 0.18s forwards;
+    }
+    .section-label {
+      text-align: center; font-size: 10px; font-weight: 600;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      color: rgba(255,255,255,0.22); margin-bottom: 14px;
+    }
+
+    /* track */
+    .sp-track { position: relative; height: 156px; }
+    .sp-card {
+      position: absolute; inset: 0; border-radius: 22px;
+      padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between;
+      opacity: 0; transform: translateY(14px) scale(0.97);
+      transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1),
+                  transform 0.55s cubic-bezier(0.16,1,0.3,1);
+      pointer-events: none; overflow: hidden;
+    }
+    .sp-card.on { opacity:1; transform:none; pointer-events:auto; }
+
+    .sp-card-gold   { background:rgba(245,158,11,0.06);  border:1px solid rgba(245,158,11,0.22); }
+    .sp-card-silver { background:rgba(156,163,175,0.06); border:1px solid rgba(156,163,175,0.2); }
+    .sp-card-bronze { background:rgba(205,124,74,0.06);  border:1px solid rgba(205,124,74,0.22); }
+
+    /* reflexo superior */
+    .sp-card::before {
+      content:''; position:absolute; top:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.13),transparent);
+    }
+    /* halo */
+    .sp-card::after {
+      content:''; position:absolute; top:-50px;right:-50px;
+      width:130px;height:130px;border-radius:50%;
+      background:radial-gradient(circle,var(--glow),transparent 70%);
+      pointer-events:none;
+      animation:haloBreath 3.5s ease-in-out infinite;
+    }
+    .sp-card-gold   { --glow:rgba(245,158,11,0.18); }
+    .sp-card-silver { --glow:rgba(200,210,220,0.12); }
+    .sp-card-bronze { --glow:rgba(205,124,74,0.18); }
+    @keyframes haloBreath {
+      0%,100% { opacity:0.6; transform:scale(1); }
+      50%      { opacity:1;   transform:scale(1.1); }
+    }
+
+    .sp-tier-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:9.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+      padding:3px 10px; border-radius:20px; width:fit-content;
+    }
+    .tb-gold   { background:rgba(245,158,11,0.14);  color:#fbbf24; border:1px solid rgba(245,158,11,0.28); }
+    .tb-silver { background:rgba(200,210,220,0.12); color:#d1d5db; border:1px solid rgba(200,210,220,0.25); }
+    .tb-bronze { background:rgba(205,124,74,0.14);  color:#fdba74; border:1px solid rgba(205,124,74,0.28); }
+
+    .sp-logo-area {
+      flex:1; display:flex; align-items:center; justify-content:center; padding:6px 0;
+    }
+    .sp-logo-area img {
+      max-height:62px; max-width:72%; object-fit:contain;
+      animation:floatLogo 4s ease-in-out infinite;
+      filter:drop-shadow(0 6px 18px var(--glow));
+    }
+    @keyframes floatLogo {
+      0%,100% { transform:translateY(0); }
+      50%      { transform:translateY(-7px); }
+    }
+
+    /* nav dots */
+    .sp-nav {
+      display:flex; justify-content:center; gap:7px; margin-top:12px;
+    }
+    .sp-btn {
+      display:flex; align-items:center; gap:5px;
+      padding:5px 13px; border-radius:20px; border:none; cursor:pointer;
+      font-size:10px; font-weight:700; letter-spacing:0.4px;
+      backdrop-filter:blur(10px);
+      background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35);
+      border:1px solid rgba(255,255,255,0.08);
+      transition:all 0.35s cubic-bezier(0.16,1,0.3,1);
+      font-family:inherit;
+    }
+    .sp-btn-gold-on   { background:rgba(245,158,11,0.18);  color:#fbbf24;
+                        border-color:rgba(245,158,11,0.35); transform:scale(1.05);
+                        box-shadow:0 4px 18px rgba(245,158,11,0.25); }
+    .sp-btn-silver-on { background:rgba(209,213,219,0.15); color:#e5e7eb;
+                        border-color:rgba(209,213,219,0.3); transform:scale(1.05);
+                        box-shadow:0 4px 18px rgba(209,213,219,0.15); }
+    .sp-btn-bronze-on { background:rgba(205,124,74,0.18);  color:#fdba74;
+                        border-color:rgba(205,124,74,0.35); transform:scale(1.05);
+                        box-shadow:0 4px 18px rgba(205,124,74,0.25); }
+
+    /* ── NAV CARDS ── */
+    .nav-list {
+      width:100%; display:flex; flex-direction:column; gap:10px;
+      opacity:0; transform:translateY(20px);
+      animation: up 0.8s cubic-bezier(0.16,1,0.3,1) 0.32s forwards;
+    }
+    .nav-card {
+      display:flex; align-items:center; gap:16px;
+      padding:16px 18px; border-radius:20px; text-decoration:none; color:#fff;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+      backdrop-filter:blur(16px); position:relative; overflow:hidden;
+      transition:all 0.38s cubic-bezier(0.16,1,0.3,1);
+    }
+    /* brilho superior */
+    .nav-card::before {
+      content:''; position:absolute; top:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+    }
+    /* hover glow */
+    .nav-card::after {
+      content:''; position:absolute; inset:0; border-radius:inherit; opacity:0;
+      background:radial-gradient(ellipse 80% 60% at 50% 0%,
+                   rgba(255,255,255,0.06),transparent);
+      transition:opacity 0.4s;
+    }
+    .nav-card:hover { background:rgba(255,255,255,0.065); border-color:rgba(255,255,255,0.12);
+                      transform:translateY(-2px);
+                      box-shadow:0 24px 48px rgba(0,0,0,0.4); }
+    .nav-card:hover::after { opacity:1; }
+    .nav-card:active  { transform:scale(0.99); }
+
+    .nav-icon {
+      width:50px; height:50px; border-radius:14px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:22px; position:relative;
+    }
+    .ni-blue   { background:rgba(37,99,235,0.15);   border:1px solid rgba(37,99,235,0.22); }
+    .ni-green  { background:rgba(16,185,129,0.15);  border:1px solid rgba(16,185,129,0.22); }
+    .ni-amber  { background:rgba(245,158,11,0.15);  border:1px solid rgba(245,158,11,0.22); }
+
+    .nav-text .t1 { font-size:15px; font-weight:600; letter-spacing:-0.2px; }
+    .nav-text .t2 { font-size:12px; color:rgba(255,255,255,0.38); margin-top:2px; }
+    .nav-arrow {
+      margin-left:auto; font-size:17px; color:rgba(255,255,255,0.2);
+      transition:transform 0.3s, color 0.3s;
+    }
+    .nav-card:hover .nav-arrow { transform:translateX(4px); color:rgba(255,255,255,0.45); }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin-top:32px; text-align:center;
+      opacity:0; animation: up 0.8s cubic-bezier(0.16,1,0.3,1) 0.5s forwards;
+    }
+    .fb-trigger {
+      display:inline-flex; align-items:center; gap:8px;
+      background:transparent; border:1px solid rgba(255,255,255,0.1);
+      color:rgba(255,255,255,0.32); padding:9px 20px; border-radius:20px;
+      font-size:12px; cursor:pointer; font-family:inherit;
+      transition:all 0.3s;
+    }
+    .fb-trigger:hover { background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55);
+                        border-color:rgba(255,255,255,0.16); }
+    .credit { font-size:11px; color:rgba(255,255,255,0.18); margin-top:14px; letter-spacing:0.2px; }
+
+    /* ── MODAL (bottom-sheet) ── */
+    .overlay {
+      display:none; position:fixed; inset:0; z-index:200;
+      background:rgba(0,0,0,0.65); backdrop-filter:blur(10px);
+      align-items:flex-end; justify-content:center;
+    }
+    .overlay.open { display:flex; animation:fadeIn 0.3s ease forwards; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    .sheet {
+      width:100%; max-width:520px;
+      background:rgba(10,15,35,0.97); backdrop-filter:blur(20px);
+      border:1px solid rgba(255,255,255,0.08); border-bottom:none;
+      border-radius:28px 28px 0 0; padding:12px 24px 48px;
+      transform:translateY(100%);
+      animation:sheetUp 0.45s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    @keyframes sheetUp { to{transform:translateY(0)} }
+
+    .handle { width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.14);margin:0 auto 22px; }
+
+    .sheet-title { font-size:17px;font-weight:600;color:#fff;margin-bottom:3px; }
+    .sheet-sub   { font-size:13px;color:rgba(255,255,255,0.35);margin-bottom:20px; }
+
+    .sf {
+      width:100%; background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.1); border-radius:13px;
+      padding:12px 14px; color:#fff; font-size:14px; font-family:inherit;
+      outline:none; transition:border-color 0.25s; margin-bottom:10px;
+    }
+    .sf:focus { border-color:rgba(59,130,246,0.55); }
+    .sf::placeholder { color:rgba(255,255,255,0.22); }
+    textarea.sf { resize:none; min-height:88px; }
+
+    .char-row { text-align:right;font-size:11px;color:rgba(255,255,255,0.22);margin:-6px 0 16px; }
+
+    .submit-btn {
+      width:100%; background:#2563eb; color:#fff; border:none;
+      border-radius:13px; padding:13px; font-size:15px; font-weight:600;
+      cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .submit-btn:hover { background:#1d4ed8; transform:scale(1.01); }
+    .submit-btn:active{ transform:scale(0.99); }
+
+    .success-box { text-align:center; padding:16px 0 8px; }
+    .success-icon {
+      width:58px;height:58px;border-radius:50%;
+      background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);
+      display:flex;align-items:center;justify-content:center;font-size:26px;
+      margin:0 auto 16px;
+      animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    @keyframes popIn { from{transform:scale(0.4);opacity:0} to{transform:scale(1);opacity:1} }
+
+    @keyframes up { to{opacity:1;transform:translateY(0)} }
+
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}
     }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <div style="text-align:center;padding:22px 20px 12px;">
-    <div style="display:flex;align-items:center;justify-content:center;
-                gap:12px;margin-bottom:6px;">
-      <img src="img/logo.png" alt="Logo"
-        style="width:40px;height:40px;object-fit:contain;
-               border-radius:50%;border:2px solid rgba(255,255,255,0.25);"
-        onerror="this.style.display='none'">
-      <div style="text-align:left;">
-        <h1 style="color:white;font-size:20px;font-weight:800;margin:0;
-                   letter-spacing:-0.5px;line-height:1.2;">
-          Jogos Sinodal PB
-        </h1>
-        <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
-          2026
-        </p>
+<div id="bg" aria-hidden="true">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+</div>
+<div id="grid" aria-hidden="true"></div>
+
+<main class="page">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo-wrap">
+      <img src="img/logo.png" alt="Logo Jogos Sinodal" onerror="this.style.display='none'">
+      <div class="logo-text">
+        <h1>Jogos Sinodal PB</h1>
+        <p>2026</p>
       </div>
     </div>
-  </div>
+    <div><div class="live-badge"><span class="live-dot"></span>Campina Grande · Maio 2026</div></div>
+  </header>
 
-  <!-- Patrocinadores -->
-  <div style="max-width:480px;margin:0 auto 14px;padding:0 16px;">
+  <!-- PATROCINADORES -->
+  <section class="sponsors-wrap" aria-label="Patrocinadores">
+    <div class="section-label">✦ Patrocinadores ✦</div>
 
-    <div style="text-align:center;margin-bottom:10px;">
-      <div style="display:inline-flex;align-items:center;gap:8px;
-                  background:rgba(255,255,255,0.12);
-                  border:1px solid rgba(255,255,255,0.2);
-                  border-radius:20px;padding:5px 16px;">
-        <span style="font-size:13px;">✨</span>
-        <span style="color:rgba(255,255,255,0.9);font-size:11px;
-                     letter-spacing:2px;text-transform:uppercase;font-weight:700;">
-          Patrocinadores
-        </span>
-        <span style="font-size:13px;">✨</span>
-      </div>
-    </div>
-
-    <!-- Cards empilhados — só um visível por vez -->
-    <div style="position:relative;min-height:148px;" id="sponsors-wrapper">
-
-      <div id="scard-0" class="scard" style="position:absolute;inset:0;
-           opacity:1;transition:opacity 0.6s ease, transform 0.6s ease;
-           transform:scale(1);"></div>
-
-      <div id="scard-1" class="scard" style="position:absolute;inset:0;
-           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
-           transform:scale(0.97);pointer-events:none;"></div>
-
-      <div id="scard-2" class="scard" style="position:absolute;inset:0;
-           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
-           transform:scale(0.97);pointer-events:none;"></div>
-
-    </div>
-
-    <!-- Botões de navegação -->
-    <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;">
-      <button onclick="showSponsor(0)" id="snav-0"
-        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
-               font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;">
-        🥇 OURO
-      </button>
-      <button onclick="showSponsor(1)" id="snav-1"
-        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
-               font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;">
-        🥈 PRATA
-      </button>
-      <button onclick="showSponsor(2)" id="snav-2"
-        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
-               font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;">
-        🥉 BRONZE
-      </button>
-    </div>
-
-  </div>
-
-  <!-- Cards de navegação -->
-  <div style="max-width:480px;margin:0 auto;padding:0 16px 8px;">
-
-    <!-- Campeonatos -->
-    <a href="public.html" style="text-decoration:none;display:block;margin-bottom:10px;">
-      <div style="background:white;border-radius:14px;padding:16px;
-                  display:flex;align-items:center;gap:14px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
-                  transition:transform 0.2s;"
-           onmouseover="this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:48px;height:48px;background:#eff6ff;border-radius:12px;
-                    display:flex;align-items:center;justify-content:center;
-                    flex-shrink:0;">
-          <img src="img/campeonatos.png" alt="Campeonatos" style="width:30px;height:30px;object-fit:contain;">
+    <div class="sp-track" id="sp-track">
+      <div class="sp-card sp-card-gold on" id="sp0">
+        <span class="sp-tier-badge tb-gold">🥇 Patrocinador Ouro</span>
+        <div class="sp-logo-area">
+          <img src="img/ouro.png" alt="Ouro" onerror="this.style.display='none'">
         </div>
-        <div>
-          <div style="font-weight:700;font-size:15px;color:#1e293b;">Campeonatos</div>
-          <div style="color:#64748b;font-size:12px;margin-top:2px;">
-            Tabelas, jogos e classificação
-          </div>
-        </div>
-        <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
       </div>
+      <div class="sp-card sp-card-silver" id="sp1">
+        <span class="sp-tier-badge tb-silver">🥈 Patrocinador Prata</span>
+        <div class="sp-logo-area">
+          <img src="img/prata.png" alt="Prata" onerror="this.style.display='none'">
+        </div>
+      </div>
+      <div class="sp-card sp-card-bronze" id="sp2">
+        <span class="sp-tier-badge tb-bronze">🥉 Patrocinador Bronze</span>
+        <div class="sp-logo-area">
+          <img src="img/bronze.png" alt="Bronze" onerror="this.style.display='none'">
+        </div>
+      </div>
+    </div>
+
+    <nav class="sp-nav" aria-label="Selecionar patrocinador">
+      <button class="sp-btn sp-btn-gold-on"   id="sb0" onclick="showSp(0)">🥇 OURO</button>
+      <button class="sp-btn"                  id="sb1" onclick="showSp(1)">🥈 PRATA</button>
+      <button class="sp-btn"                  id="sb2" onclick="showSp(2)">🥉 BRONZE</button>
+    </nav>
+  </section>
+
+  <!-- NAV CARDS -->
+  <nav class="nav-list" aria-label="Seções do evento">
+
+    <a href="public.html" class="nav-card">
+      <div class="nav-icon ni-blue">🏆</div>
+      <div class="nav-text">
+        <div class="t1">Campeonatos</div>
+        <div class="t2">Tabelas, jogos e classificação</div>
+      </div>
+      <span class="nav-arrow">›</span>
     </a>
 
-    <!-- Cantina PDV 1 -->
-    <a href="cantina-menu.html?pdv=1" style="text-decoration:none;display:block;margin-bottom:10px;">
-      <div style="background:white;border-radius:14px;padding:16px;
-                  display:flex;align-items:center;gap:14px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
-                  transition:transform 0.2s;"
-           onmouseover="this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:48px;height:48px;background:#f0fdf4;border-radius:12px;
-                    display:flex;align-items:center;justify-content:center;
-                    flex-shrink:0;">
-          <img src="img/cantina.png" alt="Cantina" style="width:30px;height:30px;object-fit:contain;">
-        </div>
-        <div>
-          <div id="pdv1-name" style="font-weight:700;font-size:15px;color:#1e293b;">
-            Cantina PDV 1
-          </div>
-          <div style="color:#64748b;font-size:12px;margin-top:2px;">
-            Ver cardápio e fazer reserva
-          </div>
-        </div>
-        <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
+    <a href="cantina-menu.html?pdv=1" class="nav-card">
+      <div class="nav-icon ni-green">🍽️</div>
+      <div class="nav-text">
+        <div class="t1" id="pdv1-name">Cantina PDV 1</div>
+        <div class="t2">Ver cardápio e fazer reserva</div>
       </div>
+      <span class="nav-arrow">›</span>
     </a>
 
-    <!-- Cantina PDV 2 -->
-    <a href="cantina-menu.html?pdv=2" style="text-decoration:none;display:block;margin-bottom:16px;">
-      <div style="background:white;border-radius:14px;padding:16px;
-                  display:flex;align-items:center;gap:14px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
-                  transition:transform 0.2s;"
-           onmouseover="this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:48px;height:48px;background:#fef3c7;border-radius:12px;
-                    display:flex;align-items:center;justify-content:center;
-                    flex-shrink:0;">
-          <img src="img/cantina.png" alt="Cantina" style="width:30px;height:30px;object-fit:contain;">
-        </div>
-        <div>
-          <div id="pdv2-name" style="font-weight:700;font-size:15px;color:#1e293b;">
-            Cantina PDV 2
-          </div>
-          <div style="color:#64748b;font-size:12px;margin-top:2px;">
-            Ver cardápio e fazer reserva
-          </div>
-        </div>
-        <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
+    <a href="cantina-menu.html?pdv=2" class="nav-card">
+      <div class="nav-icon ni-amber">🛒</div>
+      <div class="nav-text">
+        <div class="t1" id="pdv2-name">Cantina PDV 2</div>
+        <div class="t2">Ver cardápio e fazer reserva</div>
       </div>
+      <span class="nav-arrow">›</span>
     </a>
 
-  </div>
+  </nav>
 
-  <!-- Botão de feedback -->
-  <div style="text-align:center;padding:0 20px 12px;">
-    <button onclick="openFeedbackModal()"
-      style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;letter-spacing:0.3px;transition:all 0.2s;"
-      onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='white'"
-      onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.7)'">
+  <!-- FOOTER -->
+  <footer class="footer">
+    <button class="fb-trigger" onclick="openFB()">
       💬 Deixe aqui o seu feedback sobre a plataforma
     </button>
-  </div>
+    <div class="credit">Desenvolvido por Miquéias Teles</div>
+  </footer>
 
-  <!-- Footer -->
-  <div style="text-align:center;padding:8px 16px 14px;color:rgba(255,255,255,0.5);font-size:11px;">
-    Desenvolvido por Miquéias Teles
-  </div>
+</main>
 
-  <!-- Modal de feedback -->
-  <div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px;">
-    <div style="background:white;border-radius:16px;width:100%;max-width:440px;overflow:hidden;">
-      <!-- Header -->
-      <div style="background:#2563eb;padding:20px 20px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="color:white;font-weight:700;font-size:16px;">💬 Feedback</div>
-            <div style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:2px;">Faz parte do meu portfólio. obrigado! 🙂</div>
-          </div>
-          <button onclick="closeFeedbackModal()"
-            style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">
-            ✕
-          </button>
-        </div>
-      </div>
-      <!-- Body -->
-      <div id="feedback-modal-body" style="padding:20px;">
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div>
-            <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Seu nome</label>
-            <input type="text" id="fb-name" maxlength="100" placeholder="Como posso te chamar?"
-              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;box-sizing:border-box;"
-              onfocus="this.style.borderColor='#2563eb'"
-              onblur="this.style.borderColor='#e2e8f0'">
-          </div>
-          <div>
-            <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Seu feedback</label>
-            <textarea id="fb-message" maxlength="500" placeholder="O que achou da plataforma?" rows="4"
-              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;box-sizing:border-box;resize:none;font-family:inherit;"
-              onfocus="this.style.borderColor='#2563eb'"
-              onblur="this.style.borderColor='#e2e8f0'"
-              oninput="document.getElementById('fb-char').textContent=this.value.length+'/500'">
-            </textarea>
-            <div style="text-align:right;font-size:11px;color:#94a3b8;margin-top:4px;"><span id="fb-char">0/500</span></div>
-          </div>
-          <button onclick="submitFeedback()" id="fb-submit-btn"
-            style="background:#2563eb;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;transition:background 0.2s;"
-            onmouseover="this.style.background='#1d4ed8'"
-            onmouseout="this.style.background='#2563eb'">
-            Enviar Feedback
-          </button>
-        </div>
-      </div>
+<!-- MODAL FEEDBACK -->
+<div class="overlay" id="fb-overlay" onclick="handleOvClick(event)">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div id="fb-body">
+      <div class="sheet-title">Seu feedback</div>
+      <div class="sheet-sub">Faz parte do meu portfólio — obrigado! 🙂</div>
+      <input  class="sf" type="text" id="fb-name" placeholder="Seu nome" maxlength="100">
+      <textarea class="sf" id="fb-msg" placeholder="O que achou da plataforma?" rows="4" maxlength="500"
+                oninput="document.getElementById('fb-cc').textContent=this.value.length+'/500'"></textarea>
+      <div class="char-row"><span id="fb-cc">0/500</span></div>
+      <button class="submit-btn" id="fb-sbtn" onclick="sendFB()">Enviar Feedback</button>
     </div>
   </div>
+</div>
 
-  <script>
-    var API_BASE = 'https://sports-platform-api.onrender.com';
+<script>
+const API = 'https://sports-platform-api.onrender.com';
 
-    async function loadPDVNames() {
-      try {
-        var results = await Promise.all([
-          fetch(API_BASE + '/api/cantina/pdv-info/1').then(function(r) { return r.json(); }),
-          fetch(API_BASE + '/api/cantina/pdv-info/2').then(function(r) { return r.json(); }),
-        ]);
-        var pdv1 = results[0], pdv2 = results[1];
-        if (pdv1 && pdv1.pdv_name) document.getElementById('pdv1-name').textContent = pdv1.pdv_name;
-        if (pdv2 && pdv2.pdv_name) document.getElementById('pdv2-name').textContent = pdv2.pdv_name;
-      } catch(e) {
-        // Manter nomes padrão
-      }
-    }
-    loadPDVNames();
+/* ── PATROCINADORES ── */
+let curSp = 0, spTimer = null;
+const ON = ['sp-btn-gold-on','sp-btn-silver-on','sp-btn-bronze-on'];
 
-    const SPONSORS = [
-      {
-        tier: 'OURO', emoji: '🥇', img: 'img/ouro.png',
-        color: '#f59e0b', colorLight: '#fef3c7', colorDark: '#92400e',
-        glow: 'rgba(245,158,11,0.35)',
-        bg: 'linear-gradient(145deg,#fffdf0,#ffffff,#fefce8)',
-        border: '#f59e0b',
-        navOn:  { bg:'rgba(245,158,11,0.9)', color:'#78350f', shadow:'0 4px 16px rgba(245,158,11,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
-      },
-      {
-        tier: 'PRATA', emoji: '🥈', img: 'img/prata.png',
-        color: '#9ca3af', colorLight: '#f3f4f6', colorDark: '#374151',
-        glow: 'rgba(156,163,175,0.35)',
-        bg: 'linear-gradient(145deg,#f9fafb,#ffffff,#f3f4f6)',
-        border: '#9ca3af',
-        navOn:  { bg:'rgba(209,213,219,0.95)', color:'#1f2937', shadow:'0 4px 16px rgba(156,163,175,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
-      },
-      {
-        tier: 'BRONZE', emoji: '🥉', img: 'img/bronze.png',
-        color: '#cd7c4a', colorLight: '#fff7ed', colorDark: '#7c2d12',
-        glow: 'rgba(205,124,74,0.35)',
-        bg: 'linear-gradient(145deg,#fff8f3,#ffffff,#fff1e6)',
-        border: '#cd7c4a',
-        navOn:  { bg:'rgba(205,124,74,0.9)', color:'#fff', shadow:'0 4px 16px rgba(205,124,74,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
-      },
-    ];
+function showSp(i, reset=true) {
+  [0,1,2].forEach(j => {
+    document.getElementById('sp'+j).classList.toggle('on', j===i);
+    const b = document.getElementById('sb'+j);
+    b.className = 'sp-btn' + (j===i ? ' '+ON[j] : '');
+  });
+  curSp = i;
+  if (reset) { clearInterval(spTimer); spTimer = setInterval(()=>showSp((curSp+1)%3), 4000); }
+}
 
-    SPONSORS.forEach((s, i) => {
-      const el = document.getElementById('scard-' + i);
-      if (!el) return;
-      el.innerHTML = `
-        <div style="background:${s.bg};border-radius:16px;border:2px solid ${s.border};box-shadow:0 6px 24px ${s.glow},0 2px 8px rgba(0,0,0,0.08);padding:16px 16px 14px;position:relative;overflow:hidden;height:100%;box-sizing:border-box;">
-          <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.6) 50%,transparent 100%);background-size:400px 100%;animation:shimmerBg 3s linear infinite;pointer-events:none;"></div>
-          <div style="position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,${s.glow},transparent 70%);animation:pulseGlow 3s ease-in-out infinite;pointer-events:none;"></div>
-          <div style="text-align:center;margin-bottom:12px;">
-            <span style="display:inline-flex;align-items:center;gap:6px;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};">
-              ${s.emoji} Patrocinador ${s.tier}
-            </span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:center;min-height:62px;">
-            <img src="${s.img}" alt="${s.tier}" style="max-height:58px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-            <span style="display:none;font-size:44px;">🏆</span>
-          </div>
-          <div style="margin-top:12px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,${s.color},transparent);opacity:0.7;"></div>
-        </div>`;
+spTimer = setInterval(()=>showSp((curSp+1)%3,false), 4000);
+
+const track = document.getElementById('sp-track');
+let tx=0;
+track.addEventListener('touchstart', e=>{ tx=e.touches[0].clientX; clearInterval(spTimer); }, {passive:true});
+track.addEventListener('touchend',   e=>{
+  const d = tx - e.changedTouches[0].clientX;
+  if(Math.abs(d)>40) showSp(d>0?(curSp+1)%3:(curSp-1+3)%3);
+  else spTimer=setInterval(()=>showSp((curSp+1)%3,false),4000);
+},{passive:true});
+track.addEventListener('mouseenter', ()=>clearInterval(spTimer));
+track.addEventListener('mouseleave', ()=>{ spTimer=setInterval(()=>showSp((curSp+1)%3,false),4000); });
+
+/* ── PDV NAMES ── */
+(async()=>{
+  try {
+    const [a,b] = await Promise.all([
+      fetch(API+'/api/cantina/pdv-info/1').then(r=>r.json()),
+      fetch(API+'/api/cantina/pdv-info/2').then(r=>r.json()),
+    ]);
+    if(a?.pdv_name) document.getElementById('pdv1-name').textContent = a.pdv_name;
+    if(b?.pdv_name) document.getElementById('pdv2-name').textContent = b.pdv_name;
+  } catch(e){}
+})();
+
+/* ── FEEDBACK ── */
+function openFB() {
+  document.getElementById('fb-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('fb-name').focus(), 80);
+}
+function closeFB() { document.getElementById('fb-overlay').classList.remove('open'); }
+function handleOvClick(e) { if(e.target===document.getElementById('fb-overlay')) closeFB(); }
+
+async function sendFB() {
+  const name = document.getElementById('fb-name').value.trim();
+  const msg  = document.getElementById('fb-msg').value.trim();
+  if(!name||!msg){ alert('Preencha seu nome e o feedback.'); return; }
+  const btn = document.getElementById('fb-sbtn');
+  btn.textContent='Enviando…'; btn.disabled=true;
+  try {
+    const r = await fetch(API+'/api/feedbacks/',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name,message:msg})
     });
-
-    let activeSponsor = 0;
-    let sponsorTimer = null;
-
-    function showSponsor(index) {
-      SPONSORS.forEach((_, i) => {
-        const card = document.getElementById('scard-' + i);
-        const nav  = document.getElementById('snav-' + i);
-        const s    = SPONSORS[i];
-        if (card) { card.style.opacity = '0'; card.style.transform = 'scale(0.97)'; card.style.pointerEvents = 'none'; }
-        if (nav)  { nav.style.background = s.navOff.bg; nav.style.color = s.navOff.color; nav.style.boxShadow = s.navOff.shadow; nav.style.transform = 'scale(1)'; }
-      });
-      const activeCard = document.getElementById('scard-' + index);
-      const activeNav  = document.getElementById('snav-' + index);
-      const activeS    = SPONSORS[index];
-      if (activeCard) { activeCard.style.opacity = '1'; activeCard.style.transform = 'scale(1)'; activeCard.style.pointerEvents = 'auto'; }
-      if (activeNav)  { activeNav.style.background = activeS.navOn.bg; activeNav.style.color = activeS.navOn.color; activeNav.style.boxShadow = activeS.navOn.shadow; activeNav.style.transform = 'scale(1.05)'; }
-      activeSponsor = index;
-    }
-
-    function nextSponsor() { showSponsor((activeSponsor + 1) % SPONSORS.length); }
-
-    function startSponsorTimer() { sponsorTimer = setInterval(nextSponsor, 4000); }
-    function stopSponsorTimer()  { if (sponsorTimer) { clearInterval(sponsorTimer); sponsorTimer = null; } }
-
-    const wrapper = document.getElementById('sponsors-wrapper');
-    if (wrapper) {
-      let tx = 0;
-      wrapper.addEventListener('touchstart', e => { tx = e.touches[0].clientX; stopSponsorTimer(); }, { passive: true });
-      wrapper.addEventListener('touchend', e => {
-        const d = tx - e.changedTouches[0].clientX;
-        if (Math.abs(d) > 40) showSponsor(d > 0 ? (activeSponsor + 1) % SPONSORS.length : (activeSponsor - 1 + SPONSORS.length) % SPONSORS.length);
-        startSponsorTimer();
-      }, { passive: true });
-      wrapper.addEventListener('mouseenter', stopSponsorTimer);
-      wrapper.addEventListener('mouseleave', startSponsorTimer);
-    }
-
-    showSponsor(0);
-    startSponsorTimer();
-
-    function openFeedbackModal() {
-      document.getElementById('feedback-modal').style.display = 'flex';
-      setTimeout(function() { document.getElementById('fb-name').focus(); }, 100);
-    }
-
-    function closeFeedbackModal() {
-      document.getElementById('feedback-modal').style.display = 'none';
-      document.getElementById('feedback-modal-body').innerHTML = document.getElementById('feedback-modal-body').innerHTML;
-    }
-
-    document.getElementById('feedback-modal').addEventListener('click', function(e) {
-      if (e.target === this) closeFeedbackModal();
-    });
-
-    async function submitFeedback() {
-      var name = document.getElementById('fb-name').value.trim();
-      var message = document.getElementById('fb-message').value.trim();
-      if (!name || !message) { alert('Por favor preencha seu nome e o feedback.'); return; }
-      var btn = document.getElementById('fb-submit-btn');
-      btn.textContent = 'Enviando...';
-      btn.disabled = true;
-      try {
-        var res = await fetch(API_BASE + '/api/feedbacks/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, message: message })
-        });
-        if (!res.ok) throw new Error('Erro ao enviar');
-        document.getElementById('feedback-modal-body').innerHTML = '<div style="text-align:center;padding:24px 16px;">'
-          + '<div style="font-size:48px;margin-bottom:16px;">✅</div>'
-          + '<div style="font-weight:700;font-size:18px;color:#1e293b;margin-bottom:8px;">Obrigado pelo feedback!</div>'
-          + '<div style="color:#64748b;font-size:14px;margin-bottom:24px;">Sua opinião é muito importante. 🙂</div>'
-          + '<button onclick="closeFeedbackModal()" style="background:#2563eb;color:white;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;font-weight:600;">Fechar</button>'
-          + '</div>';
-      } catch(e) {
-        btn.textContent = 'Enviar Feedback';
-        btn.disabled = false;
-        alert('Erro ao enviar. Tente novamente.');
-      }
-    }
-  </script>
+    if(!r.ok) throw 0;
+    document.getElementById('fb-body').innerHTML=`
+      <div class="success-box">
+        <div class="success-icon">✅</div>
+        <div class="sheet-title">Obrigado!</div>
+        <div class="sheet-sub" style="margin-top:6px;">Seu feedback foi enviado com sucesso.</div>
+        <button class="submit-btn" style="margin-top:20px" onclick="closeFB()">Fechar</button>
+      </div>`;
+  } catch(e){
+    btn.textContent='Enviar Feedback'; btn.disabled=false;
+    alert('Erro ao enviar. Tente novamente.');
+  }
+}
+</script>
 </body>
 </html>
