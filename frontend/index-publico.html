@@ -32,40 +32,9 @@
       25%  { opacity: 1; }
       100% { opacity: 0; transform: translateY(-44px) scale(0.2); }
     }
-    @keyframes ball-soccer {
-      0%    { opacity:1; transform:translateX(108vw) translateY(0)    rotate(0deg); }
-      6%    { opacity:1; transform:translateX(80vw)  translateY(-28px) rotate(-180deg); }
-      12%   { opacity:1; transform:translateX(52vw)  translateY(0)    rotate(-360deg); }
-      18%   { opacity:1; transform:translateX(22vw)  translateY(-22px) rotate(-540deg); }
-      24%   { opacity:1; transform:translateX(-60px) translateY(0)    rotate(-700deg); }
-      24.5% { opacity:0; transform:translateX(-60px); }
-      25%   { opacity:0; transform:translateX(108vw); }
-      100%  { opacity:0; transform:translateX(108vw); }
-    }
-    @keyframes ball-basket {
-      0%    { opacity:1; transform:translateX(-60px) translateY(0)    rotate(0deg); }
-      6%    { opacity:1; transform:translateX(22vw)  translateY(-26px) rotate(180deg); }
-      12%   { opacity:1; transform:translateX(50vw)  translateY(0)    rotate(360deg); }
-      18%   { opacity:1; transform:translateX(78vw)  translateY(-20px) rotate(540deg); }
-      24%   { opacity:1; transform:translateX(108vw) translateY(0)    rotate(700deg); }
-      24.5% { opacity:0; transform:translateX(108vw); }
-      25%   { opacity:0; transform:translateX(-60px); }
-      100%  { opacity:0; transform:translateX(-60px); }
-    }
-    @keyframes ball-volei {
-      0%    { opacity:1; transform:translateX(108vw) translateY(0)    rotate(0deg); }
-      12%   { opacity:1; transform:translateX(54vw)  translateY(-20px) rotate(-200deg); }
-      24%   { opacity:1; transform:translateX(-60px) translateY(0)    rotate(-400deg); }
-      24.5% { opacity:0; transform:translateX(-60px); }
-      25%   { opacity:0; transform:translateX(108vw); }
-      100%  { opacity:0; transform:translateX(108vw); }
-    }
-    @keyframes ball-pingpong {
-      0%    { opacity:1; transform:translateX(-60px) rotate(0deg); }
-      24%   { opacity:1; transform:translateX(108vw) rotate(900deg); }
-      24.5% { opacity:0; transform:translateX(108vw); }
-      25%   { opacity:0; transform:translateX(-60px); }
-      100%  { opacity:0; transform:translateX(-60px); }
+    @keyframes waveScroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
   </style>
 </head>
@@ -230,22 +199,20 @@
     Desenvolvido por Miquéias Teles
   </div>
 
-  <!-- Animação esportiva -->
-  <div style="position:relative;height:82px;overflow:hidden;">
-    <div style="position:absolute;bottom:10px;left:0;right:0;height:1px;
-                background:linear-gradient(90deg,transparent,rgba(37,99,235,0.3) 20%,rgba(37,99,235,0.3) 80%,transparent);"></div>
-    <span style="position:absolute;font-size:26px;bottom:14px;left:0;
-                 animation:ball-soccer 20s linear infinite 0s;
-                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">⚽</span>
-    <span style="position:absolute;font-size:26px;bottom:20px;left:0;
-                 animation:ball-basket 20s linear infinite 5s;
-                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">🏀</span>
-    <span style="position:absolute;font-size:26px;bottom:12px;left:0;
-                 animation:ball-volei 20s linear infinite 10s;
-                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">🏐</span>
-    <span style="position:absolute;font-size:24px;bottom:18px;left:0;
-                 animation:ball-pingpong 20s linear infinite 15s;
-                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">🏓</span>
+  <!-- Ondas decorativas -->
+  <div style="position:relative;height:52px;overflow:hidden;">
+    <svg style="position:absolute;bottom:0;left:0;width:200%;height:100%;animation:waveScroll 20s linear infinite;" preserveAspectRatio="none" viewBox="0 0 2880 52">
+      <path d="M0,26 C240,52 480,0 720,26 C960,52 1200,0 1440,26 C1680,52 1920,0 2160,26 C2400,52 2640,0 2880,26 L2880,52 L0,52 Z" fill="#1e3a8a" fill-opacity="0.1"/>
+    </svg>
+    <svg style="position:absolute;bottom:0;left:0;width:200%;height:100%;animation:waveScroll 13s linear infinite 0.8s reverse;" preserveAspectRatio="none" viewBox="0 0 2880 52">
+      <path d="M0,34 C360,6 720,48 1080,20 C1440,48 1800,6 2160,34 C2520,48 2880,10 2880,34 L2880,52 L0,52 Z" fill="#2563eb" fill-opacity="0.08"/>
+    </svg>
+    <svg style="position:absolute;bottom:0;left:0;width:200%;height:100%;animation:waveScroll 9s linear infinite 1.6s;" preserveAspectRatio="none" viewBox="0 0 2880 52">
+      <path d="M0,38 C480,14 960,48 1440,28 C1920,6 2400,44 2880,38 L2880,52 L0,52 Z" fill="#3b82f6" fill-opacity="0.07"/>
+    </svg>
+    <svg style="position:absolute;bottom:0;left:0;width:200%;height:100%;animation:waveScroll 24s linear infinite 2s reverse;" preserveAspectRatio="none" viewBox="0 0 2880 52">
+      <path d="M0,42 C600,22 1200,52 1800,32 C2400,12 2880,40 2880,42 L2880,52 L0,52 Z" fill="#1d4ed8" fill-opacity="0.06"/>
+    </svg>
   </div>
 
   <!-- Modal de feedback -->
