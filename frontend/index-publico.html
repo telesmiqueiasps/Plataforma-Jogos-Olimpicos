@@ -10,7 +10,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Outfit', sans-serif; min-height: 100vh;
-           background: #f8fafc; }
+           background: #f8fafc; display:flex; flex-direction:column; }
     @keyframes floatImg {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-8px); }
@@ -200,7 +200,7 @@
   </div>
 
   <!-- Ondas decorativas -->
-  <div style="position:relative;height:52px;overflow:hidden;">
+  <div style="position:relative;flex:1;min-height:52px;overflow:hidden;">
     <svg style="position:absolute;bottom:0;left:0;width:200%;height:100%;animation:waveScroll 20s linear infinite;" preserveAspectRatio="none" viewBox="0 0 2880 52">
       <path d="M0,26 C240,52 480,0 720,26 C960,52 1200,0 1440,26 C1680,52 1920,0 2160,26 C2400,52 2640,0 2880,26 L2880,52 L0,52 Z" fill="#1e3a8a" fill-opacity="0.1"/>
     </svg>
