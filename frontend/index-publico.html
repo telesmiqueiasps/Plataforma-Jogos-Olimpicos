@@ -10,7 +10,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Outfit', sans-serif; min-height: 100vh;
-           background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%); }
+           background: #f8fafc; }
     @keyframes floatImg {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-8px); }
@@ -33,14 +33,14 @@
                 gap:12px;margin-bottom:6px;">
       <img src="img/logo.png" alt="Logo"
         style="width:40px;height:40px;object-fit:contain;
-               border-radius:50%;border:2px solid rgba(255,255,255,0.25);"
+               border-radius:50%;border:2px solid rgba(30,58,138,0.15);"
         onerror="this.style.display='none'">
       <div style="text-align:left;">
-        <h1 style="color:white;font-size:20px;font-weight:800;margin:0;
+        <h1 style="color:#1e3a8a;font-size:20px;font-weight:800;margin:0;
                    letter-spacing:-0.5px;line-height:1.2;">
           Jogos Sinodal PB
         </h1>
-        <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
+        <p style="color:#64748b;font-size:12px;margin:0;">
           2026
         </p>
       </div>
@@ -52,11 +52,11 @@
 
     <div style="text-align:center;margin-bottom:10px;">
       <div style="display:inline-flex;align-items:center;gap:8px;
-                  background:rgba(255,255,255,0.12);
-                  border:1px solid rgba(255,255,255,0.2);
+                  background:#eff6ff;
+                  border:1px solid #bfdbfe;
                   border-radius:20px;padding:5px 16px;">
         <span style="font-size:13px;">✨</span>
-        <span style="color:rgba(255,255,255,0.9);font-size:11px;
+        <span style="color:#1e3a8a;font-size:11px;
                      letter-spacing:2px;text-transform:uppercase;font-weight:700;">
           Patrocinadores
         </span>
@@ -186,15 +186,15 @@
   <!-- Botão de feedback -->
   <div style="text-align:center;padding:0 20px 12px;">
     <button onclick="openFeedbackModal()"
-      style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;letter-spacing:0.3px;transition:all 0.2s;"
-      onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='white'"
-      onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.7)'">
+      style="background:transparent;border:1px solid rgba(30,58,138,0.2);color:#475569;padding:10px 24px;border-radius:20px;font-size:13px;cursor:pointer;letter-spacing:0.3px;transition:all 0.2s;"
+      onmouseover="this.style.background='#eff6ff';this.style.color='#1e3a8a'"
+      onmouseout="this.style.background='transparent';this.style.color='#475569'">
       💬 Deixe aqui o seu feedback sobre a plataforma
     </button>
   </div>
 
   <!-- Footer -->
-  <div style="text-align:center;padding:8px 16px 14px;color:rgba(255,255,255,0.5);font-size:11px;">
+  <div style="text-align:center;padding:8px 16px 14px;color:#94a3b8;font-size:11px;">
     Desenvolvido por Miquéias Teles
   </div>
 
@@ -271,7 +271,7 @@
         bg: 'linear-gradient(145deg,#fffdf0,#ffffff,#fefce8)',
         border: '#f59e0b',
         navOn:  { bg:'rgba(245,158,11,0.9)', color:'#78350f', shadow:'0 4px 16px rgba(245,158,11,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
+        navOff: { bg:'#f1f5f9', color:'#64748b', shadow:'none' },
       },
       {
         tier: 'PRATA', emoji: '🥈', img: 'img/prata.png',
@@ -280,7 +280,7 @@
         bg: 'linear-gradient(145deg,#f9fafb,#ffffff,#f3f4f6)',
         border: '#9ca3af',
         navOn:  { bg:'rgba(209,213,219,0.95)', color:'#1f2937', shadow:'0 4px 16px rgba(156,163,175,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
+        navOff: { bg:'#f1f5f9', color:'#64748b', shadow:'none' },
       },
       {
         tier: 'BRONZE', emoji: '🥉', img: 'img/bronze.png',
@@ -289,7 +289,7 @@
         bg: 'linear-gradient(145deg,#fff8f3,#ffffff,#fff1e6)',
         border: '#cd7c4a',
         navOn:  { bg:'rgba(205,124,74,0.9)', color:'#fff', shadow:'0 4px 16px rgba(205,124,74,0.5)' },
-        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
+        navOff: { bg:'#f1f5f9', color:'#64748b', shadow:'none' },
       },
     ];
 
