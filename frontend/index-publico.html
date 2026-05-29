@@ -32,27 +32,40 @@
       25%  { opacity: 1; }
       100% { opacity: 0; transform: translateY(-44px) scale(0.2); }
     }
-    @keyframes sportL {
-      from { transform: translateX(108vw) rotate(0deg); }
-      to   { transform: translateX(-60px) rotate(-700deg); }
+    @keyframes ball-soccer {
+      0%    { opacity:1; transform:translateX(108vw) translateY(0)    rotate(0deg); }
+      6%    { opacity:1; transform:translateX(80vw)  translateY(-28px) rotate(-180deg); }
+      12%   { opacity:1; transform:translateX(52vw)  translateY(0)    rotate(-360deg); }
+      18%   { opacity:1; transform:translateX(22vw)  translateY(-22px) rotate(-540deg); }
+      24%   { opacity:1; transform:translateX(-60px) translateY(0)    rotate(-700deg); }
+      24.5% { opacity:0; transform:translateX(-60px); }
+      25%   { opacity:0; transform:translateX(108vw); }
+      100%  { opacity:0; transform:translateX(108vw); }
     }
-    @keyframes sportLb {
-      0%   { transform: translateX(108vw) translateY(0)    rotate(0deg); }
-      25%  { transform: translateX(76vw)  translateY(-28px) rotate(-175deg); }
-      50%  { transform: translateX(46vw)  translateY(0)    rotate(-350deg); }
-      75%  { transform: translateX(18vw)  translateY(-22px) rotate(-525deg); }
-      100% { transform: translateX(-60px) translateY(0)    rotate(-700deg); }
+    @keyframes ball-basket {
+      0%    { opacity:1; transform:translateX(-60px) translateY(0)    rotate(0deg); }
+      6%    { opacity:1; transform:translateX(22vw)  translateY(-26px) rotate(180deg); }
+      12%   { opacity:1; transform:translateX(50vw)  translateY(0)    rotate(360deg); }
+      18%   { opacity:1; transform:translateX(78vw)  translateY(-20px) rotate(540deg); }
+      24%   { opacity:1; transform:translateX(108vw) translateY(0)    rotate(700deg); }
+      24.5% { opacity:0; transform:translateX(108vw); }
+      25%   { opacity:0; transform:translateX(-60px); }
+      100%  { opacity:0; transform:translateX(-60px); }
     }
-    @keyframes sportR {
-      from { transform: translateX(-60px) rotate(0deg); }
-      to   { transform: translateX(108vw) rotate(700deg); }
+    @keyframes ball-volei {
+      0%    { opacity:1; transform:translateX(108vw) translateY(0)    rotate(0deg); }
+      12%   { opacity:1; transform:translateX(54vw)  translateY(-20px) rotate(-200deg); }
+      24%   { opacity:1; transform:translateX(-60px) translateY(0)    rotate(-400deg); }
+      24.5% { opacity:0; transform:translateX(-60px); }
+      25%   { opacity:0; transform:translateX(108vw); }
+      100%  { opacity:0; transform:translateX(108vw); }
     }
-    @keyframes sportRb {
-      0%   { transform: translateX(-60px) translateY(0)    rotate(0deg); }
-      25%  { transform: translateX(24vw)  translateY(-26px) rotate(175deg); }
-      50%  { transform: translateX(50vw)  translateY(0)    rotate(350deg); }
-      75%  { transform: translateX(76vw)  translateY(-20px) rotate(525deg); }
-      100% { transform: translateX(108vw) translateY(0)    rotate(700deg); }
+    @keyframes ball-pingpong {
+      0%    { opacity:1; transform:translateX(-60px) rotate(0deg); }
+      24%   { opacity:1; transform:translateX(108vw) rotate(900deg); }
+      24.5% { opacity:0; transform:translateX(108vw); }
+      25%   { opacity:0; transform:translateX(-60px); }
+      100%  { opacity:0; transform:translateX(-60px); }
     }
   </style>
 </head>
@@ -219,24 +232,20 @@
 
   <!-- Animação esportiva -->
   <div style="position:relative;height:82px;overflow:hidden;">
-    <span style="position:absolute;font-size:22px;bottom:12px;left:0;
-                 animation:sportLb 11s linear infinite;
-                 filter:drop-shadow(0 0 6px rgba(37,99,235,0.65));">⚽</span>
-    <span style="position:absolute;font-size:20px;bottom:26px;left:0;
-                 animation:sportRb 14s linear infinite 3s;
-                 filter:drop-shadow(0 0 6px rgba(37,99,235,0.65));">🏀</span>
-    <span style="position:absolute;font-size:22px;bottom:10px;left:0;
-                 animation:sportL 18s linear infinite 6s;
-                 filter:drop-shadow(0 0 6px rgba(37,99,235,0.65));">🏐</span>
-    <span style="position:absolute;font-size:16px;bottom:20px;left:0;
-                 animation:sportR 9s linear infinite 1s;
-                 filter:drop-shadow(0 0 6px rgba(37,99,235,0.65));">🎾</span>
-    <span style="position:absolute;font-size:22px;bottom:30px;left:0;
-                 animation:sportL 13s linear infinite 4s;
-                 filter:drop-shadow(0 0 6px rgba(37,99,235,0.65));">🏃</span>
-    <span style="position:absolute;font-size:20px;bottom:16px;left:0;
-                 animation:sportRb 16s linear infinite 8s;
-                 filter:drop-shadow(0 0 6px rgba(37,99,235,0.65));">🤸</span>
+    <div style="position:absolute;bottom:10px;left:0;right:0;height:1px;
+                background:linear-gradient(90deg,transparent,rgba(37,99,235,0.3) 20%,rgba(37,99,235,0.3) 80%,transparent);"></div>
+    <span style="position:absolute;font-size:26px;bottom:14px;left:0;
+                 animation:ball-soccer 20s linear infinite 0s;
+                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">⚽</span>
+    <span style="position:absolute;font-size:26px;bottom:20px;left:0;
+                 animation:ball-basket 20s linear infinite 5s;
+                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">🏀</span>
+    <span style="position:absolute;font-size:26px;bottom:12px;left:0;
+                 animation:ball-volei 20s linear infinite 10s;
+                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">🏐</span>
+    <span style="position:absolute;font-size:24px;bottom:18px;left:0;
+                 animation:ball-pingpong 20s linear infinite 15s;
+                 filter:drop-shadow(0 0 7px rgba(37,99,235,0.7));">🏓</span>
   </div>
 
   <!-- Modal de feedback -->
