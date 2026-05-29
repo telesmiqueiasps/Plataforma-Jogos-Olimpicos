@@ -423,8 +423,11 @@ def approve_credential(
         try:
             c = db_bg.query(Credential).filter(Credential.id == credential_id).first()
             if c:
-                result = email_service.send_approval_email(c)
-                logger.info(f"Resultado email aprovação: {result}")
+                if c.email:
+                    result = email_service.send_approval_email(c)
+                    logger.info(f"Resultado email aprovação: {result}")
+                else:
+                    logger.info(f"Credencial {credential_id} aprovada sem email — pulando envio")
             else:
                 logger.error(f"Credencial ID {credential_id} não encontrada na thread de aprovação")
         except Exception as e:
