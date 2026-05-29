@@ -11,6 +11,43 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Outfit', sans-serif; min-height: 100vh;
            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%); }
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      50% { transform: scale(1.02); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.7; }
+    }
+    @keyframes fadeSlideIn {
+      0% { opacity: 0; transform: translateY(20px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes fadeSlideOut {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-20px) scale(0.96); }
+    }
+    @keyframes glowGold {
+      0%, 100% { box-shadow: 0 0 20px rgba(251,191,36,0.3), 0 8px 32px rgba(0,0,0,0.2); }
+      50% { box-shadow: 0 0 40px rgba(251,191,36,0.6), 0 8px 32px rgba(0,0,0,0.2); }
+    }
+    @keyframes glowSilver {
+      0%, 100% { box-shadow: 0 0 20px rgba(156,163,175,0.3), 0 8px 32px rgba(0,0,0,0.2); }
+      50% { box-shadow: 0 0 40px rgba(156,163,175,0.6), 0 8px 32px rgba(0,0,0,0.2); }
+    }
+    @keyframes glowBronze {
+      0%, 100% { box-shadow: 0 0 20px rgba(205,124,74,0.3), 0 8px 32px rgba(0,0,0,0.2); }
+      50% { box-shadow: 0 0 40px rgba(205,124,74,0.6), 0 8px 32px rgba(0,0,0,0.2); }
+    }
+    @keyframes particles {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(-60px) rotate(360deg); opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -36,114 +73,60 @@
   </div>
 
   <!-- Patrocinadores -->
-  <div style="max-width:480px;margin:0 auto 20px;padding:0 20px;">
+  <div style="max-width:480px;margin:0 auto 24px;padding:0 20px;">
 
-    <!-- Título da seção -->
-    <div style="text-align:center;margin-bottom:12px;">
-      <span style="color:rgba(255,255,255,0.6);font-size:11px;
-                   letter-spacing:1px;text-transform:uppercase;font-weight:600;">
-        Conheça Nossos Patrocinadores
-      </span>
+    <!-- Título animado -->
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;
+                  background:rgba(255,255,255,0.1);
+                  border:1px solid rgba(255,255,255,0.2);
+                  border-radius:20px;padding:5px 16px;">
+        <span style="font-size:14px;">✨</span>
+        <span style="color:rgba(255,255,255,0.9);font-size:11px;
+                     letter-spacing:2px;text-transform:uppercase;font-weight:700;">
+          Patrocinadores
+        </span>
+        <span style="font-size:14px;">✨</span>
+      </div>
     </div>
 
-    <!-- Container do carrossel -->
-    <div style="position:relative;overflow:hidden;border-radius:16px;
-                box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+    <!-- Card principal do patrocinador -->
+    <div style="position:relative;" id="sponsor-container">
 
-      <!-- Slides -->
-      <div id="sponsor-slides" style="display:flex;transition:transform 0.5s ease;">
+      <!-- Partículas decorativas -->
+      <div id="particles-container" style="position:absolute;inset:0;
+           pointer-events:none;overflow:hidden;border-radius:20px;z-index:0;"></div>
 
-        <!-- OURO -->
-        <div class="sponsor-slide" style="min-width:100%;flex-shrink:0;">
-          <div style="background:white;border-radius:16px;padding:20px 24px;
-                      border-top:4px solid #f59e0b;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;
-                        background:radial-gradient(circle,rgba(251,191,36,0.15),transparent);
-                        border-radius:50%;pointer-events:none;"></div>
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
-              <span style="font-size:18px;">🥇</span>
-              <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;
-                           text-transform:uppercase;color:#b45309;
-                           background:#fef3c7;padding:3px 8px;border-radius:20px;">
-                Patrocinador Ouro
-              </span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:center;
-                        min-height:70px;">
-              <img src="img/ouro.png" alt="Patrocinador Ouro"
-                style="max-height:65px;max-width:85%;object-fit:contain;"
-                onerror="this.style.display='none'">
-            </div>
-          </div>
-        </div>
-
-        <!-- PRATA -->
-        <div class="sponsor-slide" style="min-width:100%;flex-shrink:0;">
-          <div style="background:white;border-radius:16px;padding:20px 24px;
-                      border-top:4px solid #9ca3af;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;
-                        background:radial-gradient(circle,rgba(156,163,175,0.15),transparent);
-                        border-radius:50%;pointer-events:none;"></div>
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
-              <span style="font-size:18px;">🥈</span>
-              <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;
-                           text-transform:uppercase;color:#4b5563;
-                           background:#f3f4f6;padding:3px 8px;border-radius:20px;">
-                Patrocinador Prata
-              </span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:center;
-                        min-height:70px;">
-              <img src="img/prata.png" alt="Patrocinador Prata"
-                style="max-height:65px;max-width:85%;object-fit:contain;"
-                onerror="this.style.display='none'">
-            </div>
-          </div>
-        </div>
-
-        <!-- BRONZE -->
-        <div class="sponsor-slide" style="min-width:100%;flex-shrink:0;">
-          <div style="background:white;border-radius:16px;padding:20px 24px;
-                      border-top:4px solid #cd7c4a;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;
-                        background:radial-gradient(circle,rgba(205,124,74,0.15),transparent);
-                        border-radius:50%;pointer-events:none;"></div>
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
-              <span style="font-size:18px;">🥉</span>
-              <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;
-                           text-transform:uppercase;color:#92400e;
-                           background:#fef3c7;padding:3px 8px;border-radius:20px;">
-                Patrocinador Bronze
-              </span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:center;
-                        min-height:70px;">
-              <img src="img/bronze.png" alt="Patrocinador Bronze"
-                style="max-height:65px;max-width:85%;object-fit:contain;"
-                onerror="this.style.display='none'">
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Indicadores (dots) -->
-      <div style="display:flex;justify-content:center;gap:6px;margin-top:10px;padding:4px;">
-        <button class="sponsor-dot" id="dot-0" onclick="goToSlide(0)"
-          style="width:20px;height:5px;border-radius:3px;border:none;
-                 background:rgba(255,255,255,0.9);cursor:pointer;
-                 transition:all 0.3s;padding:0;"></button>
-        <button class="sponsor-dot" id="dot-1" onclick="goToSlide(1)"
-          style="width:6px;height:5px;border-radius:3px;border:none;
-                 background:rgba(255,255,255,0.3);cursor:pointer;
-                 transition:all 0.3s;padding:0;"></button>
-        <button class="sponsor-dot" id="dot-2" onclick="goToSlide(2)"
-          style="width:6px;height:5px;border-radius:3px;border:none;
-                 background:rgba(255,255,255,0.3);cursor:pointer;
-                 transition:all 0.3s;padding:0;"></button>
-      </div>
+      <!-- Card do patrocinador ativo -->
+      <div id="active-sponsor-card" style="position:relative;z-index:1;"></div>
 
     </div>
+
+    <!-- Navegação por categoria -->
+    <div style="display:flex;justify-content:center;gap:8px;margin-top:14px;">
+      <button onclick="goToSponsor(0)" id="nav-0"
+        style="display:flex;align-items:center;gap:5px;padding:6px 14px;
+               border-radius:20px;border:none;cursor:pointer;
+               font-size:11px;font-weight:700;letter-spacing:0.5px;
+               transition:all 0.3s;background:rgba(251,191,36,0.9);color:#78350f;">
+        🥇 OURO
+      </button>
+      <button onclick="goToSponsor(1)" id="nav-1"
+        style="display:flex;align-items:center;gap:5px;padding:6px 14px;
+               border-radius:20px;border:none;cursor:pointer;
+               font-size:11px;font-weight:700;letter-spacing:0.5px;
+               transition:all 0.3s;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);">
+        🥈 PRATA
+      </button>
+      <button onclick="goToSponsor(2)" id="nav-2"
+        style="display:flex;align-items:center;gap:5px;padding:6px 14px;
+               border-radius:20px;border:none;cursor:pointer;
+               font-size:11px;font-weight:700;letter-spacing:0.5px;
+               transition:all 0.3s;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);">
+        🥉 BRONZE
+      </button>
+    </div>
+
   </div>
 
   <!-- Cards de navegação -->
@@ -304,60 +287,174 @@
     }
     loadPDVNames();
 
-    var currentSlide = 0;
-    var totalSlides = 3;
-    var autoplayInterval = null;
-
-    function goToSlide(index) {
-      currentSlide = index;
-      var slides = document.getElementById('sponsor-slides');
-      if (slides) {
-        slides.style.transition = 'transform 0.5s cubic-bezier(0.4,0,0.2,1)';
-        slides.style.transform = 'translateX(-' + (index * 100) + '%)';
+    const sponsors = [
+      {
+        id: 0,
+        tier: 'OURO',
+        emoji: '🥇',
+        img: 'img/ouro.png',
+        accent: '#f59e0b',
+        accentLight: '#fef3c7',
+        accentDark: '#92400e',
+        accentGlow: 'rgba(251,191,36,0.4)',
+        gradient: 'linear-gradient(135deg,#fffbeb 0%,#fff 50%,#fef9c3 100%)',
+        shimmer: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.15),transparent)',
+        glowAnim: 'glowGold 2.5s ease-in-out infinite',
+        borderGrad: 'linear-gradient(135deg,#f59e0b,#fbbf24,#f59e0b)',
+        particleColor: '#fbbf24',
+        navActive: 'background:rgba(251,191,36,0.9);color:#78350f;transform:scale(1.05);box-shadow:0 4px 15px rgba(251,191,36,0.4)',
+        navInactive: 'background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)',
+      },
+      {
+        id: 1,
+        tier: 'PRATA',
+        emoji: '🥈',
+        img: 'img/prata.png',
+        accent: '#9ca3af',
+        accentLight: '#f3f4f6',
+        accentDark: '#374151',
+        accentGlow: 'rgba(156,163,175,0.4)',
+        gradient: 'linear-gradient(135deg,#f9fafb 0%,#fff 50%,#f3f4f6 100%)',
+        shimmer: 'linear-gradient(90deg,transparent,rgba(156,163,175,0.15),transparent)',
+        glowAnim: 'glowSilver 2.5s ease-in-out infinite',
+        borderGrad: 'linear-gradient(135deg,#9ca3af,#d1d5db,#9ca3af)',
+        particleColor: '#d1d5db',
+        navActive: 'background:rgba(209,213,219,0.9);color:#374151;transform:scale(1.05);box-shadow:0 4px 15px rgba(156,163,175,0.4)',
+        navInactive: 'background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)',
+      },
+      {
+        id: 2,
+        tier: 'BRONZE',
+        emoji: '🥉',
+        img: 'img/bronze.png',
+        accent: '#cd7c4a',
+        accentLight: '#fff7ed',
+        accentDark: '#7c2d12',
+        accentGlow: 'rgba(205,124,74,0.4)',
+        gradient: 'linear-gradient(135deg,#fff7ed 0%,#fff 50%,#ffedd5 100%)',
+        shimmer: 'linear-gradient(90deg,transparent,rgba(205,124,74,0.15),transparent)',
+        glowAnim: 'glowBronze 2.5s ease-in-out infinite',
+        borderGrad: 'linear-gradient(135deg,#cd7c4a,#f97316,#cd7c4a)',
+        particleColor: '#fb923c',
+        navActive: 'background:rgba(205,124,74,0.9);color:#fff;transform:scale(1.05);box-shadow:0 4px 15px rgba(205,124,74,0.4)',
+        navInactive: 'background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)',
       }
-      document.querySelectorAll('.sponsor-dot').forEach(function(dot, i) {
-        if (i === index) {
-          dot.style.width = '20px';
-          dot.style.background = 'rgba(255,255,255,0.95)';
+    ];
+
+    let currentSponsor = 0;
+    let autoplayTimer = null;
+    let isTransitioning = false;
+    let particleTimers = [];
+
+    function createParticles(color) {
+      const container = document.getElementById('particles-container');
+      if (!container) return;
+      container.innerHTML = '';
+      particleTimers.forEach(t => clearTimeout(t));
+      particleTimers = [];
+      for (let i = 0; i < 8; i++) {
+        const t = setTimeout(() => {
+          if (!container.isConnected) return;
+          const p = document.createElement('div');
+          const size = Math.random() * 6 + 4;
+          const left = Math.random() * 90 + 5;
+          const duration = Math.random() * 1500 + 1000;
+          const delay = Math.random() * 500;
+          p.style.cssText = `position:absolute;bottom:10px;left:${left}%;width:${size}px;height:${size}px;background:${color};border-radius:50%;opacity:0.7;animation:particles ${duration}ms ease-out ${delay}ms forwards;pointer-events:none;`;
+          container.appendChild(p);
+          particleTimers.push(setTimeout(() => p.remove(), duration + delay + 100));
+        }, i * 200);
+        particleTimers.push(t);
+      }
+    }
+
+    function renderSponsorCard(sponsor, animate) {
+      const card = document.getElementById('active-sponsor-card');
+      if (!card) return;
+      card.innerHTML = `
+        <div style="background:${sponsor.gradient};border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;animation:${animate !== false ? 'fadeSlideIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards,' : ''}${sponsor.glowAnim};border:2px solid transparent;background-clip:padding-box;">
+          <div style="position:absolute;inset:-2px;border-radius:22px;background:${sponsor.borderGrad};z-index:-1;"></div>
+          <div style="position:absolute;inset:0;border-radius:20px;background:${sponsor.shimmer};background-size:200% auto;animation:shimmer 3s linear infinite;pointer-events:none;opacity:0.6;"></div>
+          <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,${sponsor.accentGlow},transparent);pointer-events:none;"></div>
+          <div style="position:absolute;bottom:-20px;left:-20px;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,${sponsor.accentGlow},transparent);pointer-events:none;"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:6px;background:${sponsor.accentLight};border:1px solid ${sponsor.accent};border-radius:20px;padding:5px 14px;animation:pulse-ring 2s ease-in-out infinite;">
+              <span style="font-size:16px;">${sponsor.emoji}</span>
+              <span style="font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${sponsor.accentDark};">Patrocinador ${sponsor.tier}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;min-height:90px;animation:floatUp 3s ease-in-out infinite;">
+            <img src="${sponsor.img}" alt="Patrocinador ${sponsor.tier}" style="max-height:80px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${sponsor.accentGlow});" onerror="this.parentElement.innerHTML='<span style=\\'font-size:48px;\\'>🏆</span>'">
+          </div>
+          <div style="margin-top:20px;height:3px;border-radius:2px;background:${sponsor.borderGrad};opacity:0.5;"></div>
+        </div>`;
+      createParticles(sponsor.particleColor);
+    }
+
+    function updateNavButtons(activeIndex) {
+      sponsors.forEach((s, i) => {
+        const btn = document.getElementById('nav-' + i);
+        if (!btn) return;
+        btn.setAttribute('style', btn.getAttribute('style').replace(/background:[^;]+;color:[^;]+(?:;transform:[^;]+)?(?:;box-shadow:[^;]+)?/, ''));
+        if (i === activeIndex) {
+          btn.style.cssText += ';' + s.navActive;
         } else {
-          dot.style.width = '6px';
-          dot.style.background = 'rgba(255,255,255,0.3)';
+          btn.style.cssText += ';' + s.navInactive;
         }
       });
     }
 
-    function startAutoplay() {
-      autoplayInterval = setInterval(function() {
-        goToSlide((currentSlide + 1) % totalSlides);
-      }, 3000);
+    function goToSponsor(index, resetTimer) {
+      if (isTransitioning || index === currentSponsor) return;
+      isTransitioning = true;
+      const card = document.getElementById('active-sponsor-card');
+      if (card) {
+        card.style.animation = 'fadeSlideOut 0.3s ease forwards';
+        setTimeout(() => {
+          currentSponsor = index;
+          renderSponsorCard(sponsors[index]);
+          updateNavButtons(index);
+          isTransitioning = false;
+        }, 280);
+      }
+      if (resetTimer !== false) { stopSponsorAutoplay(); startSponsorAutoplay(); }
     }
 
-    function stopAutoplay() {
-      if (autoplayInterval) { clearInterval(autoplayInterval); autoplayInterval = null; }
+    function startSponsorAutoplay() {
+      autoplayTimer = setInterval(() => {
+        const next = (currentSponsor + 1) % sponsors.length;
+        goToSponsor(next, false);
+        updateNavButtons(next);
+      }, 4000);
     }
 
-    var slider = document.getElementById('sponsor-slides');
-    if (slider) {
-      slider.addEventListener('mouseenter', stopAutoplay);
-      slider.addEventListener('mouseleave', startAutoplay);
-      var touchStartX = 0;
-      slider.addEventListener('touchstart', function(e) {
+    function stopSponsorAutoplay() {
+      if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+    }
+
+    const sponsorContainer = document.getElementById('sponsor-container');
+    if (sponsorContainer) {
+      let touchStartX = 0;
+      sponsorContainer.addEventListener('touchstart', e => {
         touchStartX = e.touches[0].clientX;
-        stopAutoplay();
+        stopSponsorAutoplay();
       }, { passive: true });
-      slider.addEventListener('touchend', function(e) {
-        var diff = touchStartX - e.changedTouches[0].clientX;
+      sponsorContainer.addEventListener('touchend', e => {
+        const diff = touchStartX - e.changedTouches[0].clientX;
         if (Math.abs(diff) > 40) {
-          goToSlide(diff > 0
-            ? (currentSlide + 1) % totalSlides
-            : (currentSlide - 1 + totalSlides) % totalSlides);
+          goToSponsor(diff > 0
+            ? (currentSponsor + 1) % sponsors.length
+            : (currentSponsor - 1 + sponsors.length) % sponsors.length);
         }
-        startAutoplay();
+        startSponsorAutoplay();
       }, { passive: true });
+      sponsorContainer.addEventListener('mouseenter', stopSponsorAutoplay);
+      sponsorContainer.addEventListener('mouseleave', startSponsorAutoplay);
     }
 
-    goToSlide(0);
-    startAutoplay();
+    renderSponsorCard(sponsors[0], false);
+    updateNavButtons(0);
+    startSponsorAutoplay();
 
     function openFeedbackModal() {
       document.getElementById('feedback-modal').style.display = 'flex';
