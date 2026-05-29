@@ -23,12 +23,6 @@
       0%, 100% { opacity: 0.5; transform: scale(1); }
       50% { opacity: 1; transform: scale(1.05); }
     }
-    @keyframes popBadge {
-      0%   { opacity:0; transform: scale(0) rotate(-10deg); }
-      55%  { opacity:1; transform: scale(1.28) rotate(4deg); }
-      75%  { transform: scale(0.91) rotate(-2deg); }
-      100% { opacity:1; transform: scale(1) rotate(0deg); }
-    }
   </style>
 </head>
 <body>
@@ -292,9 +286,7 @@
       if (!el) return;
       el.innerHTML = `
         <div style="padding:8px 0;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-          <span class="sponsor-badge" style="display:inline-flex;align-items:center;gap:6px;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};animation:popBadge 0.55s cubic-bezier(0.34,1.56,0.64,1) both;">
-            ${s.emoji} Patrocinador ${s.tier}
-          </span>
+          <span class="sponsor-badge" data-full="${s.emoji} Patrocinador ${s.tier}" style="display:inline-block;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:4px 14px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};min-width:60px;"></span>
           <div style="display:flex;align-items:center;justify-content:center;min-height:62px;">
             <img src="${s.img}" alt="${s.tier}" style="max-height:64px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
             <span style="display:none;font-size:44px;">🏆</span>
@@ -304,6 +296,19 @@
 
     let activeSponsor = 0;
     let sponsorTimer = null;
+    let typewriterTimer = null;
+
+    function typeBadge(el) {
+      const chars = Array.from(el.dataset.full || '');
+      el.textContent = '';
+      if (typewriterTimer) { clearInterval(typewriterTimer); typewriterTimer = null; }
+      let i = 0;
+      typewriterTimer = setInterval(() => {
+        i++;
+        el.textContent = chars.slice(0, i).join('') + (i < chars.length ? '▌' : '');
+        if (i >= chars.length) { clearInterval(typewriterTimer); typewriterTimer = null; }
+      }, 55);
+    }
 
     function showSponsor(index) {
       SPONSORS.forEach((_, i) => {
@@ -319,7 +324,7 @@
       if (activeCard) {
         activeCard.style.opacity = '1'; activeCard.style.transform = 'scale(1)'; activeCard.style.pointerEvents = 'auto';
         const badge = activeCard.querySelector('.sponsor-badge');
-        if (badge) { badge.style.animation = 'none'; void badge.offsetWidth; badge.style.animation = 'popBadge 0.55s cubic-bezier(0.34,1.56,0.64,1) both'; }
+        if (badge) setTimeout(() => typeBadge(badge), 120);
       }
       if (activeNav)  { activeNav.style.background = activeS.navOn.bg; activeNav.style.color = activeS.navOn.color; activeNav.style.boxShadow = activeS.navOn.shadow; activeNav.style.transform = 'scale(1.05)'; }
       activeSponsor = index;
