@@ -286,7 +286,7 @@
       if (!el) return;
       el.innerHTML = `
         <div style="padding:8px 0;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-          <span class="sponsor-badge" data-full="${s.emoji} Patrocinador ${s.tier}" style="display:inline-block;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:4px 14px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};min-width:60px;"></span>
+          <span class="sponsor-badge" data-full="Patrocinador ${s.tier}" style="display:inline-block;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${s.colorDark};"></span>
           <div style="display:flex;align-items:center;justify-content:center;min-height:62px;">
             <img src="${s.img}" alt="${s.tier}" style="max-height:64px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
             <span style="display:none;font-size:44px;">🏆</span>
