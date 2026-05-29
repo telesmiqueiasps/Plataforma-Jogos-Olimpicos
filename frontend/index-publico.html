@@ -11,42 +11,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Outfit', sans-serif; min-height: 100vh;
            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%); }
-    @keyframes shimmer {
-      0% { background-position: -200% center; }
-      100% { background-position: 200% center; }
+    @keyframes floatImg {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
     }
-    @keyframes floatUp {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-6px); }
+    @keyframes shimmerBg {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
     }
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.7; }
-      50% { transform: scale(1.02); opacity: 1; }
-      100% { transform: scale(0.95); opacity: 0.7; }
-    }
-    @keyframes fadeSlideIn {
-      0% { opacity: 0; transform: translateY(20px) scale(0.96); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes fadeSlideOut {
-      0% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0; transform: translateY(-20px) scale(0.96); }
-    }
-    @keyframes glowGold {
-      0%, 100% { box-shadow: 0 0 20px rgba(251,191,36,0.3), 0 8px 32px rgba(0,0,0,0.2); }
-      50% { box-shadow: 0 0 40px rgba(251,191,36,0.6), 0 8px 32px rgba(0,0,0,0.2); }
-    }
-    @keyframes glowSilver {
-      0%, 100% { box-shadow: 0 0 20px rgba(156,163,175,0.3), 0 8px 32px rgba(0,0,0,0.2); }
-      50% { box-shadow: 0 0 40px rgba(156,163,175,0.6), 0 8px 32px rgba(0,0,0,0.2); }
-    }
-    @keyframes glowBronze {
-      0%, 100% { box-shadow: 0 0 20px rgba(205,124,74,0.3), 0 8px 32px rgba(0,0,0,0.2); }
-      50% { box-shadow: 0 0 40px rgba(205,124,74,0.6), 0 8px 32px rgba(0,0,0,0.2); }
-    }
-    @keyframes particles {
-      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(-60px) rotate(360deg); opacity: 0; }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
     }
   </style>
 </head>
@@ -75,54 +50,55 @@
   <!-- Patrocinadores -->
   <div style="max-width:480px;margin:0 auto 24px;padding:0 20px;">
 
-    <!-- Título animado -->
     <div style="text-align:center;margin-bottom:16px;">
       <div style="display:inline-flex;align-items:center;gap:8px;
-                  background:rgba(255,255,255,0.1);
+                  background:rgba(255,255,255,0.12);
                   border:1px solid rgba(255,255,255,0.2);
                   border-radius:20px;padding:5px 16px;">
-        <span style="font-size:14px;">✨</span>
+        <span style="font-size:13px;">✨</span>
         <span style="color:rgba(255,255,255,0.9);font-size:11px;
                      letter-spacing:2px;text-transform:uppercase;font-weight:700;">
           Patrocinadores
         </span>
-        <span style="font-size:14px;">✨</span>
+        <span style="font-size:13px;">✨</span>
       </div>
     </div>
 
-    <!-- Card principal do patrocinador -->
-    <div style="position:relative;" id="sponsor-container">
+    <!-- Cards empilhados — só um visível por vez -->
+    <div style="position:relative;min-height:180px;" id="sponsors-wrapper">
 
-      <!-- Partículas decorativas -->
-      <div id="particles-container" style="position:absolute;inset:0;
-           pointer-events:none;overflow:hidden;border-radius:20px;z-index:0;"></div>
+      <div id="scard-0" class="scard" style="position:absolute;inset:0;
+           opacity:1;transition:opacity 0.6s ease, transform 0.6s ease;
+           transform:scale(1);"></div>
 
-      <!-- Card do patrocinador ativo -->
-      <div id="active-sponsor-card" style="position:relative;z-index:1;"></div>
+      <div id="scard-1" class="scard" style="position:absolute;inset:0;
+           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
+           transform:scale(0.97);pointer-events:none;"></div>
+
+      <div id="scard-2" class="scard" style="position:absolute;inset:0;
+           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
+           transform:scale(0.97);pointer-events:none;"></div>
 
     </div>
 
-    <!-- Navegação por categoria -->
+    <!-- Botões de navegação -->
     <div style="display:flex;justify-content:center;gap:8px;margin-top:14px;">
-      <button onclick="goToSponsor(0)" id="nav-0"
-        style="display:flex;align-items:center;gap:5px;padding:6px 14px;
-               border-radius:20px;border:none;cursor:pointer;
+      <button onclick="showSponsor(0)" id="snav-0"
+        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
                font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;background:rgba(251,191,36,0.9);color:#78350f;">
+               transition:all 0.3s;">
         🥇 OURO
       </button>
-      <button onclick="goToSponsor(1)" id="nav-1"
-        style="display:flex;align-items:center;gap:5px;padding:6px 14px;
-               border-radius:20px;border:none;cursor:pointer;
+      <button onclick="showSponsor(1)" id="snav-1"
+        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
                font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);">
+               transition:all 0.3s;">
         🥈 PRATA
       </button>
-      <button onclick="goToSponsor(2)" id="nav-2"
-        style="display:flex;align-items:center;gap:5px;padding:6px 14px;
-               border-radius:20px;border:none;cursor:pointer;
+      <button onclick="showSponsor(2)" id="snav-2"
+        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
                font-size:11px;font-weight:700;letter-spacing:0.5px;
-               transition:all 0.3s;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);">
+               transition:all 0.3s;">
         🥉 BRONZE
       </button>
     </div>
@@ -287,174 +263,95 @@
     }
     loadPDVNames();
 
-    const sponsors = [
+    const SPONSORS = [
       {
-        id: 0,
-        tier: 'OURO',
-        emoji: '🥇',
-        img: 'img/ouro.png',
-        accent: '#f59e0b',
-        accentLight: '#fef3c7',
-        accentDark: '#92400e',
-        accentGlow: 'rgba(251,191,36,0.4)',
-        gradient: 'linear-gradient(135deg,#fffbeb 0%,#fff 50%,#fef9c3 100%)',
-        shimmer: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.15),transparent)',
-        glowAnim: 'glowGold 2.5s ease-in-out infinite',
-        borderGrad: 'linear-gradient(135deg,#f59e0b,#fbbf24,#f59e0b)',
-        particleColor: '#fbbf24',
-        navActive: 'background:rgba(251,191,36,0.9);color:#78350f;transform:scale(1.05);box-shadow:0 4px 15px rgba(251,191,36,0.4)',
-        navInactive: 'background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)',
+        tier: 'OURO', emoji: '🥇', img: 'img/ouro.png',
+        color: '#f59e0b', colorLight: '#fef3c7', colorDark: '#92400e',
+        glow: 'rgba(245,158,11,0.35)',
+        bg: 'linear-gradient(145deg,#fffdf0,#ffffff,#fefce8)',
+        border: '#f59e0b',
+        navOn:  { bg:'rgba(245,158,11,0.9)', color:'#78350f', shadow:'0 4px 16px rgba(245,158,11,0.5)' },
+        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
       },
       {
-        id: 1,
-        tier: 'PRATA',
-        emoji: '🥈',
-        img: 'img/prata.png',
-        accent: '#9ca3af',
-        accentLight: '#f3f4f6',
-        accentDark: '#374151',
-        accentGlow: 'rgba(156,163,175,0.4)',
-        gradient: 'linear-gradient(135deg,#f9fafb 0%,#fff 50%,#f3f4f6 100%)',
-        shimmer: 'linear-gradient(90deg,transparent,rgba(156,163,175,0.15),transparent)',
-        glowAnim: 'glowSilver 2.5s ease-in-out infinite',
-        borderGrad: 'linear-gradient(135deg,#9ca3af,#d1d5db,#9ca3af)',
-        particleColor: '#d1d5db',
-        navActive: 'background:rgba(209,213,219,0.9);color:#374151;transform:scale(1.05);box-shadow:0 4px 15px rgba(156,163,175,0.4)',
-        navInactive: 'background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)',
+        tier: 'PRATA', emoji: '🥈', img: 'img/prata.png',
+        color: '#9ca3af', colorLight: '#f3f4f6', colorDark: '#374151',
+        glow: 'rgba(156,163,175,0.35)',
+        bg: 'linear-gradient(145deg,#f9fafb,#ffffff,#f3f4f6)',
+        border: '#9ca3af',
+        navOn:  { bg:'rgba(209,213,219,0.95)', color:'#1f2937', shadow:'0 4px 16px rgba(156,163,175,0.5)' },
+        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
       },
       {
-        id: 2,
-        tier: 'BRONZE',
-        emoji: '🥉',
-        img: 'img/bronze.png',
-        accent: '#cd7c4a',
-        accentLight: '#fff7ed',
-        accentDark: '#7c2d12',
-        accentGlow: 'rgba(205,124,74,0.4)',
-        gradient: 'linear-gradient(135deg,#fff7ed 0%,#fff 50%,#ffedd5 100%)',
-        shimmer: 'linear-gradient(90deg,transparent,rgba(205,124,74,0.15),transparent)',
-        glowAnim: 'glowBronze 2.5s ease-in-out infinite',
-        borderGrad: 'linear-gradient(135deg,#cd7c4a,#f97316,#cd7c4a)',
-        particleColor: '#fb923c',
-        navActive: 'background:rgba(205,124,74,0.9);color:#fff;transform:scale(1.05);box-shadow:0 4px 15px rgba(205,124,74,0.4)',
-        navInactive: 'background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)',
-      }
+        tier: 'BRONZE', emoji: '🥉', img: 'img/bronze.png',
+        color: '#cd7c4a', colorLight: '#fff7ed', colorDark: '#7c2d12',
+        glow: 'rgba(205,124,74,0.35)',
+        bg: 'linear-gradient(145deg,#fff8f3,#ffffff,#fff1e6)',
+        border: '#cd7c4a',
+        navOn:  { bg:'rgba(205,124,74,0.9)', color:'#fff', shadow:'0 4px 16px rgba(205,124,74,0.5)' },
+        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
+      },
     ];
 
-    let currentSponsor = 0;
-    let autoplayTimer = null;
-    let isTransitioning = false;
-    let particleTimers = [];
-
-    function createParticles(color) {
-      const container = document.getElementById('particles-container');
-      if (!container) return;
-      container.innerHTML = '';
-      particleTimers.forEach(t => clearTimeout(t));
-      particleTimers = [];
-      for (let i = 0; i < 8; i++) {
-        const t = setTimeout(() => {
-          if (!container.isConnected) return;
-          const p = document.createElement('div');
-          const size = Math.random() * 6 + 4;
-          const left = Math.random() * 90 + 5;
-          const duration = Math.random() * 1500 + 1000;
-          const delay = Math.random() * 500;
-          p.style.cssText = `position:absolute;bottom:10px;left:${left}%;width:${size}px;height:${size}px;background:${color};border-radius:50%;opacity:0.7;animation:particles ${duration}ms ease-out ${delay}ms forwards;pointer-events:none;`;
-          container.appendChild(p);
-          particleTimers.push(setTimeout(() => p.remove(), duration + delay + 100));
-        }, i * 200);
-        particleTimers.push(t);
-      }
-    }
-
-    function renderSponsorCard(sponsor, animate) {
-      const card = document.getElementById('active-sponsor-card');
-      if (!card) return;
-      card.innerHTML = `
-        <div style="background:${sponsor.gradient};border-radius:20px;padding:28px 24px;position:relative;overflow:hidden;animation:${animate !== false ? 'fadeSlideIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards,' : ''}${sponsor.glowAnim};border:2px solid transparent;background-clip:padding-box;">
-          <div style="position:absolute;inset:-2px;border-radius:22px;background:${sponsor.borderGrad};z-index:-1;"></div>
-          <div style="position:absolute;inset:0;border-radius:20px;background:${sponsor.shimmer};background-size:200% auto;animation:shimmer 3s linear infinite;pointer-events:none;opacity:0.6;"></div>
-          <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,${sponsor.accentGlow},transparent);pointer-events:none;"></div>
-          <div style="position:absolute;bottom:-20px;left:-20px;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,${sponsor.accentGlow},transparent);pointer-events:none;"></div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;">
-            <div style="display:flex;align-items:center;gap:6px;background:${sponsor.accentLight};border:1px solid ${sponsor.accent};border-radius:20px;padding:5px 14px;animation:pulse-ring 2s ease-in-out infinite;">
-              <span style="font-size:16px;">${sponsor.emoji}</span>
-              <span style="font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${sponsor.accentDark};">Patrocinador ${sponsor.tier}</span>
-            </div>
+    SPONSORS.forEach((s, i) => {
+      const el = document.getElementById('scard-' + i);
+      if (!el) return;
+      el.innerHTML = `
+        <div style="background:${s.bg};border-radius:20px;border:2px solid ${s.border};box-shadow:0 8px 32px ${s.glow},0 2px 8px rgba(0,0,0,0.08);padding:24px 20px 20px;position:relative;overflow:hidden;height:100%;box-sizing:border-box;">
+          <div style="position:absolute;inset:0;border-radius:18px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.6) 50%,transparent 100%);background-size:400px 100%;animation:shimmerBg 3s linear infinite;pointer-events:none;"></div>
+          <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,${s.glow},transparent 70%);animation:pulseGlow 3s ease-in-out infinite;pointer-events:none;"></div>
+          <div style="text-align:center;margin-bottom:16px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:5px 14px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};">
+              ${s.emoji} Patrocinador ${s.tier}
+            </span>
           </div>
-          <div style="display:flex;align-items:center;justify-content:center;min-height:90px;animation:floatUp 3s ease-in-out infinite;">
-            <img src="${sponsor.img}" alt="Patrocinador ${sponsor.tier}" style="max-height:80px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${sponsor.accentGlow});" onerror="this.parentElement.innerHTML='<span style=\\'font-size:48px;\\'>🏆</span>'">
+          <div style="display:flex;align-items:center;justify-content:center;min-height:80px;">
+            <img src="${s.img}" alt="${s.tier}" style="max-height:75px;max-width:80%;object-fit:contain;filter:drop-shadow(0 6px 16px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <span style="display:none;font-size:52px;">🏆</span>
           </div>
-          <div style="margin-top:20px;height:3px;border-radius:2px;background:${sponsor.borderGrad};opacity:0.5;"></div>
+          <div style="margin-top:18px;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,${s.color},transparent);opacity:0.7;"></div>
         </div>`;
-      createParticles(sponsor.particleColor);
-    }
+    });
 
-    function updateNavButtons(activeIndex) {
-      sponsors.forEach((s, i) => {
-        const btn = document.getElementById('nav-' + i);
-        if (!btn) return;
-        btn.setAttribute('style', btn.getAttribute('style').replace(/background:[^;]+;color:[^;]+(?:;transform:[^;]+)?(?:;box-shadow:[^;]+)?/, ''));
-        if (i === activeIndex) {
-          btn.style.cssText += ';' + s.navActive;
-        } else {
-          btn.style.cssText += ';' + s.navInactive;
-        }
+    let activeSponsor = 0;
+    let sponsorTimer = null;
+
+    function showSponsor(index) {
+      SPONSORS.forEach((_, i) => {
+        const card = document.getElementById('scard-' + i);
+        const nav  = document.getElementById('snav-' + i);
+        const s    = SPONSORS[i];
+        if (card) { card.style.opacity = '0'; card.style.transform = 'scale(0.97)'; card.style.pointerEvents = 'none'; }
+        if (nav)  { nav.style.background = s.navOff.bg; nav.style.color = s.navOff.color; nav.style.boxShadow = s.navOff.shadow; nav.style.transform = 'scale(1)'; }
       });
+      const activeCard = document.getElementById('scard-' + index);
+      const activeNav  = document.getElementById('snav-' + index);
+      const activeS    = SPONSORS[index];
+      if (activeCard) { activeCard.style.opacity = '1'; activeCard.style.transform = 'scale(1)'; activeCard.style.pointerEvents = 'auto'; }
+      if (activeNav)  { activeNav.style.background = activeS.navOn.bg; activeNav.style.color = activeS.navOn.color; activeNav.style.boxShadow = activeS.navOn.shadow; activeNav.style.transform = 'scale(1.05)'; }
+      activeSponsor = index;
     }
 
-    function goToSponsor(index, resetTimer) {
-      if (isTransitioning || index === currentSponsor) return;
-      isTransitioning = true;
-      const card = document.getElementById('active-sponsor-card');
-      if (card) {
-        card.style.animation = 'fadeSlideOut 0.3s ease forwards';
-        setTimeout(() => {
-          currentSponsor = index;
-          renderSponsorCard(sponsors[index]);
-          updateNavButtons(index);
-          isTransitioning = false;
-        }, 280);
-      }
-      if (resetTimer !== false) { stopSponsorAutoplay(); startSponsorAutoplay(); }
-    }
+    function nextSponsor() { showSponsor((activeSponsor + 1) % SPONSORS.length); }
 
-    function startSponsorAutoplay() {
-      autoplayTimer = setInterval(() => {
-        const next = (currentSponsor + 1) % sponsors.length;
-        goToSponsor(next, false);
-        updateNavButtons(next);
-      }, 4000);
-    }
+    function startSponsorTimer() { sponsorTimer = setInterval(nextSponsor, 4000); }
+    function stopSponsorTimer()  { if (sponsorTimer) { clearInterval(sponsorTimer); sponsorTimer = null; } }
 
-    function stopSponsorAutoplay() {
-      if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
-    }
-
-    const sponsorContainer = document.getElementById('sponsor-container');
-    if (sponsorContainer) {
-      let touchStartX = 0;
-      sponsorContainer.addEventListener('touchstart', e => {
-        touchStartX = e.touches[0].clientX;
-        stopSponsorAutoplay();
+    const wrapper = document.getElementById('sponsors-wrapper');
+    if (wrapper) {
+      let tx = 0;
+      wrapper.addEventListener('touchstart', e => { tx = e.touches[0].clientX; stopSponsorTimer(); }, { passive: true });
+      wrapper.addEventListener('touchend', e => {
+        const d = tx - e.changedTouches[0].clientX;
+        if (Math.abs(d) > 40) showSponsor(d > 0 ? (activeSponsor + 1) % SPONSORS.length : (activeSponsor - 1 + SPONSORS.length) % SPONSORS.length);
+        startSponsorTimer();
       }, { passive: true });
-      sponsorContainer.addEventListener('touchend', e => {
-        const diff = touchStartX - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 40) {
-          goToSponsor(diff > 0
-            ? (currentSponsor + 1) % sponsors.length
-            : (currentSponsor - 1 + sponsors.length) % sponsors.length);
-        }
-        startSponsorAutoplay();
-      }, { passive: true });
-      sponsorContainer.addEventListener('mouseenter', stopSponsorAutoplay);
-      sponsorContainer.addEventListener('mouseleave', startSponsorAutoplay);
+      wrapper.addEventListener('mouseenter', stopSponsorTimer);
+      wrapper.addEventListener('mouseleave', startSponsorTimer);
     }
 
-    renderSponsorCard(sponsors[0], false);
-    updateNavButtons(0);
-    startSponsorAutoplay();
+    showSponsor(0);
+    startSponsorTimer();
 
     function openFeedbackModal() {
       document.getElementById('feedback-modal').style.display = 'flex';
