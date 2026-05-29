@@ -89,7 +89,7 @@
       </button>
     </div>
 
-    <div style="height:1px;background:#e2e8f0;margin-top:14px;"></div>
+    <div style="height:1px;background:#e2e8f0;margin:16px 0;"></div>
 
   </div>
 
@@ -285,19 +285,14 @@
       const el = document.getElementById('scard-' + i);
       if (!el) return;
       el.innerHTML = `
-        <div style="background:${s.bg};border-radius:16px;border:2px solid ${s.border};box-shadow:0 6px 24px ${s.glow},0 2px 8px rgba(0,0,0,0.08);padding:16px 16px 14px;position:relative;overflow:hidden;height:100%;box-sizing:border-box;">
-          <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.6) 50%,transparent 100%);background-size:400px 100%;animation:shimmerBg 3s linear infinite;pointer-events:none;"></div>
-          <div style="position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,${s.glow},transparent 70%);animation:pulseGlow 3s ease-in-out infinite;pointer-events:none;"></div>
-          <div style="text-align:center;margin-bottom:12px;">
-            <span style="display:inline-flex;align-items:center;gap:6px;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};">
-              ${s.emoji} Patrocinador ${s.tier}
-            </span>
-          </div>
+        <div style="padding:8px 0;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};">
+            ${s.emoji} Patrocinador ${s.tier}
+          </span>
           <div style="display:flex;align-items:center;justify-content:center;min-height:62px;">
-            <img src="${s.img}" alt="${s.tier}" style="max-height:58px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <img src="${s.img}" alt="${s.tier}" style="max-height:64px;max-width:80%;object-fit:contain;filter:drop-shadow(0 4px 12px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
             <span style="display:none;font-size:44px;">🏆</span>
           </div>
-          <div style="margin-top:12px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,${s.color},transparent);opacity:0.7;"></div>
         </div>`;
     });
 
