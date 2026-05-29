@@ -9,12 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { 
-      font-family: 'Outfit', sans-serif; 
-      min-height: 100vh;
-      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%); 
-    }
-
+    body { font-family: 'Outfit', sans-serif; min-height: 100vh;
+           background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%); }
     @keyframes floatImg {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-8px); }
@@ -27,152 +23,109 @@
       0%, 100% { opacity: 0.5; transform: scale(1); }
       50% { opacity: 1; transform: scale(1.05); }
     }
-
-    /* Nova estilização dos Patrocinadores */
-    .tier-btn {
-      padding: 8px 20px;
-      border-radius: 9999px;
-      border: none;
-      background: rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.7);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .tier-btn.active {
-      background: white;
-      color: #1e3a8a;
-      box-shadow: 0 4px 15px rgba(255,255,255,0.3);
-      transform: scale(1.08);
-    }
-
-    .sponsor-tier {
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .sponsor-tier.active {
-      opacity: 1 !important;
-      filter: none !important;
-      transform: translateY(-4px);
-    }
-
-    .sponsor-tier img {
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .sponsor-tier.active img {
-      transform: scale(1.08);
-    }
   </style>
 </head>
 <body>
 
   <!-- Header -->
   <div style="text-align:center;padding:40px 20px 20px;">
-    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;justify-content:center;
+                gap:12px;margin-bottom:8px;">
       <img src="img/logo.png" alt="Logo"
-        style="width:48px;height:48px;object-fit:contain;border-radius:50%;border:2px solid rgba(255,255,255,0.25);"
+        style="width:48px;height:48px;object-fit:contain;
+               border-radius:50%;border:2px solid rgba(255,255,255,0.25);"
         onerror="this.style.display='none'">
       <div style="text-align:left;">
-        <h1 style="color:white;font-size:22px;font-weight:800;margin:0;letter-spacing:-0.5px;line-height:1.2;">
+        <h1 style="color:white;font-size:22px;font-weight:800;margin:0;
+                   letter-spacing:-0.5px;line-height:1.2;">
           Jogos Sinodal PB
         </h1>
-        <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0;">2026</p>
+        <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0;">
+          2026
+        </p>
       </div>
     </div>
   </div>
 
-  <!-- Patrocinadores - Nova Versão -->
-  <div style="max-width:480px;margin:0 auto 40px;padding:0 20px;">
-    <div style="text-align:center;margin-bottom:20px;">
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);backdrop-filter:blur(12px);
-                  border:1px solid rgba(255,255,255,0.25);border-radius:9999px;padding:8px 20px;">
-        <span style="font-size:15px;">🏆</span>
-        <span style="color:white;font-size:13px;letter-spacing:2px;font-weight:700;text-transform:uppercase;">
-          PATROCINADORES OFICIAIS
+  <!-- Patrocinadores -->
+  <div style="max-width:480px;margin:0 auto 24px;padding:0 20px;">
+
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;
+                  background:rgba(255,255,255,0.12);
+                  border:1px solid rgba(255,255,255,0.2);
+                  border-radius:20px;padding:5px 16px;">
+        <span style="font-size:13px;">✨</span>
+        <span style="color:rgba(255,255,255,0.9);font-size:11px;
+                     letter-spacing:2px;text-transform:uppercase;font-weight:700;">
+          Patrocinadores
         </span>
+        <span style="font-size:13px;">✨</span>
       </div>
     </div>
 
-    <div id="sponsors-showcase" style="position:relative;border-radius:24px;overflow:hidden;
-         background:rgba(255,255,255,0.08);backdrop-filter:blur(16px);
-         border:1px solid rgba(255,255,255,0.15);box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+    <!-- Cards empilhados — só um visível por vez -->
+    <div style="position:relative;min-height:180px;" id="sponsors-wrapper">
 
-      <!-- Tier Indicator -->
-      <div id="tier-indicator" style="position:absolute;top:16px;left:16px;right:16px;
-           display:flex;justify-content:space-between;align-items:center;z-index:2;"></div>
+      <div id="scard-0" class="scard" style="position:absolute;inset:0;
+           opacity:1;transition:opacity 0.6s ease, transform 0.6s ease;
+           transform:scale(1);"></div>
 
-      <!-- Logos Container -->
-      <div style="padding:32px 24px 28px;display:flex;flex-direction:column;gap:28px;min-height:260px;">
+      <div id="scard-1" class="scard" style="position:absolute;inset:0;
+           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
+           transform:scale(0.97);pointer-events:none;"></div>
 
-        <!-- Ouro -->
-        <div class="sponsor-tier active" data-tier="0">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <span style="font-size:18px;">🥇</span>
-            <span style="color:#fcd34d;font-weight:800;letter-spacing:1px;font-size:13px;">OURO</span>
-          </div>
-          <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
-            <img src="img/ouro.png" alt="Patrocinador Ouro" 
-                 style="height:68px;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(245,158,11,0.5));">
-          </div>
-        </div>
+      <div id="scard-2" class="scard" style="position:absolute;inset:0;
+           opacity:0;transition:opacity 0.6s ease, transform 0.6s ease;
+           transform:scale(0.97);pointer-events:none;"></div>
 
-        <!-- Prata -->
-        <div class="sponsor-tier" data-tier="1">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <span style="font-size:18px;">🥈</span>
-            <span style="color:#e2e8f0;font-weight:800;letter-spacing:1px;font-size:13px;">PRATA</span>
-          </div>
-          <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
-            <img src="img/prata.png" alt="Patrocinador Prata" 
-                 style="height:58px;object-fit:contain;">
-          </div>
-        </div>
-
-        <!-- Bronze -->
-        <div class="sponsor-tier" data-tier="2">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <span style="font-size:18px;">🥉</span>
-            <span style="color:#f5c8a8;font-weight:800;letter-spacing:1px;font-size:13px;">BRONZE</span>
-          </div>
-          <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
-            <img src="img/bronze.png" alt="Patrocinador Bronze" 
-                 style="height:52px;object-fit:contain;">
-          </div>
-        </div>
-      </div>
-
-      <!-- Barra inferior -->
-      <div style="background:rgba(0,0,0,0.25);padding:14px 20px;display:flex;justify-content:center;gap:12px;">
-        <button onclick="highlightTier(0)" class="tier-btn active" data-tier="0">OURO</button>
-        <button onclick="highlightTier(1)" class="tier-btn" data-tier="1">PRATA</button>
-        <button onclick="highlightTier(2)" class="tier-btn" data-tier="2">BRONZE</button>
-      </div>
     </div>
 
-    <p style="text-align:center;margin-top:14px;color:rgba(255,255,255,0.5);font-size:12px;">
-      Apoiadores que fazem os Jogos Sinodal 2026 acontecer
-    </p>
+    <!-- Botões de navegação -->
+    <div style="display:flex;justify-content:center;gap:8px;margin-top:14px;">
+      <button onclick="showSponsor(0)" id="snav-0"
+        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
+               font-size:11px;font-weight:700;letter-spacing:0.5px;
+               transition:all 0.3s;">
+        🥇 OURO
+      </button>
+      <button onclick="showSponsor(1)" id="snav-1"
+        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
+               font-size:11px;font-weight:700;letter-spacing:0.5px;
+               transition:all 0.3s;">
+        🥈 PRATA
+      </button>
+      <button onclick="showSponsor(2)" id="snav-2"
+        style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
+               font-size:11px;font-weight:700;letter-spacing:0.5px;
+               transition:all 0.3s;">
+        🥉 BRONZE
+      </button>
+    </div>
+
   </div>
 
-  <!-- Resto do conteúdo (mantido igual) -->
+  <!-- Cards de navegação -->
   <div style="max-width:480px;margin:0 auto;padding:20px;">
 
     <!-- Campeonatos -->
     <a href="public.html" style="text-decoration:none;display:block;margin-bottom:16px;">
-      <div style="background:white;border-radius:16px;padding:24px;display:flex;align-items:center;gap:16px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);transition:transform 0.2s;"
+      <div style="background:white;border-radius:16px;padding:24px;
+                  display:flex;align-items:center;gap:16px;
+                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
+                  transition:transform 0.2s;"
            onmouseover="this.style.transform='translateY(-2px)'"
            onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:56px;height:56px;background:#eff6ff;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="width:56px;height:56px;background:#eff6ff;border-radius:14px;
+                    display:flex;align-items:center;justify-content:center;
+                    flex-shrink:0;">
           <img src="img/campeonatos.png" alt="Campeonatos" style="width:36px;height:36px;object-fit:contain;">
         </div>
         <div>
           <div style="font-weight:700;font-size:17px;color:#1e293b;">Campeonatos</div>
-          <div style="color:#64748b;font-size:13px;margin-top:2px;">Tabelas, jogos e classificação</div>
+          <div style="color:#64748b;font-size:13px;margin-top:2px;">
+            Tabelas, jogos e classificação
+          </div>
         </div>
         <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
       </div>
@@ -180,16 +133,24 @@
 
     <!-- Cantina PDV 1 -->
     <a href="cantina-menu.html?pdv=1" style="text-decoration:none;display:block;margin-bottom:16px;">
-      <div style="background:white;border-radius:16px;padding:24px;display:flex;align-items:center;gap:16px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);transition:transform 0.2s;"
+      <div style="background:white;border-radius:16px;padding:24px;
+                  display:flex;align-items:center;gap:16px;
+                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
+                  transition:transform 0.2s;"
            onmouseover="this.style.transform='translateY(-2px)'"
            onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:56px;height:56px;background:#f0fdf4;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="width:56px;height:56px;background:#f0fdf4;border-radius:14px;
+                    display:flex;align-items:center;justify-content:center;
+                    flex-shrink:0;">
           <img src="img/cantina.png" alt="Cantina" style="width:36px;height:36px;object-fit:contain;">
         </div>
         <div>
-          <div id="pdv1-name" style="font-weight:700;font-size:17px;color:#1e293b;">Cantina PDV 1</div>
-          <div style="color:#64748b;font-size:13px;margin-top:2px;">Ver cardápio e fazer reserva</div>
+          <div id="pdv1-name" style="font-weight:700;font-size:17px;color:#1e293b;">
+            Cantina PDV 1
+          </div>
+          <div style="color:#64748b;font-size:13px;margin-top:2px;">
+            Ver cardápio e fazer reserva
+          </div>
         </div>
         <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
       </div>
@@ -197,16 +158,24 @@
 
     <!-- Cantina PDV 2 -->
     <a href="cantina-menu.html?pdv=2" style="text-decoration:none;display:block;margin-bottom:32px;">
-      <div style="background:white;border-radius:16px;padding:24px;display:flex;align-items:center;gap:16px;
-                  box-shadow:0 4px 20px rgba(0,0,0,0.15);transition:transform 0.2s;"
+      <div style="background:white;border-radius:16px;padding:24px;
+                  display:flex;align-items:center;gap:16px;
+                  box-shadow:0 4px 20px rgba(0,0,0,0.15);
+                  transition:transform 0.2s;"
            onmouseover="this.style.transform='translateY(-2px)'"
            onmouseout="this.style.transform='translateY(0)'">
-        <div style="width:56px;height:56px;background:#fef3c7;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="width:56px;height:56px;background:#fef3c7;border-radius:14px;
+                    display:flex;align-items:center;justify-content:center;
+                    flex-shrink:0;">
           <img src="img/cantina.png" alt="Cantina" style="width:36px;height:36px;object-fit:contain;">
         </div>
         <div>
-          <div id="pdv2-name" style="font-weight:700;font-size:17px;color:#1e293b;">Cantina PDV 2</div>
-          <div style="color:#64748b;font-size:13px;margin-top:2px;">Ver cardápio e fazer reserva</div>
+          <div id="pdv2-name" style="font-weight:700;font-size:17px;color:#1e293b;">
+            Cantina PDV 2
+          </div>
+          <div style="color:#64748b;font-size:13px;margin-top:2px;">
+            Ver cardápio e fazer reserva
+          </div>
         </div>
         <div style="margin-left:auto;color:#94a3b8;font-size:20px;">›</div>
       </div>
@@ -232,31 +201,43 @@
   <!-- Modal de feedback -->
   <div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px;">
     <div style="background:white;border-radius:16px;width:100%;max-width:440px;overflow:hidden;">
+      <!-- Header -->
       <div style="background:#2563eb;padding:20px 20px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <div style="color:white;font-weight:700;font-size:16px;">💬 Feedback</div>
             <div style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:2px;">Faz parte do meu portfólio. obrigado! 🙂</div>
           </div>
-          <button onclick="closeFeedbackModal()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+          <button onclick="closeFeedbackModal()"
+            style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">
+            ✕
+          </button>
         </div>
       </div>
+      <!-- Body -->
       <div id="feedback-modal-body" style="padding:20px;">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div>
             <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Seu nome</label>
             <input type="text" id="fb-name" maxlength="100" placeholder="Como posso te chamar?"
-              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;">
+              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;box-sizing:border-box;"
+              onfocus="this.style.borderColor='#2563eb'"
+              onblur="this.style.borderColor='#e2e8f0'">
           </div>
           <div>
             <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Seu feedback</label>
             <textarea id="fb-message" maxlength="500" placeholder="O que achou da plataforma?" rows="4"
-              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;resize:none;font-family:inherit;"
-              oninput="document.getElementById('fb-char').textContent=this.value.length+'/500'"></textarea>
+              style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#374151;background:#f8fafc;outline:none;box-sizing:border-box;resize:none;font-family:inherit;"
+              onfocus="this.style.borderColor='#2563eb'"
+              onblur="this.style.borderColor='#e2e8f0'"
+              oninput="document.getElementById('fb-char').textContent=this.value.length+'/500'">
+            </textarea>
             <div style="text-align:right;font-size:11px;color:#94a3b8;margin-top:4px;"><span id="fb-char">0/500</span></div>
           </div>
           <button onclick="submitFeedback()" id="fb-submit-btn"
-            style="background:#2563eb;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;">
+            style="background:#2563eb;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;transition:background 0.2s;"
+            onmouseover="this.style.background='#1d4ed8'"
+            onmouseout="this.style.background='#2563eb'">
             Enviar Feedback
           </button>
         </div>
@@ -270,59 +251,116 @@
     async function loadPDVNames() {
       try {
         var results = await Promise.all([
-          fetch(API_BASE + '/api/cantina/pdv-info/1').then(r => r.json()),
-          fetch(API_BASE + '/api/cantina/pdv-info/2').then(r => r.json())
+          fetch(API_BASE + '/api/cantina/pdv-info/1').then(function(r) { return r.json(); }),
+          fetch(API_BASE + '/api/cantina/pdv-info/2').then(function(r) { return r.json(); }),
         ]);
         var pdv1 = results[0], pdv2 = results[1];
-        if (pdv1?.pdv_name) document.getElementById('pdv1-name').textContent = pdv1.pdv_name;
-        if (pdv2?.pdv_name) document.getElementById('pdv2-name').textContent = pdv2.pdv_name;
-      } catch(e) {}
+        if (pdv1 && pdv1.pdv_name) document.getElementById('pdv1-name').textContent = pdv1.pdv_name;
+        if (pdv2 && pdv2.pdv_name) document.getElementById('pdv2-name').textContent = pdv2.pdv_name;
+      } catch(e) {
+        // Manter nomes padrão
+      }
     }
     loadPDVNames();
 
-    // ==================== NOVA LÓGICA DE PATROCINADORES ====================
-    let currentTier = 0;
+    const SPONSORS = [
+      {
+        tier: 'OURO', emoji: '🥇', img: 'img/ouro.png',
+        color: '#f59e0b', colorLight: '#fef3c7', colorDark: '#92400e',
+        glow: 'rgba(245,158,11,0.35)',
+        bg: 'linear-gradient(145deg,#fffdf0,#ffffff,#fefce8)',
+        border: '#f59e0b',
+        navOn:  { bg:'rgba(245,158,11,0.9)', color:'#78350f', shadow:'0 4px 16px rgba(245,158,11,0.5)' },
+        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
+      },
+      {
+        tier: 'PRATA', emoji: '🥈', img: 'img/prata.png',
+        color: '#9ca3af', colorLight: '#f3f4f6', colorDark: '#374151',
+        glow: 'rgba(156,163,175,0.35)',
+        bg: 'linear-gradient(145deg,#f9fafb,#ffffff,#f3f4f6)',
+        border: '#9ca3af',
+        navOn:  { bg:'rgba(209,213,219,0.95)', color:'#1f2937', shadow:'0 4px 16px rgba(156,163,175,0.5)' },
+        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
+      },
+      {
+        tier: 'BRONZE', emoji: '🥉', img: 'img/bronze.png',
+        color: '#cd7c4a', colorLight: '#fff7ed', colorDark: '#7c2d12',
+        glow: 'rgba(205,124,74,0.35)',
+        bg: 'linear-gradient(145deg,#fff8f3,#ffffff,#fff1e6)',
+        border: '#cd7c4a',
+        navOn:  { bg:'rgba(205,124,74,0.9)', color:'#fff', shadow:'0 4px 16px rgba(205,124,74,0.5)' },
+        navOff: { bg:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', shadow:'none' },
+      },
+    ];
 
-    function highlightTier(tier) {
-      currentTier = tier;
-      
-      document.querySelectorAll('.tier-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.tier) === tier);
+    SPONSORS.forEach((s, i) => {
+      const el = document.getElementById('scard-' + i);
+      if (!el) return;
+      el.innerHTML = `
+        <div style="background:${s.bg};border-radius:20px;border:2px solid ${s.border};box-shadow:0 8px 32px ${s.glow},0 2px 8px rgba(0,0,0,0.08);padding:24px 20px 20px;position:relative;overflow:hidden;height:100%;box-sizing:border-box;">
+          <div style="position:absolute;inset:0;border-radius:18px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.6) 50%,transparent 100%);background-size:400px 100%;animation:shimmerBg 3s linear infinite;pointer-events:none;"></div>
+          <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,${s.glow},transparent 70%);animation:pulseGlow 3s ease-in-out infinite;pointer-events:none;"></div>
+          <div style="text-align:center;margin-bottom:16px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;background:${s.colorLight};border:1px solid ${s.color};border-radius:20px;padding:5px 14px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${s.colorDark};">
+              ${s.emoji} Patrocinador ${s.tier}
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;min-height:80px;">
+            <img src="${s.img}" alt="${s.tier}" style="max-height:75px;max-width:80%;object-fit:contain;filter:drop-shadow(0 6px 16px ${s.glow});animation:floatImg 3s ease-in-out infinite;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <span style="display:none;font-size:52px;">🏆</span>
+          </div>
+          <div style="margin-top:18px;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,${s.color},transparent);opacity:0.7;"></div>
+        </div>`;
+    });
+
+    let activeSponsor = 0;
+    let sponsorTimer = null;
+
+    function showSponsor(index) {
+      SPONSORS.forEach((_, i) => {
+        const card = document.getElementById('scard-' + i);
+        const nav  = document.getElementById('snav-' + i);
+        const s    = SPONSORS[i];
+        if (card) { card.style.opacity = '0'; card.style.transform = 'scale(0.97)'; card.style.pointerEvents = 'none'; }
+        if (nav)  { nav.style.background = s.navOff.bg; nav.style.color = s.navOff.color; nav.style.boxShadow = s.navOff.shadow; nav.style.transform = 'scale(1)'; }
       });
-
-      document.querySelectorAll('.sponsor-tier').forEach(el => {
-        const isActive = parseInt(el.dataset.tier) === tier;
-        el.classList.toggle('active', isActive);
-      });
-
-      // Atualiza indicador
-      const indicator = document.getElementById('tier-indicator');
-      indicator.innerHTML = `
-        <div style="background:rgba(255,255,255,0.15);padding:6px 14px;border-radius:9999px;color:white;
-                    font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;">
-          <span>${['🥇','🥈','🥉'][tier]}</span>
-          <span>${['PATROCINADOR OURO','PATROCINADOR PRATA','PATROCINADOR BRONZE'][tier]}</span>
-        </div>
-      `;
+      const activeCard = document.getElementById('scard-' + index);
+      const activeNav  = document.getElementById('snav-' + index);
+      const activeS    = SPONSORS[index];
+      if (activeCard) { activeCard.style.opacity = '1'; activeCard.style.transform = 'scale(1)'; activeCard.style.pointerEvents = 'auto'; }
+      if (activeNav)  { activeNav.style.background = activeS.navOn.bg; activeNav.style.color = activeS.navOn.color; activeNav.style.boxShadow = activeS.navOn.shadow; activeNav.style.transform = 'scale(1.05)'; }
+      activeSponsor = index;
     }
 
-    // Auto-rotação
-    setInterval(() => {
-      currentTier = (currentTier + 1) % 3;
-      highlightTier(currentTier);
-    }, 4500);
+    function nextSponsor() { showSponsor((activeSponsor + 1) % SPONSORS.length); }
 
-    // Inicializa
-    highlightTier(0);
+    function startSponsorTimer() { sponsorTimer = setInterval(nextSponsor, 4000); }
+    function stopSponsorTimer()  { if (sponsorTimer) { clearInterval(sponsorTimer); sponsorTimer = null; } }
 
-    // ==================== FUNÇÕES DO FEEDBACK ====================
+    const wrapper = document.getElementById('sponsors-wrapper');
+    if (wrapper) {
+      let tx = 0;
+      wrapper.addEventListener('touchstart', e => { tx = e.touches[0].clientX; stopSponsorTimer(); }, { passive: true });
+      wrapper.addEventListener('touchend', e => {
+        const d = tx - e.changedTouches[0].clientX;
+        if (Math.abs(d) > 40) showSponsor(d > 0 ? (activeSponsor + 1) % SPONSORS.length : (activeSponsor - 1 + SPONSORS.length) % SPONSORS.length);
+        startSponsorTimer();
+      }, { passive: true });
+      wrapper.addEventListener('mouseenter', stopSponsorTimer);
+      wrapper.addEventListener('mouseleave', startSponsorTimer);
+    }
+
+    showSponsor(0);
+    startSponsorTimer();
+
     function openFeedbackModal() {
       document.getElementById('feedback-modal').style.display = 'flex';
-      setTimeout(() => document.getElementById('fb-name').focus(), 100);
+      setTimeout(function() { document.getElementById('fb-name').focus(); }, 100);
     }
 
     function closeFeedbackModal() {
       document.getElementById('feedback-modal').style.display = 'none';
+      document.getElementById('feedback-modal-body').innerHTML = document.getElementById('feedback-modal-body').innerHTML;
     }
 
     document.getElementById('feedback-modal').addEventListener('click', function(e) {
@@ -332,31 +370,23 @@
     async function submitFeedback() {
       var name = document.getElementById('fb-name').value.trim();
       var message = document.getElementById('fb-message').value.trim();
-      if (!name || !message) {
-        alert('Por favor preencha seu nome e o feedback.');
-        return;
-      }
-
+      if (!name || !message) { alert('Por favor preencha seu nome e o feedback.'); return; }
       var btn = document.getElementById('fb-submit-btn');
       btn.textContent = 'Enviando...';
       btn.disabled = true;
-
       try {
         var res = await fetch(API_BASE + '/api/feedbacks/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: name, message: message })
         });
-
-        if (!res.ok) throw new Error();
-
-        document.getElementById('feedback-modal-body').innerHTML = `
-          <div style="text-align:center;padding:24px 16px;">
-            <div style="font-size:48px;margin-bottom:16px;">✅</div>
-            <div style="font-weight:700;font-size:18px;color:#1e293b;margin-bottom:8px;">Obrigado pelo feedback!</div>
-            <div style="color:#64748b;font-size:14px;margin-bottom:24px;">Sua opinião é muito importante. 🙂</div>
-            <button onclick="closeFeedbackModal()" style="background:#2563eb;color:white;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;font-weight:600;">Fechar</button>
-          </div>`;
+        if (!res.ok) throw new Error('Erro ao enviar');
+        document.getElementById('feedback-modal-body').innerHTML = '<div style="text-align:center;padding:24px 16px;">'
+          + '<div style="font-size:48px;margin-bottom:16px;">✅</div>'
+          + '<div style="font-weight:700;font-size:18px;color:#1e293b;margin-bottom:8px;">Obrigado pelo feedback!</div>'
+          + '<div style="color:#64748b;font-size:14px;margin-bottom:24px;">Sua opinião é muito importante. 🙂</div>'
+          + '<button onclick="closeFeedbackModal()" style="background:#2563eb;color:white;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;font-weight:600;">Fechar</button>'
+          + '</div>';
       } catch(e) {
         btn.textContent = 'Enviar Feedback';
         btn.disabled = false;
