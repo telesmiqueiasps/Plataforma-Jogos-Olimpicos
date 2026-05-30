@@ -678,29 +678,31 @@ def get_champion(championship_id: int, db: Session = Depends(get_db)):
             }
         }
 
-    ko_games = (
+    # Usa TODOS os jogos do mata-mata (incluindo não finalizados) para
+    # determinar a estrutura real do bracket e encontrar a final.
+    all_ko_games = (
         db.query(Game)
         .filter(
             Game.championship_id == championship_id,
             Game.phase == "knockout",
-            Game.status == "finished",
         )
         .order_by(Game.round_number.desc())
         .all()
     )
 
-    if not ko_games:
+    if not all_ko_games:
         return {"champion": None}
 
-    max_round = ko_games[0].round_number or 1
-    last_round_games = [g for g in ko_games if (g.round_number or 1) == max_round]
+    max_round = all_ko_games[0].round_number or 1
+    last_round_games = [g for g in all_ko_games if (g.round_number or 1) == max_round]
 
-    # Só há campeão se a rodada final teve exatamente 1 jogo
+    # Só há campeão se a rodada final teve exatamente 1 jogo (a final)
+    # e esse jogo está encerrado
     if len(last_round_games) != 1:
         return {"champion": None}
 
     final = last_round_games[0]
-    if not final.result:
+    if final.status != "finished" or not final.result:
         return {"champion": None}
 
     if final.result.home_score > final.result.away_score:
