@@ -140,9 +140,9 @@ def _compute_standings(parts: list, games: list, rules: dict) -> list:
             lp = pts_loss_two_wins if loser_sets >= 2 else pts_loss
             return wp, lp
 
-        if home_sets == win_sets:
+        if g.result == "home_win":
             h_tp, a_tp = _table_pts(home_sets, away_sets)
-        elif away_sets == win_sets:
+        elif g.result == "away_win":
             a_tp, h_tp = _table_pts(away_sets, home_sets)
         else:
             h_tp, a_tp = 0, 0
@@ -440,7 +440,15 @@ def register_result(
     elif away_sets_won == win_sets:
         result = "away_win"
     else:
-        result = None  # Jogo ainda em andamento
+        result = None
+
+    finalize = body.get("finalize", True)
+    if finalize and result is None:
+        # Ao encerrar sem vencedor pelo win_sets, determina por maioria de sets
+        if home_sets_won > away_sets_won:
+            result = "home_win"
+        elif away_sets_won > home_sets_won:
+            result = "away_win"
 
     prev_ed = game.extra_data or {}
     game.extra_data = {**prev_ed, "game_type": "tenis_mesa", "sets": sets}
@@ -448,8 +456,7 @@ def register_result(
     game.away_score = away_sets_won
     game.result = result
 
-    finalize = body.get("finalize", True)
-    if finalize and result:
+    if finalize:
         game.status = "finished"
     elif game.status == "scheduled":
         game.status = "live"
