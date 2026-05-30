@@ -307,11 +307,8 @@
                   <h3 style="margin-bottom:14px; font-size:15px;">🁣 Configurações de Dominó</h3>
                   <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="form-group" style="margin:0;">
-                      <label>Melhor de</label>
-                      <select id="cfg-domino-best-of" class="form-control">
-                        <option value="3">Melhor de 3</option>
-                        <option value="5">Melhor de 5</option>
-                      </select>
+                      <label>Pts para vitória</label>
+                      <input type="number" id="cfg-domino-pts-to-win" class="form-control" value="6" min="1">
                     </div>
                     <div class="form-group" style="margin:0;">
                       <label>Classificados por grupo</label>
@@ -1647,8 +1644,8 @@
           document.getElementById('cfg-bg-xadrez').style.display     = bgType_ === 'xadrez'     ? '' : 'none';
           document.getElementById('cfg-bg-tenis_mesa').style.display = bgType_ === 'tenis_mesa' ? '' : 'none';
           if (bgType_ === 'domino') {
-            const bo = document.getElementById('cfg-domino-best-of');
-            if (bo) { bo.value = cfg.best_of ?? 3; }
+            const ptw = document.getElementById('cfg-domino-pts-to-win');
+            if (ptw) { ptw.value = cfg.pts_to_win ?? 6; }
             const el = document.getElementById('cfg-domino-pts-simples'); if (el) el.value = cfg.pts_batida_simples ?? cfg.pts_simples ?? 1;
             const ec = document.getElementById('cfg-domino-pts-caroca'); if (ec) ec.value = cfg.pts_batida_caroca ?? cfg.pts_caroca ?? 2;
             const ell = document.getElementById('cfg-domino-pts-la-e-lo'); if (ell) ell.value = cfg.pts_la_e_lo ?? 3;
@@ -3929,7 +3926,7 @@
         const bgType_ = getBgGameType();
         let data = {};
         if (bgType_ === 'domino') {
-          data.best_of              = Number(document.getElementById('cfg-domino-best-of')?.value || 3);
+          data.pts_to_win           = Number(document.getElementById('cfg-domino-pts-to-win')?.value || 6);
           data.pts_batida_simples   = Number(document.getElementById('cfg-domino-pts-simples')?.value || 1);
           data.pts_batida_caroca    = Number(document.getElementById('cfg-domino-pts-caroca')?.value || 2);
           data.pts_la_e_lo          = Number(document.getElementById('cfg-domino-pts-la-e-lo')?.value || 3);

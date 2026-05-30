@@ -353,7 +353,7 @@ def register_domino_match(
 
     champ = _get_champ_or_404(championship_id, db)
     rules = champ.rules_config or {}
-    best_of = int(rules.get("best_of", 3))
+    pts_to_win = int(rules.get("pts_to_win", 6))
 
     winner = body.get("winner")
     if winner not in ("home", "away"):
@@ -390,11 +390,10 @@ def register_domino_match(
     ed["home_table_points"] = home_tp
     ed["away_table_points"] = away_tp
 
-    needed = (best_of // 2) + 1
     result = None
-    if home_wins >= needed:
+    if home_tp >= pts_to_win:
         result = "home_win"
-    elif away_wins >= needed:
+    elif away_tp >= pts_to_win:
         result = "away_win"
 
     game.extra_data = ed
@@ -433,7 +432,7 @@ def register_domino_batida(
 
     champ = _get_champ_or_404(championship_id, db)
     rules = champ.rules_config or {}
-    best_of = int(rules.get("best_of", 3))
+    pts_to_win = int(rules.get("pts_to_win", 6))
 
     winner = body.get("winner")
     if winner not in ("home", "away"):
@@ -467,11 +466,10 @@ def register_domino_batida(
     ed["home_table_points"] = home_tp
     ed["away_table_points"] = away_tp
 
-    needed = (best_of // 2) + 1
     result = None
-    if home_wins >= needed:
+    if home_tp >= pts_to_win:
         result = "home_win"
-    elif away_wins >= needed:
+    elif away_tp >= pts_to_win:
         result = "away_win"
 
     game.extra_data = ed
@@ -510,6 +508,7 @@ def register_domino_passe(
 
     champ = _get_champ_or_404(championship_id, db)
     rules = champ.rules_config or {}
+    pts_to_win = int(rules.get("pts_to_win", 6))
 
     quem_passou = body.get("quem_passou")
     if quem_passou not in ("home", "away"):
@@ -542,6 +541,15 @@ def register_domino_passe(
     away_tp = sum(e.get("points", 0) for e in events if e.get("winner") == "away" or e.get("beneficiario") == "away")
     ed["home_table_points"] = home_tp
     ed["away_table_points"] = away_tp
+
+    result = None
+    if home_tp >= pts_to_win:
+        result = "home_win"
+    elif away_tp >= pts_to_win:
+        result = "away_win"
+    game.result = result
+    if result:
+        game.status = "finished"
 
     game.extra_data = ed
     db.commit()
